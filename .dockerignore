@@ -18,3 +18,16 @@ web/dist
 **/*.cred
 **/.env
 **/.env.*
+# Defense in depth: exclude weights even when misplaced outside models/.
+**/*.[gG][gG][uU][fF]
+**/*.[gG][gG][mM][lL]
+**/*.[sS][aA][fF][eE][tT][eE][nN][sS][oO][rR][sS]
+**/*.[pP][tT]
+**/*.[pP][tT][hH]
+**/*.[cC][kK][pP][tT]
+**/*.[bB][iI][nN]
+**/*.[oO][nN][nN][xX]
+**/*.[hH]5
+**/*.[hH][dD][fF]5
+**/*.[tT][fF][lL][iI][tT][eE]
+**/*.[nN][pP][zZ]

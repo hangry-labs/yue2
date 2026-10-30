@@ -29,6 +29,21 @@ For Bash, use `--mount "type=bind,source=$(pwd)/models,target=/models,readonly"`
 No image is published yet. The local tag is yue2:dev. Models are not baked in
 and are not automatically downloaded by the server; task models handles that.
 
+## Weight-free packaging
+
+The runtime build must pass `scripts/check_no_weights.py` before Docker can
+produce the final image. This applies to `task build`, direct Docker builds
+and the CI publication workflow. The checker inspects the assembled image
+filesystem, including the base image, for common weight extensions (GGUF,
+SafeTensors, PyTorch checkpoints, ONNX, `.bin` and others) and GGUF/GGML file
+headers even when a file has been renamed. A match or an unreadable file fails
+the build and identifies the offending path. Python stays in the checking stage.
+
+The Docker context also excludes those extensions everywhere, in addition to
+the entire `models/`, `checkpoints/` and `adapters/` directories. Model downloads
+and read-only runtime mounts are unaffected. These checks catch common accidental
+inclusions; they do not identify every possible encoding or inspect archives.
+
 ## Runtime settings
 
 Default model filenames are /models/YuE2-3B-Q8_0.gguf and

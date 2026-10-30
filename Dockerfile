@@ -66,7 +66,7 @@ RUN --mount=type=cache,id=yue2-native-cuda,target=/build,sharing=locked \
     && cp vendor/yyjson/yyjson.h /out/licenses/yyjson.h \
     && cp vendor/minimp3/minimp3.h /out/licenses/minimp3.h
 
-FROM nvidia/cuda:12.9.1-runtime-ubuntu24.04 AS runtime
+FROM nvidia/cuda:12.9.1-runtime-ubuntu24.04 AS runtime-unchecked
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libgomp1 libstdc++6 curl \
     && rm -rf /var/lib/apt/lists/* \
@@ -87,3 +87,14 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \
     CMD curl --fail --silent http://127.0.0.1:8087/health || exit 1
 ENTRYPOINT ["yue-server"]
 CMD ["--host", "0.0.0.0", "--port", "8087", "--model", "/models/YuE2-3B-Q8_0.gguf", "--vae", "/models/YuE2-Vae-F32.gguf", "--adapters", "/adapters"]
+
+# Inspect the assembled filesystem without adding Python to the shipped image.
+FROM python:3.13-slim AS weights-check
+COPY scripts/check_no_weights.py /check_no_weights.py
+RUN --mount=type=bind,from=runtime-unchecked,source=/,target=/image \
+    python /check_no_weights.py /image \
+    && printf 'Model-weight packaging check passed\n' > /weights-check.txt
+
+# This dependency makes the check mandatory for default and --target runtime builds.
+FROM runtime-unchecked AS runtime
+COPY --from=weights-check /weights-check.txt /opt/yue/licenses/weights-check.txt

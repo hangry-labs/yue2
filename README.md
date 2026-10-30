@@ -30,6 +30,8 @@ The first build compiles CUDA kernels and can take several minutes.
 `task init` verifies/downloads the two pinned GGUF files into `models/` and
 builds `yue2:dev`. Downloads total approximately 4.34 GB. Cached models are
 verified and reused. Models remain outside the image and are mounted read-only.
+Every runtime image build checks the assembled filesystem and fails if it finds
+model-weight filenames or GGUF/GGML headers. See [packaging safeguards](docs/DOCKER.md#weight-free-packaging).
 
 There is one image variant. No registry image has been published yet; the
 commands above build locally. See [Docker details](docs/DOCKER.md).
