@@ -1,7 +1,6 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
 	import DialogButton from './DialogButton.svelte';
-
 	let {
 		open = $bindable(false),
 		title,
@@ -15,91 +14,79 @@
 		actions?: Snippet<[() => void]>;
 		onConfirm?: () => void;
 	} = $props();
-
-	let root = $state<HTMLDivElement>();
-
+	let root: HTMLDialogElement;
 	function cancel() {
 		open = false;
 	}
-
 	function confirm() {
 		open = false;
 		onConfirm?.();
 	}
-
-	// Same outside-click pattern as Menu.svelte. Listeners attach only while
-	// open so closed dialogs cost nothing globally. Escape always cancels.
-	// Enter confirms only when the default Cancel/OK footer is in use; with a
-	// custom actions snippet the user picks an explicit button.
 	$effect(() => {
-		if (!open) return;
-		const onMouseDown = (e: MouseEvent) => {
-			if (!root?.contains(e.target as Node)) cancel();
-		};
-		const onKey = (e: KeyboardEvent) => {
-			if (e.key === 'Escape') cancel();
-			else if (e.key === 'Enter' && !actions) confirm();
-		};
-		document.addEventListener('mousedown', onMouseDown);
-		document.addEventListener('keydown', onKey);
-		return () => {
-			document.removeEventListener('mousedown', onMouseDown);
-			document.removeEventListener('keydown', onKey);
-		};
+		if (open && !root.open) root.showModal();
+		else if (!open && root.open) root.close();
 	});
+	function outside(event: MouseEvent) {
+		if (event.target !== root) return;
+		const rect = root.getBoundingClientRect();
+		if (
+			event.clientX < rect.left ||
+			event.clientX > rect.right ||
+			event.clientY < rect.top ||
+			event.clientY > rect.bottom
+		)
+			cancel();
+	}
 </script>
 
-{#if open}
-	<div class="dialog-overlay">
-		<div class="dialog" bind:this={root}>
-			<div class="dialog-title">{title}</div>
-			{#if body}
-				<div class="dialog-body">{@render body()}</div>
-			{/if}
-			<div class="dialog-footer">
-				{#if actions}
-					{@render actions(cancel)}
-				{:else}
-					<DialogButton onclick={cancel}>Cancel</DialogButton>
-					<DialogButton onclick={confirm}>OK</DialogButton>
-				{/if}
-			</div>
-		</div>
+<dialog
+	bind:this={root}
+	aria-label={title}
+	onclose={cancel}
+	onmousedown={outside}
+	onkeydown={(event) => {
+		if (event.key === 'Enter' && !actions && !(event.target instanceof HTMLTextAreaElement)) {
+			event.preventDefault();
+			confirm();
+		}
+	}}
+>
+	<div class="dialog-title">{title}</div>
+	{#if body}<div class="dialog-body">{@render body()}</div>{/if}
+	<div class="dialog-footer">
+		{#if actions}{@render actions(cancel)}{:else}<DialogButton onclick={cancel}>Cancel</DialogButton
+			><DialogButton onclick={confirm}>OK</DialogButton>{/if}
 	</div>
-{/if}
+</dialog>
 
 <style>
-	.dialog-overlay {
-		position: fixed;
-		inset: 0;
-		background: rgba(0, 0, 0, 0.5);
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		z-index: 100;
-	}
-	.dialog {
+	dialog {
+		width: min(90vw, 440px);
+		max-height: 85dvh;
+		padding: 22px;
 		background: var(--bg-card);
-		border-radius: 4px;
-		box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
-		padding: 0.75rem;
-		min-width: 16rem;
-		max-width: min(90vw, 28rem);
-		display: flex;
-		flex-direction: column;
-		gap: 0.5rem;
+		color: var(--fg);
+		border: 1px solid var(--border);
+		border-radius: 8px;
+		box-shadow: 0 14px 60px #0005;
+	}
+	dialog::backdrop {
+		background: #0009;
+		backdrop-filter: blur(3px);
 	}
 	.dialog-title {
-		font-size: 0.85rem;
-		color: var(--fg);
+		font-size: 0.9rem;
+		font-weight: 650;
 	}
 	.dialog-body {
+		margin-top: 16px;
 		font-size: 0.8rem;
-		color: var(--fg);
+		line-height: 1.6;
 	}
 	.dialog-footer {
 		display: flex;
 		justify-content: flex-end;
-		gap: 0.4rem;
+		gap: 8px;
+		margin-top: 22px;
 	}
 </style>

@@ -51,6 +51,7 @@ export interface Yue2Props {
 	sample_rate: number;
 	frame_rate: number;
 	context: number;
+	capabilities?: { transcribe: boolean; tokenize: boolean; vae: boolean };
 	// the adapter directory, each entry with the halves it changes
 	adapters: { name: string; ar: boolean; nar: boolean }[];
 	defaults: Yue2Request;

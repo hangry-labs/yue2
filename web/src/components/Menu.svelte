@@ -87,7 +87,7 @@
 		background: none;
 		border: none;
 		cursor: pointer;
-		padding: 0.15rem;
+		padding: 0.4rem;
 		color: var(--fg);
 		display: flex;
 		align-items: center;
@@ -103,7 +103,10 @@
 		right: 0;
 		background: var(--bg-card);
 		box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
-		border-radius: 3px;
+		border-radius: 6px;
+		border: 1px solid var(--border);
+		padding: 5px;
+		max-width: calc(100vw - 50px);
 		display: flex;
 		flex-direction: column;
 		min-width: 8rem;
@@ -113,11 +116,12 @@
 		background: none;
 		border: none;
 		cursor: pointer;
-		padding: 0.15rem 0.5rem;
+		padding: 0.6rem 0.5rem;
 		color: var(--fg);
 		text-align: left;
 		font-size: 0.8rem;
-		white-space: nowrap;
+		white-space: normal;
+		min-width: 190px;
 		display: flex;
 		align-items: center;
 		gap: 0.4rem;

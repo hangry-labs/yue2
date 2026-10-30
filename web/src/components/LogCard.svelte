@@ -33,7 +33,11 @@
 </script>
 
 <div class="card">
-	<button class="card-header" onclick={() => (app.logsOpen = !app.logsOpen)}>
+	<button
+		class="card-header"
+		aria-expanded={app.logsOpen}
+		onclick={() => (app.logsOpen = !app.logsOpen)}
+	>
 		{#if app.logsOpen}
 			<ChevronDown size={14} />
 		{:else}
@@ -50,8 +54,8 @@
 	.card {
 		display: flex;
 		flex-direction: column;
-		border: none;
-		border-radius: 4px;
+		border: 1px solid var(--border);
+		border-radius: 7px;
 		background: var(--bg-card);
 		overflow: hidden;
 	}
@@ -59,7 +63,7 @@
 		display: flex;
 		align-items: center;
 		gap: 0.4rem;
-		padding: 0.3rem 0.5rem;
+		padding: 13px 16px;
 		background: var(--bg-input);
 		border: none;
 		cursor: pointer;
@@ -75,7 +79,9 @@
 	}
 	.log-body {
 		margin: 0;
-		padding: 0.4rem 0.5rem;
+		padding: 14px 16px;
+		max-height: 350px;
+		overflow-y: auto;
 		font-family: monospace;
 		font-size: 0.7rem;
 		line-height: 1.4;

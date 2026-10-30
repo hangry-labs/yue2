@@ -15,9 +15,10 @@
 <style>
 	button {
 		background: var(--bg-btn);
-		border: none;
+		border: 1px solid var(--border);
 		cursor: pointer;
-		padding: 0.2rem 0.6rem;
+		padding: 8px 13px;
+		min-height: 36px;
 		color: var(--fg);
 		font-size: 0.8rem;
 		border-radius: 3px;

@@ -15,6 +15,7 @@ Python helpers use the standard library; Python is not added to the inference im
 | task start | Start the default server or replace an older project image |
 | task stop / status / logs | Operate this project's container |
 | task test | Tooling tests and GGML snapshot verification |
+| task test:api | Read-only capabilities and GPU telemetry checks against the running server |
 | task check:cpu | Compile all native targets and check executable loading in Docker |
 | task web:check | Check Svelte/TypeScript and formatting in Node Docker |
 | task web:build | Regenerate the embedded UI asset in Node Docker |
@@ -42,6 +43,7 @@ Dockerfile stages:
 - source: selects source files; excludes models and local state.
 - cpu-checks: compiles all native targets and verifies startup without weights.
 - build: C++17/CUDA 12.9.1 compilation with CMake, Ninja and ccache.
+- weights-check: verifies the assembled image contains no common model-weight files.
 - runtime: CUDA runtime, native executables, notices and embedded UI.
 
 BuildKit cache mounts retain native object files and compiler cache locally.

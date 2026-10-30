@@ -14,6 +14,7 @@
 		Cpu
 	} from '@lucide/svelte';
 	import { app, setRequest, toast } from '../lib/state.svelte.js';
+	import { ui } from '../lib/ui.svelte.js';
 	import {
 		transcribeSubmit,
 		tokenizeSubmit,
@@ -73,6 +74,7 @@
 	}
 
 	function load() {
+		ui.view = 'create';
 		app.name = song.name;
 		setRequest({ ...song.request });
 	}
@@ -229,9 +231,30 @@
 			onSelect: downloadLatents,
 			disabled: !song.latents
 		},
-		{ icon: Music, label: 'Transcribe score', onSelect: () => transcribe(false) },
-		{ icon: Music, label: 'Transcribe melody', onSelect: () => transcribe(true) },
-		{ icon: AudioWaveform, label: 'Tokenize audio', onSelect: tokenize },
+		{
+			icon: Music,
+			label: app.props?.capabilities?.transcribe
+				? 'Transcribe score'
+				: 'Transcribe score (model unavailable)',
+			onSelect: () => transcribe(false),
+			disabled: !app.props?.capabilities?.transcribe
+		},
+		{
+			icon: Music,
+			label: app.props?.capabilities?.transcribe
+				? 'Transcribe melody'
+				: 'Transcribe melody (model unavailable)',
+			onSelect: () => transcribe(true),
+			disabled: !app.props?.capabilities?.transcribe
+		},
+		{
+			icon: AudioWaveform,
+			label: app.props?.capabilities?.tokenize
+				? 'Tokenize audio'
+				: 'Tokenize audio (model unavailable)',
+			onSelect: tokenize,
+			disabled: !app.props?.capabilities?.tokenize
+		},
 		{ icon: Trash2, label: 'Delete this track', onSelect: () => (confirmDeleteOpen = true) },
 		{
 			icon: TriangleAlert,
@@ -243,7 +266,12 @@
 
 <div class="card">
 	<div class="card-header">
-		<button class="icon-btn" onclick={toggle} title={playing ? 'Stop' : 'Play'}>
+		<button
+			class="icon-btn play-btn"
+			onclick={toggle}
+			title={playing ? 'Stop' : 'Play'}
+			aria-label={`${playing ? 'Stop' : 'Play'} ${song.name}`}
+		>
 			{#if playing}
 				<Square size={14} />
 			{:else}
@@ -258,6 +286,7 @@
 			class="icon-btn"
 			onclick={toggleFavorite}
 			title={song.favorite ? 'Unfavorite' : 'Favorite'}
+			aria-label={song.favorite ? `Unfavorite ${song.name}` : `Favorite ${song.name}`}
 		>
 			<Heart size={14} fill={song.favorite ? 'currentColor' : 'none'} />
 		</button>
@@ -283,9 +312,12 @@
 					type="checkbox"
 					class="ref-check"
 					checked={isSrc}
+					disabled={!song.request.semantic_tokens && !app.props?.capabilities?.tokenize}
 					onchange={toggleSrc}
-					title="Source of a continuation"
-				/> Src audio</label
+					title={song.request.semantic_tokens
+						? 'Use a section of this song to start a continuation'
+						: 'Audio tokenization requires the optional tokenizer model'}
+				/> Continuation source</label
 			>
 		</div>
 	</div>
@@ -309,10 +341,10 @@
 	.card {
 		display: flex;
 		flex-direction: column;
-		gap: 0.25rem;
-		padding: 0.5rem;
-		border: none;
-		border-radius: 4px;
+		gap: 0.75rem;
+		padding: 14px;
+		border: 1px solid var(--border);
+		border-radius: 7px;
 		background: var(--bg-card);
 	}
 	.card-header {
@@ -322,11 +354,13 @@
 	}
 	.card-footer {
 		display: flex;
+		flex-wrap: wrap;
 		align-items: center;
 		gap: 0.4rem;
 	}
 	.card-name {
 		font-size: 0.8rem;
+		font-weight: 600;
 		white-space: nowrap;
 		overflow: hidden;
 		text-overflow: ellipsis;
@@ -371,7 +405,20 @@
 		font-size: 0.8rem;
 	}
 	.icon-btn:hover {
-		color: var(--focus);
+		color: var(--accent-hover);
+	}
+	.play-btn {
+		justify-content: center;
+		width: 34px;
+		height: 34px;
+		border-radius: 50%;
+		background: var(--accent);
+		color: #211006;
+		flex-shrink: 0;
+	}
+	.play-btn:hover {
+		background: var(--accent-hover);
+		color: #211006;
 	}
 	.rename-input {
 		width: 100%;

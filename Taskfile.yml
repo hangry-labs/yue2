@@ -61,6 +61,11 @@ tasks:
   test1:
     desc: Run the fixed-seed 8-step music baseline in Docker
     cmds: ['"{{.PYTHON}}" benchmarks/test1.py --image "{{.IMAGE}}" --lm-seed "{{.LM_SEED}}" --seed "{{.SEED}}"']
+  test:api:
+    desc: Check capabilities and GPU telemetry against the running local server
+    env:
+      YUE2_TEST_URL: 'http://127.0.0.1:{{.PORT}}'
+    cmds: ['"{{.PYTHON}}" -m unittest discover -s tests/integration -v']
   test1:prepare:
     desc: Prepare the baseline request without using Docker or a GPU
     cmds: ['"{{.PYTHON}}" benchmarks/test1.py --prepare-only --lm-seed "{{.LM_SEED}}" --seed "{{.SEED}}"']

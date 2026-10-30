@@ -100,9 +100,8 @@
 		e.preventDefault();
 	}
 
-	// redraw when theme or selectable state changes
+	// redraw when selectable state changes
 	$effect(() => {
-		app.dark;
 		selectable;
 		svelteTick().then(() => {
 			if (peaks.length > 0) draw();

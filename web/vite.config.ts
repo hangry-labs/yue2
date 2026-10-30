@@ -67,6 +67,7 @@ export default defineConfig({
 	// dev server: proxy yue-server endpoints
 	server: {
 		proxy: {
+			'/system': 'http://localhost:8087',
 			'/synth': 'http://localhost:8087',
 			'/job': 'http://localhost:8087',
 			'/health': 'http://localhost:8087',

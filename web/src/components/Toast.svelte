@@ -3,11 +3,12 @@
 </script>
 
 {#if app.toast}
-	<div class="toast" class:ok={app.toastOk}>{app.toast}</div>
+	<div class="toast" role="status" aria-live="polite" class:ok={app.toastOk}>{app.toast}</div>
 {/if}
 
 <style>
 	.toast {
+		max-width: calc(100vw - 32px);
 		position: fixed;
 		bottom: 1.5rem;
 		left: 50%;

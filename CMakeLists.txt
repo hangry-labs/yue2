@@ -148,9 +148,14 @@ add_custom_command(
 set_source_files_properties(${WEBUI_OUTPUT} PROPERTIES GENERATED TRUE)
 
 # yue-server: HTTP server (single slot job queue + embedded webui)
-add_executable(yue-server src/cli/yue-server.cpp src/request.cpp src/model-store.cpp ${WEBUI_OUTPUT})
+add_executable(yue-server src/cli/yue-server.cpp src/request.cpp src/model-store.cpp src/system-gpu.cpp ${WEBUI_OUTPUT})
 target_include_directories(yue-server PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
-target_link_libraries(yue-server PRIVATE yyjson httplib)
+target_link_libraries(yue-server PRIVATE yyjson httplib ${CMAKE_DL_LIBS})
+if(GGML_CUDA AND CMAKE_SYSTEM_NAME STREQUAL "Linux")
+    find_package(CUDAToolkit REQUIRED)
+    target_include_directories(yue-server PRIVATE ${CUDAToolkit_INCLUDE_DIRS})
+    target_compile_definitions(yue-server PRIVATE YUE2_NVML=1)
+endif()
 link_ggml_backends(yue-server)
 
 # neural-codec: Oobleck VAE neural audio codec (audio <-> latent)

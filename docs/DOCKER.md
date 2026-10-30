@@ -76,6 +76,20 @@ The health check calls /health. It proves liveness, not a successful generation.
 task test1 performs a full model-dependent generation. See
 [BENCHMARKS.md](BENCHMARKS.md) for measured results.
 
+System in the browser studio shows read-only NVIDIA telemetry from
+`GET /system/gpu`. The native server uses NVML from the host driver, loaded
+on demand, with no shell commands or background sampler. Requests share a
+one-second cache and at most ten minutes of sampled history. The browser polls
+only while System and the document are visible; missing sensors remain null.
+The endpoint uses `Cache-Control: no-store`. CPU-only builds or containers
+without the NVIDIA monitoring library return an empty GPU list and an
+unavailable message. GPU visibility can include other workloads on the device.
+
+`GET /props` now includes `capabilities.transcribe`, `capabilities.tokenize`
+and `capabilities.vae`, so optional actions can be disabled before submission.
+Configured model paths indicate configuration rather than current VRAM residency.
+Run `task test:api` for read-only checks against the running local server.
+
 The image is weight-free but the general CUDA runtime base is still sizeable.
 Runtime library trimming remains future packaging work; there is only one image
 variant. CUDA/base-image and dependency terms remain applicable.

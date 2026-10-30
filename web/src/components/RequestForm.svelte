@@ -1,9 +1,9 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
+	import { onMount, type Snippet } from 'svelte';
 	import { parse as yamlParse, stringify as yamlStringify } from 'yaml';
 	import { RotateCcw, Download, FolderOpen, X } from '@lucide/svelte';
 	import { app, toast, setRequest } from '../lib/state.svelte.js';
-	import { example } from '../lib/example.js';
+	import { example, applyExample } from '../lib/example.js';
 	import {
 		synthSubmit,
 		pollJob,
@@ -20,7 +20,12 @@
 	import Dialog from './Dialog.svelte';
 	import DialogButton from './DialogButton.svelte';
 
+	let { library = false, children }: { library?: boolean; children?: Snippet } = $props();
 	let busy = $state(false);
+	let mobileSettingsOpen = $state(false);
+	$effect(() => {
+		app.generating = busy;
+	});
 	let fileInput: HTMLInputElement;
 	let saveFormatOpen = $state(false);
 	let takeOpen = $state(false);
@@ -248,8 +253,7 @@
 	// the song after it
 	function pickExample() {
 		const ex = example();
-		setRequest(ex.request);
-		app.name = ex.title;
+		applyExample(ex);
 	}
 
 	// Generate: submit the request, poll until done, land the song card.
@@ -350,7 +354,7 @@
 	}
 </script>
 
-<form class="request-form" onsubmit={(e) => e.preventDefault()}>
+<div class="request-form" class:library>
 	<input
 		type="file"
 		accept=".json,.yml,.yaml,.mp3,.wav,.vae"
@@ -358,391 +362,423 @@
 		onchange={onFileSelected}
 		hidden
 	/>
-	<div class="toolbar">
-		<button type="button" onclick={importJson} title="Open JSON/YAML prompt"
-			><FolderOpen size={14} /> Open</button
-		>
+	<aside class="settings-rail" hidden={library} aria-label="Generation settings">
+		<h2 class="section-heading rail-heading">Generation setup</h2>
 		<button
 			type="button"
-			onclick={() => (saveFormatOpen = true)}
-			title="Save prompt as JSON or YAML"><Download size={14} /> Save</button
+			class="settings-toggle"
+			aria-expanded={mobileSettingsOpen}
+			aria-controls="generation-settings"
+			onclick={() => (mobileSettingsOpen = !mobileSettingsOpen)}
+			>Generation setup <span>{mobileSettingsOpen ? 'Hide settings −' : 'Show settings +'}</span
+			></button
 		>
-		<button type="button" onclick={reset} title="Reset prompt"><RotateCcw size={14} /> Reset</button
-		>
-	</div>
-
-	{#if adapterList.length}
-		<details>
-			<summary>Models</summary>
-			<div class="details-body">
-				{#each adapterRows as a, i}
-					<div class="field-row">
-						<span class="field-label">LoRA</span>
-						<select
-							class="field-select"
-							value={a.name}
-							onchange={(e) => pickAdapter(i, e.currentTarget.value)}
-							title="Adapter merged into the halves it changes at load time. Scanned from the --adapters directory: a .safetensors file, or a folder holding one next to its adapter_config.json."
-						>
-							<option value="">Disabled</option>
-							{#if a.name && !adapterList.some((e) => e.name === a.name)}
-								<option value={a.name} disabled>{a.name}</option>
-							{/if}
-							{#each adapterList as e}
-								<option value={e.name}>{e.name} ({halves(e)})</option>
-							{/each}
-						</select>
-						{#if a.name && app.request.adapters}
-							<input
-								type="text"
-								class="scale-input"
-								placeholder="1.0"
-								bind:value={app.request.adapters[i].scale}
-								title="Adapter strength. Lower it if you hear artifacts, raise it for a stronger effect."
-							/>
-						{/if}
+		<div id="generation-settings" class="rail-content" class:mobile-collapsed={!mobileSettingsOpen}>
+			<div class="model-info">
+				<strong>{app.props?.model.split(/[/\\]/).pop() || 'Connecting to local service…'}</strong
+				><span>CUDA · 48 kHz stereo</span><span>Blank values use the server defaults.</span>
+			</div>
+			{#if adapterList.length}
+				<details>
+					<summary>Models</summary>
+					<div class="details-body">
+						{#each adapterRows as a, i}
+							<div class="field-row">
+								<span class="field-label">LoRA</span>
+								<select
+									class="field-select"
+									value={a.name}
+									onchange={(e) => pickAdapter(i, e.currentTarget.value)}
+									title="Adapter merged into the halves it changes at load time. Scanned from the --adapters directory: a .safetensors file, or a folder holding one next to its adapter_config.json."
+								>
+									<option value="">Disabled</option>
+									{#if a.name && !adapterList.some((e) => e.name === a.name)}
+										<option value={a.name} disabled>{a.name}</option>
+									{/if}
+									{#each adapterList as e}
+										<option value={e.name}>{e.name} ({halves(e)})</option>
+									{/each}
+								</select>
+								{#if a.name && app.request.adapters}
+									<input
+										type="text"
+										class="scale-input"
+										placeholder="1.0"
+										bind:value={app.request.adapters[i].scale}
+										title="Adapter strength. Lower it if you hear artifacts, raise it for a stronger effect."
+									/>
+								{/if}
+							</div>
+						{/each}
 					</div>
-				{/each}
+				</details>
+			{/if}
+			<div class="section-title section-header">
+				Composition settings
+				<button
+					type="button"
+					class="clear-btn"
+					title="Clear Composition settings"
+					onclick={clearLm}
+					aria-label="Clear Composition settings"
+				>
+					<X size={20} />
+				</button>
 			</div>
+			<div class="field-row">
+				<label class="field-label" for="composition-mode">Mode</label>
+				<select
+					class="field-select"
+					value={cot}
+					onchange={(e) => (app.request.cot = e.currentTarget.value)}
+					title="What the autoregressive half writes before the codes."
+				>
+					<option value={COT_FULL}>Full: the score carries the chords</option>
+					<option value={COT_MELODY}>Melody: the score carries no chords</option>
+					<option value={COT_OFF}>Off: no score, written or supplied</option>
+				</select>
+			</div>
+			<div class="meta-grid">
+				<label
+					>Duration <input
+						type="text"
+						placeholder={ph(d?.duration)}
+						bind:value={app.request.duration}
+						title="Target length in seconds. The model can end the song earlier."
+					/></label
+				>
+				<label
+					>LM batch <input
+						type="text"
+						placeholder={ph(d?.lm_batch_size)}
+						bind:value={app.request.lm_batch_size}
+						title="Songs drawn from this prompt, each with its own score and codes, seeds LM seed + index."
+					/></label
+				>
+				<label
+					>LM seed <input
+						type="text"
+						placeholder={ph(d?.lm_seed)}
+						bind:value={app.request.lm_seed}
+						title="Seed of the token draw: the score, the melody and the length come from this one."
+					/></label
+				>
+			</div>
+			<details class="has-clear">
+				<summary>Score sampling</summary>
+				<button
+					type="button"
+					class="clear-btn details-clear"
+					title="Clear score sampling"
+					onclick={clearScoreSampling}
+					aria-label="Clear score sampling"
+				>
+					<X size={20} />
+				</button>
+				<div class="details-body">
+					<div class="meta-grid">
+						<label
+							>Temperature <input
+								type="text"
+								placeholder={ph(d?.abc_sampling?.temperature)}
+								bind:value={app.request.abc_sampling.temperature}
+							/></label
+						>
+						<label
+							>Top P <input
+								type="text"
+								placeholder={ph(d?.abc_sampling?.top_p)}
+								bind:value={app.request.abc_sampling.top_p}
+							/></label
+						>
+						<label
+							>Top K <input
+								type="text"
+								placeholder={ph(d?.abc_sampling?.top_k)}
+								bind:value={app.request.abc_sampling.top_k}
+							/></label
+						>
+						<label
+							>Repetition penalty <input
+								type="text"
+								placeholder={ph(d?.abc_sampling?.repetition_penalty)}
+								bind:value={app.request.abc_sampling.repetition_penalty}
+							/></label
+						>
+						<label
+							>Penalty window <input
+								type="text"
+								placeholder={ph(d?.abc_sampling?.penalty_window)}
+								bind:value={app.request.abc_sampling.penalty_window}
+							/></label
+						>
+						<label
+							>Min tokens <input
+								type="text"
+								placeholder={ph(d?.abc_sampling?.min_tokens)}
+								bind:value={app.request.abc_sampling.min_tokens}
+							/></label
+						>
+						<label
+							>Max tokens <input
+								type="text"
+								placeholder={ph(d?.abc_sampling?.max_tokens)}
+								bind:value={app.request.abc_sampling.max_tokens}
+							/></label
+						>
+					</div>
+				</div>
+			</details>
+			<details class="has-clear">
+				<summary>Semantic sampling</summary>
+				<button
+					type="button"
+					class="clear-btn details-clear"
+					title="Clear semantic sampling"
+					onclick={clearSemantic}
+					aria-label="Clear semantic sampling"
+				>
+					<X size={20} />
+				</button>
+				<div class="details-body">
+					<div class="meta-grid">
+						<label
+							>CFG scale <input
+								type="text"
+								placeholder={ph(d?.cfg_scale)}
+								bind:value={app.request.cfg_scale}
+								title="Guidance of the stage. Exactly 1 keeps a single branch and halves the cost."
+							/></label
+						>
+						<label
+							>Temperature <input
+								type="text"
+								placeholder={ph(d?.semantic_sampling?.temperature)}
+								bind:value={app.request.semantic_sampling.temperature}
+							/></label
+						>
+						<label
+							>Top P <input
+								type="text"
+								placeholder={ph(d?.semantic_sampling?.top_p)}
+								bind:value={app.request.semantic_sampling.top_p}
+							/></label
+						>
+						<label
+							>Top K <input
+								type="text"
+								placeholder={ph(d?.semantic_sampling?.top_k)}
+								bind:value={app.request.semantic_sampling.top_k}
+							/></label
+						>
+						<label
+							>Repetition penalty <input
+								type="text"
+								placeholder={ph(d?.semantic_sampling?.repetition_penalty)}
+								bind:value={app.request.semantic_sampling.repetition_penalty}
+							/></label
+						>
+						<label
+							>Penalty window <input
+								type="text"
+								placeholder={ph(d?.semantic_sampling?.penalty_window)}
+								bind:value={app.request.semantic_sampling.penalty_window}
+							/></label
+						>
+						<label
+							>Min tokens <input
+								type="text"
+								placeholder={ph(d?.semantic_sampling?.min_tokens)}
+								bind:value={app.request.semantic_sampling.min_tokens}
+							/></label
+						>
+						<label
+							>Max tokens <input
+								type="text"
+								placeholder={ph(d?.semantic_sampling?.max_tokens)}
+								bind:value={app.request.semantic_sampling.max_tokens}
+							/></label
+						>
+					</div>
+					<label
+						>Audio codes
+						<textarea
+							rows="4"
+							placeholder="Filled when reusing a rendered song. Do not edit unless you know what you are doing."
+							bind:value={app.request.semantic_tokens}
+						></textarea>
+					</label>
+				</div>
+			</details>
+			<details class="has-clear">
+				<summary>Advanced and post-processing</summary>
+				<button
+					type="button"
+					class="clear-btn details-clear"
+					title="Clear advanced and post-processing"
+					onclick={clearPost}
+					aria-label="Clear advanced and post-processing"
+				>
+					<X size={20} />
+				</button>
+				<div class="details-body">
+					<div class="meta-grid">
+						<label
+							>Steps <input
+								type="text"
+								placeholder={ph(d?.steps)}
+								bind:value={app.request.steps}
+								title="Midpoint steps of the acoustic ODE."
+							/></label
+						>
+						<label
+							>Batch <input
+								type="text"
+								placeholder={ph(d?.synth_batch_size)}
+								bind:value={app.request.synth_batch_size}
+								title="Noise variations per song on the same codes, seeds noise seed + index, 9 at most."
+							/></label
+						>
+						<label
+							>Noise seed <input
+								type="text"
+								placeholder={ph(d?.seed)}
+								bind:value={app.request.seed}
+								title="Seed of the acoustic noise. Change it to re-render the same song differently."
+							/></label
+						>
+						<label
+							>Source start <input
+								type="text"
+								placeholder={ph(d?.source_start)}
+								bind:value={app.request.source_start}
+								title="Seconds into the Src audio card where the section opening the song starts. Drag on its waveform to set the section."
+							/></label
+						>
+						<label
+							>Source end <input
+								type="text"
+								placeholder={ph(d?.source_end)}
+								bind:value={app.request.source_end}
+								title="Seconds into the Src audio card where the section ends and the model writes on, -1 its end."
+							/></label
+						>
+						<label
+							>Peak clip <input
+								type="text"
+								placeholder={ph(d?.peak_clip)}
+								bind:value={app.request.peak_clip}
+							/></label
+						>
+						<label
+							>MP3 bitrate <input
+								type="text"
+								placeholder={ph(d?.mp3_bitrate)}
+								bind:value={app.request.mp3_bitrate}
+							/></label
+						>
+						<label
+							>Format <select
+								bind:value={app.format}
+								title="Output audio format. WAV32 outputs raw IEEE float without normalization."
+							>
+								<option value="mp3">MP3</option>
+								<option value="wav16">WAV16</option>
+								<option value="wav24">WAV24</option>
+								<option value="wav32">WAV32</option>
+							</select></label
+						>
+					</div>
+				</div>
+			</details>
+			<p class="field-help">Model files and runtime details are in System.</p>
+		</div>
+	</aside>
+	<section class="composer" hidden={library} aria-label="Song composition">
+		<div class="composer-heading">
+			<h2>Compose a song</h2>
+			<div class="toolbar">
+				<button type="button" onclick={importJson} title="Open JSON/YAML prompt"
+					><FolderOpen size={14} /> Open</button
+				>
+				<button
+					type="button"
+					onclick={() => (saveFormatOpen = true)}
+					title="Save prompt as JSON or YAML"><Download size={14} /> Save</button
+				>
+				<button type="button" onclick={reset} title="Reset prompt"
+					><RotateCcw size={14} /> Reset</button
+				>
+			</div>
+		</div>
+		<label class="section-title" for="song-name">Song name</label>
+		<input id="song-name" type="text" bind:value={app.name} placeholder="Untitled" />
+		<label class="section-title" for="song-style">Musical direction</label>
+		<textarea
+			id="song-style"
+			rows="3"
+			placeholder="English, warm piano pop, expressive female voice, acoustic piano..."
+			bind:value={app.request.style}
+		></textarea>
+		<label class="section-title" for="song-lyrics">Lyrics</label>
+		<textarea
+			id="song-lyrics"
+			rows="11"
+			placeholder={'[Verse]\nWrite your lyrics here...'}
+			bind:value={app.request.lyrics}
+		></textarea>
+		<details class="score-editor">
+			<summary>Score · optional ABC notation</summary>
+			<div class="section-title section-header">
+				Score
+				<button
+					type="button"
+					class="clear-btn"
+					title="Clear score"
+					onclick={clearScoreText}
+					aria-label="Clear score"
+				>
+					<X size={20} />
+				</button>
+			</div>
+			<textarea
+				aria-label="ABC score"
+				rows="6"
+				placeholder={'ABC notation. Left empty the model writes one.\nX:1\nL:1/8\nM:4/4\nK:Cmaj\n"C"c2 e2 g2 c\'2|'}
+				bind:value={app.request.abc}
+			></textarea>
 		</details>
-	{/if}
-
-	<div class="section-title">Name</div>
-	<input type="text" bind:value={app.name} placeholder="Untitled" />
-
-	<div class="section-title">Style</div>
-	<textarea
-		rows="8"
-		placeholder="English, warm piano pop, expressive female voice, acoustic piano..."
-		bind:value={app.request.style}
-	></textarea>
-
-	<div class="section-title">Lyrics</div>
-	<textarea
-		rows="8"
-		placeholder={'[Verse]\nWrite your lyrics here...'}
-		bind:value={app.request.lyrics}
-	></textarea>
-
-	<div class="section-title section-header">
-		Score
-		<button
-			type="button"
-			class="clear-btn"
-			title="Clear score"
-			onclick={clearScoreText}
-			aria-label="Clear score"
-		>
-			<X size={20} />
-		</button>
-	</div>
-	<textarea
-		rows="8"
-		placeholder={'ABC notation. Left empty the model writes one.\nX:1\nL:1/8\nM:4/4\nK:Cmaj\n"C"c2 e2 g2 c\'2|'}
-		bind:value={app.request.abc}
-	></textarea>
-
-	<div class="section-title section-header">
-		LM configuration
-		<button
-			type="button"
-			class="clear-btn"
-			title="Clear LM configuration"
-			onclick={clearLm}
-			aria-label="Clear LM configuration"
-		>
-			<X size={20} />
-		</button>
-	</div>
-	<div class="field-row">
-		<span class="field-label">Mode</span>
-		<select
-			class="field-select"
-			value={cot}
-			onchange={(e) => (app.request.cot = e.currentTarget.value)}
-			title="What the autoregressive half writes before the codes."
-		>
-			<option value={COT_FULL}>Full: the score carries the chords</option>
-			<option value={COT_MELODY}>Melody: the score carries no chords</option>
-			<option value={COT_OFF}>Off: no score, written or supplied</option>
-		</select>
-	</div>
-	<div class="meta-grid">
-		<label
-			>Duration <input
-				type="text"
-				placeholder={ph(d?.duration)}
-				bind:value={app.request.duration}
-				title="Target length in seconds. The model can end the song earlier."
-			/></label
-		>
-		<label
-			>LM batch <input
-				type="text"
-				placeholder={ph(d?.lm_batch_size)}
-				bind:value={app.request.lm_batch_size}
-				title="Songs drawn from this prompt, each with its own score and codes, seeds LM seed + index."
-			/></label
-		>
-		<label
-			>LM seed <input
-				type="text"
-				placeholder={ph(d?.lm_seed)}
-				bind:value={app.request.lm_seed}
-				title="Seed of the token draw: the score, the melody and the length come from this one."
-			/></label
-		>
-	</div>
-
-	<details class="has-clear">
-		<summary>Score sampling</summary>
-		<button
-			type="button"
-			class="clear-btn details-clear"
-			title="Clear score sampling"
-			onclick={clearScoreSampling}
-			aria-label="Clear score sampling"
-		>
-			<X size={20} />
-		</button>
-		<div class="details-body">
-			<div class="meta-grid">
-				<label
-					>Temperature <input
-						type="text"
-						placeholder={ph(d?.abc_sampling?.temperature)}
-						bind:value={app.request.abc_sampling.temperature}
-					/></label
-				>
-				<label
-					>Top P <input
-						type="text"
-						placeholder={ph(d?.abc_sampling?.top_p)}
-						bind:value={app.request.abc_sampling.top_p}
-					/></label
-				>
-				<label
-					>Top K <input
-						type="text"
-						placeholder={ph(d?.abc_sampling?.top_k)}
-						bind:value={app.request.abc_sampling.top_k}
-					/></label
-				>
-				<label
-					>Repetition penalty <input
-						type="text"
-						placeholder={ph(d?.abc_sampling?.repetition_penalty)}
-						bind:value={app.request.abc_sampling.repetition_penalty}
-					/></label
-				>
-				<label
-					>Penalty window <input
-						type="text"
-						placeholder={ph(d?.abc_sampling?.penalty_window)}
-						bind:value={app.request.abc_sampling.penalty_window}
-					/></label
-				>
-				<label
-					>Min tokens <input
-						type="text"
-						placeholder={ph(d?.abc_sampling?.min_tokens)}
-						bind:value={app.request.abc_sampling.min_tokens}
-					/></label
-				>
-				<label
-					>Max tokens <input
-						type="text"
-						placeholder={ph(d?.abc_sampling?.max_tokens)}
-						bind:value={app.request.abc_sampling.max_tokens}
-					/></label
-				>
-			</div>
+		<div class="action-row">
+			<button
+				type="button"
+				disabled={busy}
+				onclick={pickExample}
+				title="Pick a random official demo prompt">Surprise me</button
+			>
+			<button
+				type="button"
+				class="generate-button"
+				disabled={busy || !app.props || !app.request.style.trim()}
+				onclick={askTake}
+				title="Run the full pipeline: score, semantic codes, flow matching, VAE"
+				>{busy ? 'Generating…' : 'Generate song'}</button
+			>
+			<button type="button" disabled={!busy} onclick={cancelPipeline} title="Cancel the active job"
+				>Cancel</button
+			>
 		</div>
-	</details>
-
-	<details class="has-clear">
-		<summary>Semantic sampling</summary>
-		<button
-			type="button"
-			class="clear-btn details-clear"
-			title="Clear semantic sampling"
-			onclick={clearSemantic}
-			aria-label="Clear semantic sampling"
-		>
-			<X size={20} />
-		</button>
-		<div class="details-body">
-			<div class="meta-grid">
-				<label
-					>CFG scale <input
-						type="text"
-						placeholder={ph(d?.cfg_scale)}
-						bind:value={app.request.cfg_scale}
-						title="Guidance of the stage. Exactly 1 keeps a single branch and halves the cost."
-					/></label
-				>
-				<label
-					>Temperature <input
-						type="text"
-						placeholder={ph(d?.semantic_sampling?.temperature)}
-						bind:value={app.request.semantic_sampling.temperature}
-					/></label
-				>
-				<label
-					>Top P <input
-						type="text"
-						placeholder={ph(d?.semantic_sampling?.top_p)}
-						bind:value={app.request.semantic_sampling.top_p}
-					/></label
-				>
-				<label
-					>Top K <input
-						type="text"
-						placeholder={ph(d?.semantic_sampling?.top_k)}
-						bind:value={app.request.semantic_sampling.top_k}
-					/></label
-				>
-				<label
-					>Repetition penalty <input
-						type="text"
-						placeholder={ph(d?.semantic_sampling?.repetition_penalty)}
-						bind:value={app.request.semantic_sampling.repetition_penalty}
-					/></label
-				>
-				<label
-					>Penalty window <input
-						type="text"
-						placeholder={ph(d?.semantic_sampling?.penalty_window)}
-						bind:value={app.request.semantic_sampling.penalty_window}
-					/></label
-				>
-				<label
-					>Min tokens <input
-						type="text"
-						placeholder={ph(d?.semantic_sampling?.min_tokens)}
-						bind:value={app.request.semantic_sampling.min_tokens}
-					/></label
-				>
-				<label
-					>Max tokens <input
-						type="text"
-						placeholder={ph(d?.semantic_sampling?.max_tokens)}
-						bind:value={app.request.semantic_sampling.max_tokens}
-					/></label
-				>
-			</div>
-			<label
-				>Audio codes
-				<textarea
-					rows="4"
-					placeholder="Filled when reusing a rendered song. Do not edit unless you know what you are doing."
-					bind:value={app.request.semantic_tokens}
-				></textarea>
-			</label>
+		<div class="generation-status" role="status">
+			{busy
+				? 'Generating on your machine. You can browse your library while it runs.'
+				: !app.props
+					? 'Local service unavailable. Check the container in System.'
+					: !app.request.style.trim()
+						? 'Add a musical direction, or choose an example to get started.'
+						: 'Ready to generate on your machine.'}
 		</div>
-	</details>
-
-	<details class="has-clear">
-		<summary>Advanced and post-processing</summary>
-		<button
-			type="button"
-			class="clear-btn details-clear"
-			title="Clear advanced and post-processing"
-			onclick={clearPost}
-			aria-label="Clear advanced and post-processing"
-		>
-			<X size={20} />
-		</button>
-		<div class="details-body">
-			<div class="meta-grid">
-				<label
-					>Steps <input
-						type="text"
-						placeholder={ph(d?.steps)}
-						bind:value={app.request.steps}
-						title="Midpoint steps of the acoustic ODE."
-					/></label
-				>
-				<label
-					>Batch <input
-						type="text"
-						placeholder={ph(d?.synth_batch_size)}
-						bind:value={app.request.synth_batch_size}
-						title="Noise variations per song on the same codes, seeds noise seed + index, 9 at most."
-					/></label
-				>
-				<label
-					>Noise seed <input
-						type="text"
-						placeholder={ph(d?.seed)}
-						bind:value={app.request.seed}
-						title="Seed of the acoustic noise. Change it to re-render the same song differently."
-					/></label
-				>
-				<label
-					>Source start <input
-						type="text"
-						placeholder={ph(d?.source_start)}
-						bind:value={app.request.source_start}
-						title="Seconds into the Src audio card where the section opening the song starts. Drag on its waveform to set the section."
-					/></label
-				>
-				<label
-					>Source end <input
-						type="text"
-						placeholder={ph(d?.source_end)}
-						bind:value={app.request.source_end}
-						title="Seconds into the Src audio card where the section ends and the model writes on, -1 its end."
-					/></label
-				>
-				<label
-					>Peak clip <input
-						type="text"
-						placeholder={ph(d?.peak_clip)}
-						bind:value={app.request.peak_clip}
-					/></label
-				>
-				<label
-					>MP3 bitrate <input
-						type="text"
-						placeholder={ph(d?.mp3_bitrate)}
-						bind:value={app.request.mp3_bitrate}
-					/></label
-				>
-				<label
-					>Format <select
-						bind:value={app.format}
-						title="Output audio format. WAV32 outputs raw IEEE float without normalization."
-					>
-						<option value="mp3">MP3</option>
-						<option value="wav16">WAV16</option>
-						<option value="wav24">WAV24</option>
-						<option value="wav32">WAV32</option>
-					</select></label
-				>
-			</div>
-		</div>
-	</details>
-
-	<div class="action-row">
-		<button
-			type="button"
-			disabled={busy}
-			onclick={pickExample}
-			title="Pick a random official demo prompt">Example</button
-		>
-		<button
-			type="button"
-			disabled={busy}
-			onclick={askTake}
-			title="Run the full pipeline: score, semantic codes, flow matching, VAE">Generate</button
-		>
-		<button type="button" disabled={!busy} onclick={cancelPipeline} title="Cancel the active job"
-			>Cancel</button
-		>
-	</div>
-</form>
-
+	</section>
+	<div class="result-area">{@render children?.()}</div>
+</div>
 <Dialog bind:open={takeOpen} title="Reuse this take?">
 	{#snippet body()}
 		The audio codes hold a performance already sung. Keeping them renders it again, dropping them
@@ -763,7 +799,6 @@
 		>
 	{/snippet}
 </Dialog>
-
 <Dialog bind:open={saveFormatOpen} title="Save format">
 	{#snippet actions(close)}
 		<DialogButton onclick={close}>Cancel</DialogButton>
@@ -784,33 +819,102 @@
 
 <style>
 	.request-form {
+		display: grid;
+		grid-template-columns: minmax(250px, 290px) minmax(0, 1fr);
+		align-items: start;
+		min-height: 660px;
+	}
+	.settings-rail {
+		grid-column: 1;
+		grid-row: 1 / 3;
 		display: flex;
 		flex-direction: column;
-		gap: 0.75rem;
+		gap: 16px;
+		min-width: 0;
+		padding: 24px 20px 30px;
+		background: var(--rail);
+		border-right: 1px solid var(--border);
+		align-self: stretch;
+	}
+	.rail-content {
+		display: flex;
+		flex-direction: column;
+		gap: 16px;
+	}
+	.settings-toggle {
+		display: none;
+	}
+	.model-info {
+		display: grid;
+		gap: 7px;
+		padding-bottom: 17px;
+		border-bottom: 1px solid var(--line-soft);
+	}
+	.model-info strong {
+		font-size: 0.77rem;
+		overflow-wrap: anywhere;
+		font-weight: 600;
+	}
+	.model-info span {
+		font-size: 0.66rem;
+		color: var(--fg-dim);
+	}
+	.composer {
+		grid-column: 2;
+		min-width: 0;
+		display: flex;
+		flex-direction: column;
+		gap: 12px;
+		padding: 25px clamp(18px, 3vw, 40px) 24px;
+	}
+	.composer-heading {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		gap: 15px;
+		margin-bottom: 5px;
+	}
+	.composer-heading h2 {
+		margin: 0;
+		font-size: 1rem;
 	}
 	.toolbar {
 		display: flex;
-		gap: 0.5rem;
+		gap: 6px;
 	}
 	.toolbar button {
-		flex: 1;
-		display: flex;
+		display: inline-flex;
 		align-items: center;
 		justify-content: center;
-		gap: 0.3rem;
+		gap: 5px;
+		min-height: 32px;
+		padding: 6px 10px;
+	}
+	.result-area {
+		grid-column: 2;
+		min-width: 0;
+		padding: 0 clamp(18px, 3vw, 40px) 30px;
+	}
+	.request-form.library {
+		display: block;
+	}
+	.library .result-area {
+		max-width: 1250px;
+		margin: 0 auto;
+		padding: 30px;
 	}
 	label {
 		display: flex;
 		flex-direction: column;
-		gap: 0.25rem;
-		font-size: 0.85rem;
+		gap: 6px;
+		font-size: 0.72rem;
 		color: var(--fg-dim);
 	}
 	.section-title {
-		font-size: 0.85rem;
+		font-size: 0.75rem;
 		color: var(--fg);
-		font-weight: 600;
-		padding: 0.4rem 0 0;
+		font-weight: 650;
+		margin: 2px 0 0;
 	}
 	.section-header {
 		display: flex;
@@ -822,7 +926,7 @@
 	}
 	.details-clear {
 		position: absolute;
-		top: 0.4rem;
+		top: 10px;
 		right: 0;
 	}
 	.clear-btn {
@@ -830,6 +934,7 @@
 		align-items: center;
 		justify-content: center;
 		padding: 0;
+		min-height: 24px;
 		border: none;
 		background: transparent;
 		color: var(--fg-dim);
@@ -843,80 +948,176 @@
 	input[type='text'],
 	select {
 		font-family: inherit;
-		font-size: 0.9rem;
-		padding: 0.4rem 0.5rem;
-		border: 1px solid var(--border);
-		border-radius: 4px;
-		background: var(--bg-input);
+		font-size: 0.8rem;
 		color: var(--fg);
-		resize: vertical;
+		background: var(--bg-input);
+		border: 1px solid var(--border);
+		border-radius: 5px;
+		width: 100%;
+	}
+	textarea {
+		padding: 10px 12px;
+	}
+	.composer > input {
+		font-size: 0.85rem;
 	}
 	textarea:focus,
-	input:focus {
+	input:focus,
+	select:focus {
 		outline: 2px solid var(--focus);
 		outline-offset: -1px;
 	}
 	.field-row {
 		display: flex;
-		align-items: center;
-		gap: 0.5rem;
+		flex-direction: column;
+		align-items: stretch;
+		gap: 7px;
 	}
 	.field-label {
-		font-size: 0.85rem;
+		font-size: 0.72rem;
 		color: var(--fg-dim);
-		flex-shrink: 0;
-		min-width: 2rem;
 	}
 	.field-select {
 		flex: 1;
 		min-width: 0;
 	}
 	.scale-input {
-		width: 4rem;
-		flex-shrink: 0;
+		max-width: 100px;
 	}
-
 	.meta-grid {
 		display: grid;
-		grid-template-columns: repeat(auto-fill, minmax(8rem, 1fr));
-		gap: 0.5rem;
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+		gap: 12px;
+	}
+	.meta-grid > label:first-child {
+		grid-column: 1 / -1;
+	}
+	details {
+		border-top: 1px solid var(--line-soft);
 	}
 	details summary {
 		cursor: pointer;
-		font-size: 0.85rem;
+		font-size: 0.75rem;
 		color: var(--fg);
-		font-weight: 600;
-		padding: 0.4rem 0;
-	}
-	details summary:hover {
-		color: var(--fg);
+		font-weight: 650;
+		padding: 13px 27px 13px 0;
 	}
 	.details-body {
 		display: flex;
 		flex-direction: column;
-		gap: 0.5rem;
-		padding: 0.25rem 0 0.5rem;
+		gap: 12px;
+		padding: 0 0 12px;
+	}
+	.score-editor {
+		border: 1px solid var(--border);
+		border-radius: 5px;
+		padding: 0 12px;
+		background: var(--bg-input);
+	}
+	.score-editor[open] {
+		padding-bottom: 12px;
+	}
+	.score-editor textarea {
+		font-family: monospace;
+		margin-top: 8px;
 	}
 	.action-row {
 		display: flex;
-		gap: 0.5rem;
+		gap: 8px;
+		margin-top: 6px;
 	}
 	.action-row button {
+		min-height: 40px;
+	}
+	.action-row .generate-button {
 		flex: 1;
+		background: var(--accent);
+		border-color: var(--accent);
+		color: #211006;
+		font-weight: 750;
+	}
+	.action-row .generate-button:hover:not(:disabled) {
+		background: var(--accent-hover);
 	}
 	button {
-		padding: 0.5rem 1rem;
+		padding: 8px 12px;
 		border: 1px solid var(--border);
-		border-radius: 4px;
+		border-radius: 5px;
 		background: var(--bg-btn);
 		color: var(--fg);
 		cursor: pointer;
-		font-size: 0.85rem;
+		font-size: 0.75rem;
 	}
 	button:hover:not(:disabled) {
 		background: var(--bg-btn-hover);
 	}
 	button:disabled {
-		opacity: 0.4;
+		opacity: 0.45;
+	}
+	.generation-status {
+		display: flex;
+		align-items: center;
+		gap: 7px;
+		color: var(--fg-dim);
+		font-size: 0.73rem;
+		min-height: 20px;
+	}
+	@media (max-width: 850px) {
+		.request-form {
+			grid-template-columns: minmax(210px, 250px) minmax(0, 1fr);
+		}
+		.settings-rail {
+			padding: 22px 16px;
+		}
+		.toolbar button {
+			padding: 6px 8px;
+			font-size: 0.7rem;
+		}
+	}
+	@media (max-width: 680px) {
+		.request-form {
+			display: flex;
+			flex-direction: column;
+		}
+		.settings-rail {
+			width: 100%;
+			border-right: 0;
+			border-bottom: 1px solid var(--border);
+		}
+		.rail-heading {
+			display: none;
+		}
+		.settings-toggle {
+			display: flex;
+			justify-content: space-between;
+			align-items: center;
+			width: 100%;
+			padding: 0;
+			border: 0;
+			background: none;
+			font-weight: 650;
+		}
+		.settings-toggle span {
+			color: var(--fg-dim);
+			font-size: 0.67rem;
+			font-weight: 400;
+		}
+		.rail-content.mobile-collapsed {
+			display: none;
+		}
+		.composer {
+			width: 100%;
+			padding: 20px 16px;
+		}
+		.result-area {
+			width: 100%;
+			padding: 0 16px 24px;
+		}
+		.composer-heading {
+			flex-wrap: wrap;
+		}
+		.library .result-area {
+			padding: 22px 16px;
+		}
 	}
 </style>

@@ -52,6 +52,26 @@ cancellation. The native API is an asynchronous music API, not an
 OpenAI-compatible API. Optional transcription models are not downloaded by
 `task init`; see [models](docs/MODELS.md).
 
+## Browser studio
+
+The studio uses the Hangry Labs charcoal-and-orange shell with a collapsible
+header and four views:
+
+- **Create:** musical direction, lyrics, optional ABC score, generation settings
+  and rendered songs. Examples fill the content while preserving generation settings.
+- **Library:** search, favorites, playback, downloads and prompt reuse for songs
+  saved in this browser.
+- **API:** native HTTP request examples and the asynchronous job workflow.
+- **System:** configured models, optional-tool availability, playback volume,
+  live NVIDIA GPU charts and server logs.
+
+Changing views keeps the composer and active generation mounted. GPU monitoring
+requests stop when System or the browser document is hidden. Header and view state
+last for the browser session; existing song storage and generation preferences
+are preserved. The packaged interface uses local assets and requires no CDN.
+The whole studio uses the Hangry dark theme, including browsers with a saved
+light-mode preference from the upstream interface.
+
 ## Data and defaults
 
 | Location | Contents |

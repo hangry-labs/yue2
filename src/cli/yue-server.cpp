@@ -14,6 +14,7 @@
 #include "httplib.h"
 #include "index.html.gz.hpp"
 #include "pipeline.h"
+#include "system-gpu.h"
 #include "version.h"
 #include "yyjson.h"
 
@@ -465,6 +466,12 @@ static void handle_props(const httplib::Request &, httplib::Response & res) {
     yyjson_mut_obj_add_int(doc, root, "sample_rate", YUE2_SAMPLE_RATE);
     yyjson_mut_obj_add_int(doc, root, "frame_rate", YUE2_FRAME_RATE);
     yyjson_mut_obj_add_int(doc, root, "context", YUE2_CONTEXT);
+    res.set_header("Cache-Control", "no-store");
+    auto * capabilities = yyjson_mut_obj(doc);
+    yyjson_mut_obj_add_bool(doc, capabilities, "transcribe", !g_transcriber_path.empty());
+    yyjson_mut_obj_add_bool(doc, capabilities, "tokenize", !g_tokenizer_path.empty());
+    yyjson_mut_obj_add_bool(doc, capabilities, "vae", true);
+    yyjson_mut_obj_add_val(doc, root, "capabilities", capabilities);
 
     // The adapter directory, each entry with the halves it changes
     yyjson_mut_val * adapters = yyjson_mut_arr(doc);
@@ -825,6 +832,11 @@ int main(int argc, char ** argv) {
     });
 
     svr.Get("/props", handle_props);
+
+    svr.Get("/system/gpu", [](const httplib::Request &, httplib::Response & res) {
+        res.set_header("Cache-Control", "no-store");
+        res.set_content(system_gpu_json(), "application/json");
+    });
 
     svr.Get("/logs", handle_logs);
 
