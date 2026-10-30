@@ -4,12 +4,16 @@ project(yue2-ggml LANGUAGES C CXX)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+file(STRINGS "${CMAKE_SOURCE_DIR}/VERSION" YUE2_APP_VERSION LIMIT_COUNT 1)
+set(YUE2_REVISION "" CACHE STRING "Source revision for builds without Git metadata")
+
 # version.h: embed git commit hash into all binaries.
 # runs on every build, only rewrites if the hash changed.
 set(VERSION_OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/version.h")
 add_custom_target(version ALL
     COMMAND "${CMAKE_COMMAND}" "-DSRC_DIR=${CMAKE_CURRENT_SOURCE_DIR}" "-DOUTPUT=${VERSION_OUTPUT}"
-            -P "${CMAKE_CURRENT_SOURCE_DIR}/tools/version.cmake"
+            "-DAPP_VERSION=${YUE2_APP_VERSION}" "-DREVISION=${YUE2_REVISION}"
+            -P "${CMAKE_CURRENT_SOURCE_DIR}/cmake/version.cmake"
     BYPRODUCTS "${VERSION_OUTPUT}"
     COMMENT "Checking git version"
 )
@@ -50,13 +54,13 @@ if(NOT DEFINED CMAKE_CUDA_ARCHITECTURES)
     endif()
 endif()
 
-# ggml from GGML_SOURCE_DIR (the submodule by default), inherits GGML_CUDA, GGML_METAL, etc. from cmake flags
+# ggml from GGML_SOURCE_DIR (the vendored snapshot by default), inherits GGML_CUDA, GGML_METAL, etc. from cmake flags
 # CUDA graphs default on: standalone ggml ships them off. Overridable with
 # -DGGML_CUDA_GRAPHS=OFF or at runtime with GGML_CUDA_DISABLE_GRAPHS=1.
 if(NOT DEFINED GGML_CUDA_GRAPHS)
     set(GGML_CUDA_GRAPHS_DEFAULT ON)
 endif()
-set(GGML_SOURCE_DIR "${CMAKE_SOURCE_DIR}/ggml" CACHE PATH "ggml source tree")
+set(GGML_SOURCE_DIR "${CMAKE_SOURCE_DIR}/vendor/ggml" CACHE PATH "ggml source tree")
 add_subdirectory(${GGML_SOURCE_DIR} ggml)
 
 # cpp-httplib (HTTP server library, used by yue-server)
@@ -111,51 +115,51 @@ else()
 endif()
 
 # yue-plan: symbolic planning stage (request -> ABC score)
-add_executable(yue-plan tools/yue-plan.cpp src/request.cpp)
+add_executable(yue-plan src/cli/yue-plan.cpp src/request.cpp)
 target_link_libraries(yue-plan PRIVATE yyjson)
 link_ggml_backends(yue-plan)
 
 # yue-transcribe: audio to score (SheetSage2 transcriber)
-add_executable(yue-transcribe tools/yue-transcribe.cpp)
+add_executable(yue-transcribe src/cli/yue-transcribe.cpp)
 target_link_libraries(yue-transcribe PRIVATE yyjson)
 link_ggml_backends(yue-transcribe)
 
 # yue-tokenize: audio to semantic codes (audio tokenizer)
-add_executable(yue-tokenize tools/yue-tokenize.cpp)
+add_executable(yue-tokenize src/cli/yue-tokenize.cpp)
 target_link_libraries(yue-tokenize PRIVATE yyjson)
 link_ggml_backends(yue-tokenize)
 
 # yue-synth: full pipeline (score -> semantic -> flow matching -> VAE -> audio)
-add_executable(yue-synth tools/yue-synth.cpp src/request.cpp src/model-store.cpp)
+add_executable(yue-synth src/cli/yue-synth.cpp src/request.cpp src/model-store.cpp)
 target_link_libraries(yue-synth PRIVATE yyjson)
 link_ggml_backends(yue-synth)
 
-# webui: convert tools/public/index.html.gz to a C header for embedding.
+# webui: convert web/public/index.html.gz to a C header for embedding.
 # the .gz is committed to git so the C++ build works without npm.
-# to update: cd tools/webui && npm install && npm run build, then rebuild yue-server.
-set(WEBUI_INPUT "${CMAKE_CURRENT_SOURCE_DIR}/tools/public/index.html.gz")
+# to update: cd web && npm ci && npm run build, then rebuild yue-server.
+set(WEBUI_INPUT "${CMAKE_CURRENT_SOURCE_DIR}/web/public/index.html.gz")
 set(WEBUI_OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/index.html.gz.hpp")
 add_custom_command(
     OUTPUT "${WEBUI_OUTPUT}"
-    COMMAND "${CMAKE_COMMAND}" "-DINPUT=${WEBUI_INPUT}" "-DOUTPUT=${WEBUI_OUTPUT}" -P "${CMAKE_CURRENT_SOURCE_DIR}/tools/xxd.cmake"
+    COMMAND "${CMAKE_COMMAND}" "-DINPUT=${WEBUI_INPUT}" "-DOUTPUT=${WEBUI_OUTPUT}" -P "${CMAKE_CURRENT_SOURCE_DIR}/cmake/xxd.cmake"
     DEPENDS "${WEBUI_INPUT}"
     COMMENT "Embedding webui into index.html.gz.hpp"
 )
 set_source_files_properties(${WEBUI_OUTPUT} PROPERTIES GENERATED TRUE)
 
 # yue-server: HTTP server (single slot job queue + embedded webui)
-add_executable(yue-server tools/yue-server.cpp src/request.cpp src/model-store.cpp ${WEBUI_OUTPUT})
+add_executable(yue-server src/cli/yue-server.cpp src/request.cpp src/model-store.cpp ${WEBUI_OUTPUT})
 target_include_directories(yue-server PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
 target_link_libraries(yue-server PRIVATE yyjson httplib)
 link_ggml_backends(yue-server)
 
 # neural-codec: Oobleck VAE neural audio codec (audio <-> latent)
-add_executable(neural-codec tools/neural-codec.cpp)
+add_executable(neural-codec src/cli/neural-codec.cpp)
 link_ggml_backends(neural-codec)
 
 # mp3-codec: MP3 encoder/decoder (standalone, no ggml needed)
-# The mp3/ headers are header-only and usable by yue-server too via #include "mp3/mp3enc.h"
-add_executable(mp3-codec tools/mp3-codec.cpp)
+# The vendor/mp3/ headers are header-only and usable by yue-server too via #include "vendor/mp3/mp3enc.h"
+add_executable(mp3-codec src/cli/mp3-codec.cpp)
 target_include_directories(mp3-codec PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/src
     ${CMAKE_CURRENT_SOURCE_DIR}
@@ -172,7 +176,7 @@ endif()
 target_link_libraries(mp3-codec PRIVATE Threads::Threads)
 
 # quantize: GGUF requantizer (BF16 -> K-quants)
-add_executable(quantize tools/quantize.cpp)
+add_executable(quantize src/cli/quantize.cpp)
 link_ggml_backends(quantize)
 
 add_subdirectory(tests)

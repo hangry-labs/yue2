@@ -43,7 +43,7 @@
 #endif
 
 // mp3enc: MP3 encoder
-#include "mp3/mp3enc.h"
+#include "vendor/mp3/mp3enc.h"
 
 // case-insensitive extension check
 static bool audio_io_ends_with(const char * str, const char * suffix) {

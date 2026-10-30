@@ -1,7 +1,9 @@
 build/
 *.wav
 
-tests/*/
+tests/parity/tmp/
+tests/parity/dumps/
+tests/parity/*.log
 
 checkpoints/
 models/*.gguf
@@ -9,6 +11,14 @@ adapters/*/
 adapters/*.safetensors
 __pycache__/
 node_modules/
-tools/webui/dist/
+web/dist/
 training/datasets/
 training/checkpoints/
+
+/.ai/
+/.idea/
+/results/
+.env
+.env.*
+!.env.example
+models/.downloads/

@@ -1,0 +1,84 @@
+version: '3'
+
+dotenv: ['.env']
+
+vars:
+  PYTHON: python
+  IMAGE: '{{.YUE2_IMAGE | default "yue2:dev"}}'
+  CONTAINER: '{{.YUE2_CONTAINER | default "yue2-dev"}}'
+  PORT: '{{.YUE2_PORT | default "8087"}}'
+  BIND_ADDRESS: '{{.YUE2_BIND_ADDRESS | default "127.0.0.1"}}'
+  GPU_DEVICE: '{{.YUE2_GPU_DEVICE | default "all"}}'
+  CUDA_ARCHITECTURES: '{{.YUE2_CUDA_ARCHITECTURES | default "auto"}}'
+  BUILD_JOBS: '{{.YUE2_BUILD_JOBS | default "4"}}'
+  LM_SEED: '831001'
+  SEED: '831001'
+
+env:
+  YUE2_TASK_IMAGE: '{{.IMAGE}}'
+  YUE2_TASK_CONTAINER: '{{.CONTAINER}}'
+  YUE2_TASK_PORT: '{{.PORT}}'
+  YUE2_TASK_BIND_ADDRESS: '{{.BIND_ADDRESS}}'
+  YUE2_TASK_GPU_DEVICE: '{{.GPU_DEVICE}}'
+  YUE2_TASK_CUDA_ARCHITECTURES: '{{.CUDA_ARCHITECTURES}}'
+  YUE2_TASK_BUILD_JOBS: '{{.BUILD_JOBS}}'
+
+tasks:
+  default:
+    desc: List available tasks
+    cmds: ['task --list']
+  doctor:
+    desc: Check the Docker engine, build tools and NVIDIA GPU
+    cmds: ['"{{.PYTHON}}" scripts/dev.py doctor']
+  init:
+    desc: Verify/download external models and build the local CUDA image
+    cmds:
+      - task: models
+      - task: build
+  models:
+    desc: Download or verify the two pinned GGUFs outside the image
+    cmds: ['"{{.PYTHON}}" scripts/download_models.py']
+  build:
+    desc: Build the CUDA runtime with current UI and persistent compiler caches
+    cmds: ['"{{.PYTHON}}" scripts/dev.py build']
+  start:
+    desc: Start or replace this project server with upstream runtime defaults
+    cmds: ['"{{.PYTHON}}" scripts/dev.py start']
+  stop:
+    desc: Stop this project server without deleting models or browser data
+    cmds: ['"{{.PYTHON}}" scripts/dev.py stop']
+  status:
+    desc: Inspect this project server
+    cmds: ['"{{.PYTHON}}" scripts/dev.py status']
+  logs:
+    desc: Follow this project server logs
+    cmds: ['"{{.PYTHON}}" scripts/dev.py logs']
+  test:
+    desc: Run CPU-only tooling tests and verify the vendored dependency
+    cmds:
+      - '"{{.PYTHON}}" -m unittest discover -s tests/unit -v'
+      - task: vendor:verify
+  test1:
+    desc: Run the fixed-seed 8-step music baseline in Docker
+    cmds: ['"{{.PYTHON}}" benchmarks/test1.py --image "{{.IMAGE}}" --lm-seed "{{.LM_SEED}}" --seed "{{.SEED}}"']
+  test1:prepare:
+    desc: Prepare the baseline request without using Docker or a GPU
+    cmds: ['"{{.PYTHON}}" benchmarks/test1.py --prepare-only --lm-seed "{{.LM_SEED}}" --seed "{{.SEED}}"']
+  check:cpu:
+    desc: Build all native targets and check executable startup inside Docker
+    cmds: ['"{{.PYTHON}}" scripts/dev.py cpu-check']
+  vendor:verify:
+    desc: Verify the exact vendored GGML file digests
+    cmds: ['"{{.PYTHON}}" scripts/dev.py verify-vendor']
+  web:check:
+    desc: Check Svelte, TypeScript and formatting in a Node container
+    cmds: ['"{{.PYTHON}}" scripts/dev.py web-check']
+  web:build:
+    desc: Rebuild the embedded UI asset in a Node container
+    cmds: ['"{{.PYTHON}}" scripts/dev.py web-build']
+  validate:
+    desc: Run tooling tests, vendor verification, UI checks and native CPU checks
+    cmds:
+      - task: test
+      - task: web:check
+      - task: check:cpu

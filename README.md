@@ -1,297 +1,145 @@
-# yue2.cpp
+# Hangry Labs YuE2
 
-Local YuE2 song generation server with browser UI, powered by GGML.
-Style tags and lyrics in, complete stereo 48kHz songs out, with the
-symbolic score the model wrote on the way.
-Runs on CPU, CUDA, Vulkan.
+Development version **v0.1.0-snapshot**.
 
-## Download models
+Local song generation in a Docker container, with a browser UI and HTTP API.
+Give YuE2 style tags and lyrics; it produces stereo 48 kHz audio together with
+an editable ABC score, semantic codes and acoustic latents.
 
-Grab one GGUF of each type from Hugging Face and drop them in the
-`models/` folder:
+This fork keeps the C++17/GGML engine and standalone UI from
+[yue2.cpp](https://github.com/ServeurpersoCom/yue2.cpp), and organizes development,
+packaging and testing around Docker and Task.
 
-https://huggingface.co/Serveurperso/YuE2-GGUF/tree/main
+## Quick start from source
 
-| Type | Pick one | Size |
-|------|----------|------|
-| Backbone | YuE2-3B-Q8_0.gguf | 3.81 GB |
-| VAE | YuE2-Vae-F32.gguf | 530 MB |
-| Audio encoder (optional) | MERT-v2-FullSong-Q8_0.gguf | 902 MB |
-| Transcriber (optional) | SheetSage2-Q8_0.gguf | 106 MB |
-| Audio tokenizer (optional) | yue2-mothersuperior-realaudio-tokenizer-v4-Q8_0.gguf | 47 MB |
+Install Docker with NVIDIA GPU support, Python 3.11+ and
+[Task](https://taskfile.dev). No model weights are included in the image.
 
-Q8_0 is near lossless. The backbone also ships in BF16 / Q6_K / Q5_K_M, the
-VAE in F32 only since its weights are the audio. The Q8_0 pair runs in about
-4.4 GB plus the KV cache, the native pair in about 7.7 GB. The transcriber
-turns a recording into its score for covers and the audio tokenizer into its
-semantic codes, two heads on the MERT audio encoder each finds beside it in
-the same quant; all three ship in F32 / Q8_0 and load only when used.
-
-Alternative: `./models.sh` downloads the default set automatically
-(needs `pip install hf`), `./models.sh --all` everything.
-
-## Build
-
-```
-git clone --recurse-submodules https://github.com/ServeurpersoCom/yue2.cpp.git
-cd yue2.cpp
+```text
+git clone https://github.com/hangry-labs/yue2.git
+cd yue2
+task doctor
+task init
+task start
 ```
 
-### Windows
+Open **http://localhost:8087**. Enter style tags and lyrics, then Generate.
+The local CUDA image has been tested on an RTX 5070 Ti with 16 GB VRAM.
+The first build compiles CUDA kernels and can take several minutes.
 
-To build from source, install
-[Visual C++ Build Tools](https://visualstudio.microsoft.com/visual-cpp-build-tools/)
-(select "Desktop development with C++" workload) and optionally the
-[CUDA Toolkit](https://developer.nvidia.com/cuda-downloads) and/or the
-[Vulkan SDK](https://vulkan.lunarg.com/sdk/home).
+`task init` verifies/downloads the two pinned GGUF files into `models/` and
+builds `yue2:dev`. Downloads total approximately 4.34 GB. Cached models are
+verified and reused. Models remain outside the image and are mounted read-only.
 
-```cmd
-buildcuda.cmd     # NVIDIA GPU
-buildvulkan.cmd   # AMD/Intel GPU (Vulkan)
-buildall.cmd      # all backends (CUDA + Vulkan + CPU, runtime loading)
+There is one image variant. No registry image has been published yet; the
+commands above build locally. See [Docker details](docs/DOCKER.md).
+
+## What you get
+
+- Style-and-lyrics song generation, with full score, melody-only and no-score modes.
+- Editable ABC scores and semantic-token replay.
+- MP3 or WAV output, browser playback and track downloads.
+- Continuation from a selected section of source semantic tokens.
+- LoRA adapters loaded from the local adapters directory.
+- VAE audio/latent encoding and decoding.
+- Optional recording transcription and audio tokenization when their additional
+  models and server arguments are supplied.
+
+The server processes compute jobs on one worker with progress logs and
+cancellation. The native API is an asynchronous music API, not an
+OpenAI-compatible API. Optional transcription models are not downloaded by
+`task init`; see [models](docs/MODELS.md).
+
+## Data and defaults
+
+| Location | Contents |
+| --- | --- |
+| `models/` | Persistent, external GGUF files and pinned download manifest |
+| `adapters/` | Optional LoRA files and folders |
+| Browser IndexedDB | Song cards, audio and latent artifacts |
+| Browser localStorage | Form settings and pending-job state |
+| `results/test1/` | Local baseline outputs, requests, logs and timings |
+
+Server jobs and results are in memory and disappear on restart. Export songs
+you want to keep; mounting models does not back up browser storage.
+
+Normal startup preserves upstream inference defaults: **24,576-token context**,
+automatic backend selection and strict model eviction between stages.
+Reducing `--max-seq` saves VRAM but can reject longer requests. The repeatable
+baseline explicitly uses **8 flow-matching steps**; the upstream server request
+default remains 32. Existing browser form values still control requests.
+
+## Development commands
+
+```text
+task build
+task start
+task status
+task logs
+task stop
+task validate
+task test1
 ```
 
-### Linux / macOS
+Run `task --list` for all commands. Copy `.env.example` to `.env` for local
+settings, or override a Task variable: `task start PORT=8088`,
+`task build CUDA_ARCHITECTURES=120a-real`, or `task test1 SEED=123`.
+Use `PYTHON=python3` where that is your Python executable.
 
-```bash
-./buildcuda.sh    # NVIDIA GPU
-./buildvulkan.sh  # AMD/Intel GPU (Vulkan)
-./buildcpu.sh     # CPU only (with BLAS)
-./buildall.sh     # all backends (CUDA + Vulkan + CPU, runtime loading)
-```
+`task test1` runs the prompt in [tests/fixtures/test1.txt](tests/fixtures/test1.txt)
+through a temporary GPU container with fixed seeds and 8 steps. It saves audio,
+score, tokens, latents, replay settings and a JSON timing summary.
+The initial baseline produced **270.8 seconds of audio in 85.1 seconds of
+pipeline time**. See [benchmark methodology](docs/BENCHMARKS.md).
 
-`-DGGML_SOURCE_DIR=<path>` swaps the ggml submodule for another tree (upstream ggml, llama.cpp/ggml).
+## API
 
-macOS auto-enables Metal and Accelerate BLAS with any of the above.
+Submit JSON to `POST /synth`, poll `GET /job?id=...`, and fetch the result with
+`GET /job?id=...&result=1`. Each generation result contains replay JSON, audio
+and latents. `POST /job?id=...&cancel=1` requests cancellation.
 
-## Convert
+Discovery/liveness routes are `GET /props` and `GET /health`; `GET /logs`
+streams logs. `/health` is liveness, not a completed inference test.
+See the [technical and API reference](docs/ARCHITECTURE.md).
 
-To build the GGUFs locally from the official checkpoints instead, download
-[m-a-p/YuE2-3B](https://huggingface.co/m-a-p/YuE2-3B),
-[m-a-p/YuE2-Vae](https://huggingface.co/m-a-p/YuE2-Vae), and for the
-transcriber [m-a-p/SheetSage2](https://huggingface.co/m-a-p/SheetSage2) with
-its base model [m-a-p/MERT-v2-FullSong](https://huggingface.co/m-a-p/MERT-v2-FullSong)
-(both gated, accept their terms and `hf auth login` first), and the v9 head
-of [Mothersuperior/yue2-mothersuperior-realaudio-tokenizer-v4](https://huggingface.co/Mothersuperior/yue2-mothersuperior-realaudio-tokenizer-v4)
-for the audio tokenizer, into `checkpoints/`.
+## Repository guide
 
-```bash
-pip install hf gguf numpy
-./checkpoints.sh  # downloads both repositories
-./convert.py      # native GGUF, byte-exact dtypes from the source, skips existing
-./quantize.sh     # every quant from the natives, idempotent
-```
+| Directory | Purpose |
+| --- | --- |
+| `src/` | Native inference engine; `src/cli/` contains executable entry points |
+| `web/` | Svelte 5/TypeScript UI and embedded asset |
+| `scripts/` | Cross-platform Task helpers and advanced model conversion tools |
+| `cmake/` | Version and asset-embedding build helpers |
+| `benchmarks/` | Repeatable generation runner |
+| `tests/unit/` | CPU-only tooling and lifecycle tests |
+| `tests/fixtures/` | Baseline prompts |
+| `tests/parity/` | Optional upstream numerical/reference harnesses and historical logs |
+| `vendor/` | Third-party code, including the pinned GGML source snapshot |
 
-| GGUF | Component | Size |
-|------|-----------|------|
-| YuE2-3B-BF16.gguf | 3.6B Mixture-of-Transformers backbone | 7.17 GB |
-| YuE2-Vae-F32.gguf | Oobleck VAE encoder + decoder | 530 MB |
-| MERT-v2-FullSong-F32.gguf | MERT-v2 audio encoder | 2.53 GB |
-| SheetSage2-F32.gguf | SheetSage2 transcriber head and its MERT LoRA | 229 MB |
-| yue2-mothersuperior-realaudio-tokenizer-v4-F32.gguf | Mothersuperior audio tokenizer head, v9 | 171 MB |
+GGML is ordinary vendored source at the exact tested upstream revision.
+No recursive clone, nested Git checkout or update wrapper is required.
+Its license, source commit and file hashes are preserved. See
+[dependency policy](docs/DEVELOPMENT.md#vendored-dependencies).
 
-## Run
+## Documentation
 
-```bash
-./server.sh       # Linux / macOS
-server.cmd        # Windows
-```
+- [Development and repository layout](docs/DEVELOPMENT.md)
+- [Docker runtime](docs/DOCKER.md)
+- [Models and conversion](docs/MODELS.md)
+- [Baseline generation](docs/BENCHMARKS.md)
+- [CI and releases](docs/RELEASING.md)
+- [Architecture, API and CLI reference](docs/ARCHITECTURE.md)
 
-Open http://localhost:8087 in your browser. The WebUI handles everything:
-write style tags and lyrics, generate, read the score the model composed,
-play and download tracks. Open an MP3 or WAV to get it on a card, then
-Transcribe score or Transcribe melody from the card menu: the score lands
-in the score field, pick the matching mode, add your lyrics and a style,
-and the model covers the song. Tokenize audio puts the semantic codes of
-the recording on its card and in the form instead: Generate renders the
-song again through YuE2, best with the realaudio NAR adapter selected. Every track
-keeps the VAE latents it was decoded from in the browser, the VAE badge
-of its card: download them as a .vae file, open one to get its card back,
-or compute them for a recording you opened. To start a song from another
-one, Tokenize audio on its card (a generated card already has its codes),
-tick Src audio and select a section on its waveform: the new song starts
-with that section as the model hears it, and the rest grows from it.
+## Privacy, responsible use and licenses
 
-## Adapters
+Generation runs on your machine. The local setup binds the published port to
+localhost. Use recordings, lyrics and other material you are entitled to use.
+Browser pairing and external application integrations are not implemented.
 
-Drop LoRA adapters in the `adapters/` folder and restart the server. Every
-format the community publishes is read: AI Toolkit and ComfyUI single files,
-native YuE2 trainer files and folders with an `adapter_config.json`. Pick
-them in the Models menu of the WebUI, as many as you like, each with its
-own strength; each one merges into the half of the backbone it was trained
-on, at load time.
-
-## Pipeline
-
-```
-style tags + lyrics
-        v
-LM, Autoregressive (AR)            writes the ABC score, then the semantic codes at 25 Hz,
-        v  evict / load            and leaves everything in the KV cache
-LM, Non-Autoregressive (NAR)       reads that cache and paints the acoustic latents by flow
-        v  evict / load            matching, 64 channels per frame, all frames at once
-VAE, Oobleck decoder               1920x upsample -> 48 kHz stereo
-```
-
-One backbone GGUF holds the two halves of a single Qwen3 transformer: the
-same 28 layers with two sets of attention projections and MLPs, one to
-write tokens, one to paint latents, sharing the embeddings and the final
-norm. The AR half works like a language model: token by token, it first
-writes the ABC score, a symbolic plan in plain text you can read and edit,
-then the semantic codes, one per 40 ms frame, and every token it processes
-lands in the KV cache. The NAR half is the same network used the other way
-round: it starts from Gaussian noise for every frame of the song, attends
-on the cache the AR half just left, and refines all the frames together
-with a midpoint flow matching solver, 32 steps of two evaluations, from
-noise to latents. The VAE turns the latents into sound, 1920 samples per
-frame.
-
-Only one module is in VRAM at a time. The AR half is evicted once the
-codes are written, the NAR half loads, is evicted in turn, and the VAE
-loads; the KV cache stays through all of it, so the halves trade places
-around it and nothing is recomputed, and once the track is out the
-cache goes too, nothing stays on the GPU between two requests. `--keep-loaded` keeps everything
-resident on a card with the budget.
-
-VRAM: the cache sized on the 24576 token context is the other big term,
-one set per song of a batch; `--max-seq` and `--max-batch` are the
-levers that trade context and batch for VRAM. A 65 s song in Q8_0 peaks
-at 5.8 GB at the full context and 3.8 GB at `--max-seq 8192`.
-
-## Server options
-
-```
-Usage: ./yue-server --model <gguf> --vae <gguf> [options]
-
-Required:
-  --model <gguf>         Backbone GGUF
-  --vae <gguf>           VAE GGUF
-
-Optional:
-  --device <name>        Compute device: CUDA0, Vulkan0, MTL0, CPU...
-                         (default: best available)
-  --transcriber <gguf>   SheetSage2 GGUF, MERT beside it, enables /transcribe
-  --tokenizer <gguf>     Audio tokenizer GGUF, MERT beside it, enables /tokenize
-  --adapters <dir>       Directory of LoRA adapters a request can stack
-  --host <addr>          Listen address (default: 0.0.0.0)
-  --port <N>             Listen port (default: 8087)
-  --max-batch <N>        Song batch limit, one KV set each (default: 1)
-  --keep-loaded          Keep every model resident in VRAM (default: evict between stages)
-
-Debug:
-  --max-seq <N>          KV cache size (default: model context)
-  --vae-core <N>         VAE tile core frames (default: 512)
-  --vae-halo <N>         VAE tile halo frames (default: 16)
-  --no-fa                Disable flash attention
-  --clamp-fp16           Clamp hidden states to FP16 range
-```
-
-<details>
-<summary>API endpoints</summary>
-
-The server exposes one compute endpoint and a job system:
-
-**POST /synth** - Submit a generation job (JSON Yue2Request), returns a job
-ID immediately. The single worker thread owns the models and processes
-jobs in FIFO order.
-
-**GET /job?id=N** - Poll job status. **GET /job?id=N&result=1** fetches the
-result as multipart/mixed, one pair per track: a JSON replay request part
-(the request carrying the semantic stream, the score and the seeds of the
-track) then the audio part (MP3 or WAV, selected by `output_format` in the
-request). `lm_batch_size` songs times `synth_batch_size` noise variations
-come out song-major.
-**POST /job?id=N&cancel=1** cancels a running job.
-
-**GET /health** - Returns `{"status":"ok"}`.
-
-**GET /props** - Server version, model paths, frame rate, context, and the
-default request parameters.
-
-**GET /logs** - SSE stream of server stderr.
-
-See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for the full API reference
-and Yue2Request JSON specification.
-
-</details>
-
-<details>
-<summary>CLI tools (advanced)</summary>
-
-For scripting without the server, `yue-synth` runs the full pipeline from a
-request JSON, the same schema the server and the WebUI speak.
-
-```bash
-./build/yue-synth \
-    --model models/YuE2-3B-Q8_0.gguf \
-    --vae models/YuE2-Vae-F32.gguf \
-    --request request.json \
-    --out song.mp3
-```
-
-Feeding back a request that carries `semantic_tokens` skips the
-autoregressive stage entirely: the prefix and the codes prefill in one
-forward and the song re-renders deterministically, so the flow matching
-steps, the seed or the output format can be iterated for a fraction of
-the cost.
-
-The `yue-plan` tool runs the first autoregressive stage alone and writes the
-ABC score the model intends to play. The score is the white box interface:
-read it, edit it, put it back in the request as `abc`.
-
-```bash
-./build/yue-plan --model models/YuE2-3B-Q8_0.gguf --request request.json --out score.abc
-```
-
-The `yue-transcribe` tool runs the SheetSage2 transcriber on a recording
-and writes the score it hears, the one a cover takes as its `abc`. The
-full score carries the chord symbols, `--melody-only` keeps the vocal and
-instrumental voices alone, which is what `cot` `melody` expects.
-
-```bash
-./build/yue-transcribe --model models/SheetSage2-Q8_0.gguf --audio song.mp3 --out score.abc
-```
-
-The `yue-tokenize` tool runs the audio tokenizer on a recording and writes
-its semantic codes, 25 per second, ready for the `semantic_tokens` field of
-a request: the song renders again through the NAR half and the VAE, best
-with the realaudio NAR adapter the tokenizer was trained with.
-
-```bash
-./build/yue-tokenize --model models/yue2-mothersuperior-realaudio-tokenizer-v4-Q8_0.gguf --audio song.mp3 --out codes.csv
-```
-
-See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for the full JSON
-reference and the `neural-codec` (Oobleck VAE audio codec, encode and
-decode, f32 and reduced-bitrate Q8/Q4 latent formats), `mp3-codec` and
-`quantize` tools.
-
-</details>
-
-## Technical documentation
-
-[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) covers the complete
-Yue2Request JSON reference, the Mixture-of-Transformers backbone and the
-VAE, the three stage inference recipe, the KV cache the flow matching
-half reads, quantization strategy, VRAM, the parity test suite, and
-architecture internals.
-
-## Acknowledgements
-
-Independent C++ implementation based on
-[YuE2](https://github.com/multimodal-art-projection/YuE) by MAP.
-All model weights are theirs, this is just a native backend.
-Structural template: [minimaxmusic.cpp](https://github.com/ServeurpersoCom/minimaxmusic.cpp)
-and [acestep.cpp](https://github.com/ServeurpersoCom/acestep.cpp).
-
-```bibtex
-@article{yuan2025yue,
-	title = {{YuE}: Scaling Open Foundation Models for Long-Form Music Generation},
-	author = {Yuan, Ruibin and Lin, Hanfeng and Guo, Shuyue and Zhang, Ge and Pan, Jiahao and Zang, Yongyi and Liu, Haohe and Liang, Yiming and Ma, Wenye and Du, Xingjian and Ye, Zhen and Ma, Yinghao and Xue, Wei and Tan, Xu and Guo, Yike},
-	journal = {arXiv preprint arXiv:2503.08638},
-	year = {2025},
-	eprint = {2503.08638},
-	archivePrefix = {arXiv},
-	url = {https://arxiv.org/abs/2503.08638}
-}
-```
+This project is based on YuE2 by [MAP](https://huggingface.co/m-a-p/YuE2-3B),
+with the native engine from yue2.cpp and its patched GGML fork.
+Application source is MIT; model weights carry separate **CC BY-NC 4.0**
+terms. Keeping weights outside the image does not change those terms.
+CUDA and other runtime dependencies retain their own licenses.
+See [LICENSE](LICENSE), [third-party notices](THIRD_PARTY_NOTICES.md) and
+[model provenance](docs/MODELS.md).
