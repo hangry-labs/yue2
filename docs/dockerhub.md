@@ -1,6 +1,6 @@
 <p align="center">
   <a href="https://github.com/hangry-labs/yue2">
-    <img src="https://raw.githubusercontent.com/hangry-labs/yue2/master/web/src/assets/yue2-mark.svg" alt="Hangry Labs YuE2 music icon" width="96">
+    <img src="https://raw.githubusercontent.com/hangry-labs/yue2/master/web/src/assets/yue2_logo_horizontal.webp" alt="Hangry Labs YuE2 logo" width="900">
   </a>
 </p>
 
@@ -19,7 +19,7 @@ Use Docker with NVIDIA GPU support and a driver compatible with the CUDA 12.9.1
 runtime. The qualified machine is an **RTX 5070 Ti with 16 GB VRAM**; other GPU
 configurations have not been qualified.
 
-Create a local `models/` directory and download both files, preserving their names:
+Create a local `data/models/` directory and download both files, preserving their names:
 
 | Download | Size |
 | --- | --- |
@@ -27,23 +27,23 @@ Create a local `models/` directory and download both files, preserving their nam
 | [YuE2-Vae-F32.gguf](https://huggingface.co/Serveurperso/YuE2-GGUF/resolve/e630f2b8f6aedf8254c3186438633c1b5eeaf80a/YuE2-Vae-F32.gguf) | 530 MB |
 
 These links use the pinned publisher revision. Check file hashes against the
-[model manifest](https://github.com/hangry-labs/yue2/blob/master/models/manifest.json).
+[model manifest](https://github.com/hangry-labs/yue2/blob/master/docker/models.json).
 Alternatively, run `task models` from a project checkout to download and verify
 them automatically. See the [model guide](https://github.com/hangry-labs/yue2/blob/master/docs/MODELS.md).
 
-From the directory containing `models/`, run one of these commands using the
+From the directory containing `data/models/`, run one of these commands using the
 published, moving development tag `latest`:
 
 **Bash:**
 
 ```bash
-docker run -d --name yue2 --restart unless-stopped --gpus all -p 127.0.0.1:8087:8087 --mount "type=bind,source=$(pwd)/models,target=/models,readonly" hangrylabs/yue2:latest
+docker run -d --name yue2 --restart unless-stopped --gpus all -p 127.0.0.1:8087:8087 --mount "type=bind,source=$(pwd)/data/models,target=/models,readonly" hangrylabs/yue2:latest
 ```
 
 **PowerShell:**
 
 ```powershell
-docker run -d --name yue2 --restart unless-stopped --gpus all -p 127.0.0.1:8087:8087 --mount "type=bind,source=$($PWD.Path)\models,target=/models,readonly" hangrylabs/yue2:latest
+docker run -d --name yue2 --restart unless-stopped --gpus all -p 127.0.0.1:8087:8087 --mount "type=bind,source=$($PWD.Path)\data\models,target=/models,readonly" hangrylabs/yue2:latest
 ```
 
 Open **http://localhost:8087**, enter style tags and lyrics, then select
@@ -66,6 +66,12 @@ additional models and startup arguments. Default downloads cover song generation
 
 ## Browser UI
 
+<p align="center">
+  <a href="https://github.com/hangry-labs/yue2/blob/master/assets/screenshots/create-ui.webp">
+    <img src="https://raw.githubusercontent.com/hangry-labs/yue2/master/assets/screenshots/create-ui.webp" alt="YuE2 Create workspace with musical direction, lyrics and generation settings" width="1200">
+  </a>
+</p>
+
 The local studio uses the Hangry Labs charcoal-and-orange theme with four views:
 
 | View | Workflow |
@@ -77,6 +83,10 @@ The local studio uses the Hangry Labs charcoal-and-orange theme with four views:
 
 Switching views preserves the current composition and active generation. All
 UI assets are served locally; no CDN is required.
+
+Editing lyrics clears the previous score and replay inputs. Use **Clear score
+and replay** for an already-loaded take when you want a fresh composition from
+the current words. Saved songs and generation settings are preserved.
 
 ## Image Tags
 
@@ -102,8 +112,8 @@ archive, not this runtime image.
 
 | Storage | Behavior |
 | --- | --- |
-| Host `models/` at `/models`, read-only | Required models survive container replacement |
-| Optional host `adapters/` at `/adapters`, read-only | Local LoRA adapters |
+| Host `data/models/` at `/models`, read-only | Required models survive container replacement |
+| Optional host `data/adapters/` at `/adapters`, read-only | Local LoRA adapters |
 | Browser IndexedDB/localStorage | Saved songs, audio, latents and form settings |
 | Server memory | Jobs/results disappear when the server restarts |
 

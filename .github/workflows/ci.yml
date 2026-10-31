@@ -47,6 +47,8 @@ jobs:
         run: npm ci --no-audit --no-fund
       - name: Check Svelte and TypeScript
         run: npm run check
+      - name: Test UI request behavior
+        run: npm test
       - name: Check web formatting
         run: npm run lint
       - name: Build web UI

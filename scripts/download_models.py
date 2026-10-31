@@ -3,11 +3,10 @@
 from concurrent.futures import ThreadPoolExecutor
 import hashlib
 import json
-from pathlib import Path
 import time
 import urllib.request
 
-ROOT = Path(__file__).resolve().parents[1]
+import storage
 
 
 def sha256(path):
@@ -59,8 +58,10 @@ def download(directory, manifest, name, spec):
 
 
 def main():
-    directory = ROOT / 'models'
-    manifest = json.loads((directory / 'manifest.json').read_text())
+    storage.require_migrated()
+    directory = storage.MODELS
+    directory.mkdir(parents=True, exist_ok=True)
+    manifest = json.loads(storage.MODEL_MANIFEST.read_text(encoding='utf-8'))
     with ThreadPoolExecutor(max_workers=2) as pool:
         futures = [pool.submit(download, directory, manifest, name, spec)
                    for name, spec in manifest['files'].items()]

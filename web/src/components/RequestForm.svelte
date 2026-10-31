@@ -14,6 +14,7 @@
 	} from '../lib/api.js';
 	import { putSong, getAllSongs, saveJob, loadJob, clearJob } from '../lib/db.js';
 	import { num, buildSparse, clearSection, emptyRequest } from '../lib/fields.js';
+	import { updateLyrics, clearCompositionInputs, canAdoptScore } from '../lib/lyrics.js';
 	import { COT_FULL, COT_MELODY, COT_OFF } from '../lib/config.js';
 	import type { Yue2Request, Song } from '../lib/types.js';
 	import type { PendingJob } from '../lib/db.js';
@@ -53,6 +54,14 @@
 	// The mode menu shows the published default until a mode is picked, so
 	// the request carries a cot only when it is yours.
 	let cot = $derived(app.request.cot || d?.cot || '');
+	let hasComposition = $derived(
+		Boolean(
+			app.request.abc?.trim() ||
+			app.request.semantic_tokens?.trim() ||
+			app.request.source_tokens?.trim() ||
+			app.srcSongId != null
+		)
+	);
 
 	// resume a pending job after page reload, or land a fresh submission.
 	// shared tail of both the onMount resume and the generate path.
@@ -83,9 +92,26 @@
 		// The score travels back: resubmitting it varies the interpretation of
 		// the same composition. The semantic stream stays out, it would render
 		// the very same music.
-		if (tracks.length) {
+		if (tracks.length && canAdoptScore(app.request, job.request)) {
 			app.request.abc = tracks[0].request.abc || '';
 		}
+	}
+
+	function editLyrics(value: string) {
+		if (value === (app.request.lyrics || '')) return;
+		const hadSource = app.srcSongId != null;
+		const cleared = updateLyrics(app.request, value);
+		app.srcSongId = null;
+		if (cleared || hadSource)
+			toast('Lyrics changed. Previous score and replay inputs cleared; saved songs are unchanged.');
+	}
+
+	function clearComposition() {
+		clearCompositionInputs(app.request);
+		app.srcSongId = null;
+		toast(
+			'Previous score and replay inputs cleared. The next generation will compose from these lyrics.'
+		);
 	}
 
 	// on mount: resume polling for a pending job in localStorage.
@@ -725,8 +751,21 @@
 			id="song-lyrics"
 			rows="11"
 			placeholder={'[Verse]\nWrite your lyrics here...'}
-			bind:value={app.request.lyrics}
+			bind:value={() => app.request.lyrics || '', editLyrics}
 		></textarea>
+		<p class="field-help">
+			Editing lyrics starts a new composition and clears the previous score and replay inputs.
+		</p>
+		{#if hasComposition}
+			<div class="composition-notice" role="status">
+				<span
+					>An existing score or replay is loaded. Clear it to compose anew from these lyrics.</span
+				>
+				<button type="button" class="secondary-button" disabled={busy} onclick={clearComposition}
+					>Clear score and replay</button
+				>
+			</div>
+		{/if}
 		<details class="score-editor">
 			<summary>Score · optional ABC notation</summary>
 			<div class="section-title section-header">
@@ -818,9 +857,21 @@
 </Dialog>
 
 <style>
+	.composition-notice {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		justify-content: space-between;
+		gap: 10px;
+		padding: 10px 12px;
+		border: 1px solid var(--border);
+		border-radius: 5px;
+		color: var(--fg-dim);
+		font-size: 0.75rem;
+	}
 	.request-form {
 		display: grid;
-		grid-template-columns: minmax(250px, 290px) minmax(0, 1fr);
+		grid-template-columns: minmax(240px, 278px) minmax(0, 1fr);
 		align-items: start;
 		min-height: 660px;
 	}
@@ -831,7 +882,7 @@
 		flex-direction: column;
 		gap: 16px;
 		min-width: 0;
-		padding: 24px 20px 30px;
+		padding: 16px clamp(14px, 2vw, 22px) 30px;
 		background: var(--rail);
 		border-right: 1px solid var(--border);
 		align-self: stretch;
@@ -865,7 +916,7 @@
 		display: flex;
 		flex-direction: column;
 		gap: 12px;
-		padding: 25px clamp(18px, 3vw, 40px) 24px;
+		padding: 20px clamp(18px, 3vw, 38px) 24px;
 	}
 	.composer-heading {
 		display: flex;

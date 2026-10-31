@@ -176,10 +176,13 @@ a {
 	grid-template-columns: 220px 1fr 340px;
 	align-items: end;
 	height: 224px;
-	padding: 24px 38px;
+	padding: 22px clamp(20px, 4vw, 56px) 22px;
 	border-top: 1px solid #a45320;
 	border-bottom: 1px solid #743c1b;
-	background: radial-gradient(ellipse at 50% 120%, #44220d70, transparent 62%), #090a0c;
+	background: #08090b;
+	box-shadow:
+		inset 0 1px 0 #ffb87024,
+		inset 0 -24px 42px #ff5b000d;
 	color: #f3f3f4;
 }
 .brand-hero::before {
@@ -188,24 +191,28 @@ a {
 	inset: 0;
 	z-index: -1;
 	pointer-events: none;
-	background: repeating-linear-gradient(90deg, transparent 0 63px, #ffffff02 63px 64px);
+	background: linear-gradient(180deg, #ff7d280f, transparent 26%, transparent 76%, #ff5e0014);
 }
 .labs-branding {
+	position: absolute;
+	top: 50%;
+	left: clamp(20px, 4vw, 56px);
 	display: flex;
 	flex-direction: column;
-	align-items: flex-start;
-	gap: 10px;
+	align-items: center;
+	gap: 6px;
+	transform: translateY(-50%);
 }
 .labs-signature {
 	display: grid;
 	justify-items: center;
-	width: 80px;
+	width: 94px;
 	text-decoration: none;
 	color: #d9c3b4;
 }
 .labs-signature img {
-	width: 80px;
-	height: 80px;
+	width: 94px;
+	height: 94px;
 	object-fit: contain;
 }
 .powered-label {
@@ -221,6 +228,18 @@ a {
 	gap: 7px;
 	color: #ffc394;
 	text-decoration: none;
+	padding: 4px 6px;
+	border: 1px solid transparent;
+	border-radius: 6px;
+	transition:
+		border-color 160ms ease,
+		background 160ms ease,
+		box-shadow 160ms ease;
+}
+.brand-contact:hover {
+	border-color: #ff8e4357;
+	background: #ff741d14;
+	box-shadow: 0 0 18px #ff671e1f;
 }
 .contact-copy {
 	display: grid;
@@ -239,10 +258,10 @@ a {
 }
 .brand-nav {
 	position: absolute;
-	top: 23px;
-	right: 38px;
+	top: 22px;
+	right: clamp(20px, 4vw, 56px);
 	display: flex;
-	gap: 8px;
+	gap: 9px;
 }
 .brand-nav button,
 .brand-nav a {
@@ -250,25 +269,37 @@ a {
 	align-items: center;
 	justify-content: center;
 	gap: 7px;
-	min-height: 38px;
-	padding: 0 13px;
+	min-height: 40px;
+	padding: 0 15px;
 	color: #fff4eb;
 	border: 1px solid #ffffff35;
-	border-radius: 7px;
-	background: #101113c9;
-	font-size: 0.75rem;
-	font-weight: 700;
+	border-radius: 9px;
+	background: #0a0b0dc2;
+	box-shadow:
+		inset 0 1px 0 #ffffff1a,
+		0 9px 24px #0000003d;
+	backdrop-filter: blur(12px);
+	font-size: 0.8rem;
+	font-weight: 750;
 	text-decoration: none;
+	transition:
+		border-color 140ms ease,
+		background 140ms ease,
+		transform 140ms ease;
 }
 .brand-nav button:hover,
 .brand-nav a:hover {
 	border-color: #ff9a55;
 	background: #2b1d14;
+	transform: translateY(-2px);
 }
 .brand-nav .primary-link {
 	background: linear-gradient(135deg, #ff7110, #ff9e52);
 	border-color: #ff8b3d;
 	color: #211006;
+	box-shadow:
+		inset 0 1px 0 #ffe8d366,
+		0 10px 26px #ff5c003b;
 }
 .brand-nav .primary-link:hover {
 	background: #ffac6b;
@@ -276,42 +307,25 @@ a {
 .brand-copy {
 	position: absolute;
 	left: 50%;
-	bottom: 31px;
-	width: min(480px, 40%);
+	bottom: 6px;
+	width: min(470px, calc(100% - 640px));
 	text-align: center;
 	transform: translateX(-50%);
+	pointer-events: none;
 }
 .product-wordmark {
 	display: flex;
 	justify-content: center;
 	align-items: center;
-	gap: 17px;
+	margin: 0;
+	line-height: 0;
 }
 .product-wordmark img {
-	width: 64px;
-	height: 64px;
+	width: 100%;
+	height: auto;
+	max-height: 194px;
+	object-fit: contain;
 	filter: drop-shadow(0 0 18px #ff7a1a15);
-}
-.product-wordmark h1 {
-	margin: 0;
-	font-size: 5rem;
-	line-height: 1;
-	font-weight: 800;
-	letter-spacing: -0.075em;
-}
-.product-wordmark h1 span {
-	color: #ff8b37;
-}
-.brand-copy p {
-	margin: 13px 0 6px;
-	color: #ddc9bb;
-	font-size: 0.83rem;
-}
-.product-description {
-	color: #a7a2a0;
-	font-size: 0.66rem;
-	letter-spacing: 0.12em;
-	text-transform: uppercase;
 }
 .runtime-badge {
 	grid-column: 3;
@@ -324,6 +338,10 @@ a {
 	border: 1px solid #b9876555;
 	border-radius: 7px;
 	background: #101113;
+	box-shadow:
+		inset 0 1px 0 #ffffff0f,
+		0 12px 34px #00000047;
+	backdrop-filter: blur(12px);
 }
 .runtime-badge > svg {
 	color: #ef6b73;
@@ -341,7 +359,7 @@ a {
 	gap: 3px;
 }
 .runtime-copy strong {
-	font-size: 0.72rem;
+	font-size: 0.78rem;
 }
 .runtime-copy span {
 	max-width: 180px;
@@ -349,13 +367,13 @@ a {
 	text-overflow: ellipsis;
 	white-space: nowrap;
 	color: #a6a8b0;
-	font-size: 0.63rem;
+	font-size: 0.7rem;
 }
 .runtime-version {
 	padding-left: 11px;
 	border-left: 1px solid #ffffff20;
 	color: #d9c3b4;
-	font-size: 0.62rem;
+	font-size: 0.67rem;
 	white-space: nowrap;
 	text-decoration: none;
 }
@@ -382,11 +400,13 @@ a {
 	align-items: center;
 	gap: 13px;
 	height: auto;
-	min-height: 78px;
-	padding-top: 20px;
-	padding-bottom: 12px;
+	min-height: 74px;
+	padding-top: 9px;
+	padding-bottom: 9px;
 }
 .collapsed .labs-branding {
+	position: static;
+	transform: none;
 	flex-direction: row;
 	align-items: center;
 	gap: 10px;
@@ -394,8 +414,8 @@ a {
 .collapsed .brand-contact {
 	order: -1;
 	justify-content: center;
-	width: 32px;
-	height: 36px;
+	width: 40px;
+	height: 40px;
 	border: 1px solid #ff8b3755;
 	border-radius: 5px;
 }
@@ -406,13 +426,13 @@ a {
 }
 .collapsed .labs-signature,
 .collapsed .labs-signature img {
-	width: 44px;
-	height: 44px;
+	width: 54px;
+	height: 54px;
 }
 .collapsed .compact-mark {
 	display: block;
-	width: 38px;
-	height: 38px;
+	width: 54px;
+	height: 54px;
 }
 .collapsed .brand-nav {
 	position: static;
@@ -436,7 +456,7 @@ a {
 	justify-content: center;
 	gap: 8px;
 	padding: 0 19px;
-	min-height: 47px;
+	min-height: 42px;
 	border: 0;
 	border-bottom: 2px solid transparent;
 	background: transparent;
@@ -503,29 +523,22 @@ code {
 .pulse {
 	animation: status-pulse 1.5s ease-in-out infinite;
 }
-@media (max-width: 1150px) {
+@media (max-width: 1400px) {
 	.brand-hero {
 		padding-left: 24px;
 		padding-right: 24px;
-		height: 240px;
+		height: 224px;
 		grid-template-columns: 180px 1fr 310px;
 	}
 	.brand-nav {
 		right: 24px;
 	}
 	.brand-copy {
-		bottom: 50px;
-		width: 40%;
+		bottom: 6px;
+		width: min(470px, calc(100% - 640px));
 	}
 	.runtime-badge {
 		padding: 8px;
-	}
-	.product-wordmark h1 {
-		font-size: 4rem;
-	}
-	.product-wordmark img {
-		width: 52px;
-		height: 52px;
 	}
 	.collapsed {
 		flex-wrap: wrap;
@@ -533,7 +546,7 @@ code {
 }
 @media (max-width: 850px) {
 	.brand-hero {
-		height: 310px;
+		height: 330px;
 		padding: 20px;
 		align-items: end;
 		display: flex;
@@ -546,8 +559,15 @@ code {
 		justify-content: center;
 	}
 	.brand-copy {
-		bottom: 112px;
-		width: 100%;
+		top: 76px;
+		bottom: auto;
+		width: min(480px, calc(100% - 40px));
+	}
+	.labs-branding {
+		top: auto;
+		bottom: 20px;
+		left: 20px;
+		transform: none;
 	}
 	.labs-signature {
 		width: 59px;
@@ -587,13 +607,14 @@ code {
 }
 @media (max-width: 540px) {
 	.brand-hero {
-		height: 335px;
+		height: 330px;
 		padding: 18px 15px;
 	}
 	.brand-nav {
 		left: 12px;
 		right: 12px;
 		gap: 5px;
+		flex-wrap: wrap;
 	}
 	.brand-nav button,
 	.brand-nav a {
@@ -603,27 +624,21 @@ code {
 		min-height: 36px;
 	}
 	.brand-copy {
-		bottom: 140px;
-	}
-	.product-wordmark h1 {
-		font-size: 3.8rem;
-	}
-	.brand-copy p {
-		font-size: 0.76rem;
-	}
-	.product-description {
-		font-size: 0.6rem;
+		top: 100px;
+		width: min(360px, calc(100% - 30px));
 	}
 	.labs-branding {
 		gap: 5px;
+		left: 15px;
+		bottom: 18px;
 	}
 	.contact-copy {
 		display: none;
 	}
 	.brand-contact {
 		position: absolute;
-		left: 87px;
-		bottom: 28px;
+		left: 72px;
+		bottom: 0;
 	}
 	.runtime-badge {
 		position: absolute;
@@ -652,17 +667,17 @@ code {
 	}
 	.collapsed .brand-contact {
 		position: static;
-		width: 26px;
-		height: 30px;
+		width: 36px;
+		height: 36px;
 	}
 	.collapsed .labs-signature,
 	.collapsed .labs-signature img {
-		width: 34px;
-		height: 34px;
+		width: 44px;
+		height: 44px;
 	}
 	.collapsed .compact-mark {
-		width: 30px;
-		height: 30px;
+		width: 44px;
+		height: 44px;
 	}
 	.collapsed .brand-nav {
 		justify-content: flex-end;
@@ -704,6 +719,14 @@ code {
 	}
 	.surface {
 		padding: 16px;
+	}
+}
+@media (max-width: 360px) {
+	.brand-hero {
+		height: 330px;
+	}
+	.brand-copy {
+		top: 118px;
 	}
 }
 @media (prefers-reduced-motion: reduce) {

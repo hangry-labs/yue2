@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # Convert the YuE2 checkpoints to GGUF, native dtype byte perfect.
-# Reads checkpoints/, writes models/. Run scripts/models/checkpoints.sh first.
+# Reads data/checkpoints/, writes data/models/. Run scripts/models/checkpoints.sh first.
 #
 # Components (HF repo -> GGUF):
 #   YuE2-3B/  -> YuE2-3B-BF16.gguf  (3.6B AR/NAR Mixture-of-Transformers, with the
@@ -38,8 +38,8 @@ import numpy as np
 import gguf
 
 SCRIPT_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-CHECKPOINT_DIR = os.path.join(SCRIPT_DIR, "checkpoints")
-OUTPUT_DIR = os.path.join(SCRIPT_DIR, "models")
+CHECKPOINT_DIR = os.path.join(SCRIPT_DIR, "data", "checkpoints")
+OUTPUT_DIR = os.path.join(SCRIPT_DIR, "data", "models")
 
 COMPONENTS = {
     "backbone":    "YuE2-3B",
@@ -388,7 +388,7 @@ def convert(component):
 
 def main():
     if not os.path.isdir(CHECKPOINT_DIR):
-        log("GGUF", "checkpoints/ not found")
+        log("GGUF", "data/checkpoints/ not found")
         return 1
 
     os.makedirs(OUTPUT_DIR, exist_ok=True)

@@ -71,7 +71,7 @@ task deps:export
 release archive is configured. The initial cold compilation is expensive. It
 creates `yue2-ggml:<first-20-characters-of-input-key>` in local Docker.
 `deps:export` verifies and exports that installation into
-`results/build-deps/<key-prefix>/`, producing a `.tar.gz` and matching `.sha256`.
+`data/results/build-deps/<key-prefix>/`, producing a `.tar.gz` and matching `.sha256`.
 These generated binary files remain outside Git source control.
 
 Upload both files to a separate GitHub Release tagged `ggml-deps-<key-prefix>`.

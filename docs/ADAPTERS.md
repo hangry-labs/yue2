@@ -1,6 +1,6 @@
 # Adapters
 
-Place your LoRA adapters here: a `.safetensors` file, or a folder holding
+Place your LoRA adapters in `data/adapters/`: a `.safetensors` file, or a folder holding
 one next to its `adapter_config.json`. The server lists them at startup with
 the halves of the backbone each one changes, AR (the score and the codes),
 NAR (the acoustics) or both, and the WebUI stacks any number of them, each
@@ -20,8 +20,16 @@ ComfyUI and AI Toolkit files carry `text_encoders.*` for the AR half and
 `vae2llm` and `llm2vae`. A file holding anything else (LoKr, DoRA, an extra
 conditioning branch) is skipped with the name of the tensor at fault.
 
-Point the server at this folder:
+From the project root, start the local server with Task:
 
-```bash
-./build/yue-server --model models/YuE2-3B-Q8_0.gguf --vae models/YuE2-Vae-F32.gguf --adapters ./adapters
+```text
+task start
 ```
+
+Task creates `data/adapters/` when needed and mounts it read-only at `/adapters`.
+The image's default command already sets `--adapters /adapters`. Restart the
+server after adding files so it can discover them at startup. Adapter files stay
+outside Git and the Docker image. See [manual Docker mounts](DOCKER.md#runtime-settings).
+
+These are inference loading formats; this project does not provide training
+workflows. Follow the adapter's own terms as well as the base model's license.

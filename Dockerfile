@@ -47,10 +47,11 @@ WORKDIR /web
 COPY web/package*.json ./
 RUN npm ci --no-audit --no-fund
 COPY web/ ./
+COPY tests/web/ /tests/web/
 COPY VERSION /VERSION
 ARG SOURCE_REVISION=unknown
 RUN export YUE2_VERSION="$(cat /VERSION) ($SOURCE_REVISION)" \
-    && npm run check && npm run lint && npm run build \
+    && npm run check && npm test && npm run lint && npm run build \
     && mkdir /web-licenses \
     && cp node_modules/svelte/LICENSE.md /web-licenses/svelte-MIT.txt \
     && cp node_modules/@lucide/svelte/LICENSE /web-licenses/lucide.txt \

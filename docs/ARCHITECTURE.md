@@ -11,7 +11,7 @@ the model composed. Runs on CPU, CUDA, Vulkan.
 Source of truth: the `m-a-p/YuE2-3B` checkpoint and the modeling code it
 ships (`modeling_yue2.py`, `protocol.py`, the generation config), plus the
 `m-a-p/YuE2-Vae` decoder. The parity harnesses import that modeling code
-straight out of `checkpoints/`, so the reference is the checkpoint itself,
+straight out of `data/checkpoints/`, so the reference is the checkpoint itself,
 not a separate library pin.
 
 ## Build
@@ -825,8 +825,8 @@ request, which is the source of truth for the WebUI placeholders:
 ```json
 {
   "version": "...",
-  "model": "models/YuE2-3B-Q8_0.gguf",
-  "vae": "models/YuE2-Vae-F32.gguf",
+  "model": "data/models/YuE2-3B-Q8_0.gguf",
+  "vae": "data/models/YuE2-Vae-F32.gguf",
   "sample_rate": 48000,
   "frame_rate": 25,
   "context": 24576,
@@ -942,11 +942,11 @@ int8, 13.2 kbit/s) and `NAC4` (per frame F16 scale plus 32 packed bytes,
 
 ```bash
 # encode a track to the Q8 reduced-bitrate format, decode auto-detects it
-./neural-codec --vae models/YuE2-Vae-F32.gguf --encode -i track.wav --q8
-./neural-codec --vae models/YuE2-Vae-F32.gguf --decode -i track.nac8 --format wav24
+./build/native-cpu/neural-codec --vae data/models/YuE2-Vae-F32.gguf --encode -i track.wav --q8
+./build/native-cpu/neural-codec --vae data/models/YuE2-Vae-F32.gguf --decode -i track.nac8 --format wav24
 
 # decode the latents a run dumped with yue-synth --latent
-./neural-codec --vae models/YuE2-Vae-F32.gguf --decode -i song.vae -o song.mp3 --format mp3
+./build/native-cpu/neural-codec --vae data/models/YuE2-Vae-F32.gguf --decode -i song.vae -o song.mp3 --format mp3
 ```
 
 ## mp3-codec reference
@@ -1013,7 +1013,7 @@ The tiled VAE case compares against the torch decode of the whole
 sequence, not against an untiled GGML run, so the halo crop is validated
 rather than merely reproduced.
 
-The tokenizer case encodes `tests/bpe-text.txt` and compares the id stream
+The tokenizer case encodes `tests/parity/bpe-text.txt` and compares the id stream
 against the tokenizer of the reference: contractions in both cases,
 decomposed and precomposed accents, combining marks that need canonical
 reordering, code points excluded from composition, Hangul in jamo and in
@@ -1036,7 +1036,7 @@ close on another.
 
 `debug-nar-cossim.py` isolates the acoustic stack from the stochastic AR:
 the GGML side runs the full pipeline with `--dump` on the shared
-`tests/request0.json`, the reference example **City Lights** (English
+`tests/parity/request0.json`, the reference example **City Lights** (English
 warm piano pop, a verse and a chorus) with its planned score and its
 semantic stream frozen in the file, so the autoregression reduces to
 one prefill. The python

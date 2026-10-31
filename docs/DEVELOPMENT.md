@@ -12,17 +12,61 @@ Python helpers use the standard library; Python is not added to the inference im
 | `web/` | Svelte 5/TypeScript studio and embedded UI asset |
 | `scripts/` | Cross-platform Task helpers and advanced model conversion tools |
 | `cmake/` | Build identity, asset embedding and reusable GGML package helpers |
-| `docker/` | Checksum-pinned compiled dependency configuration |
-| `benchmarks/` | Repeatable generation runner |
+| `docker/` | Pinned model-download manifest and compiled dependency configuration |
+| `tests/benchmarks/` | Repeatable generation runner |
 | `tests/unit/` | CPU-only tooling and lifecycle tests |
 | `tests/integration/` | Read-only checks against a running server |
 | `tests/fixtures/` | Baseline prompts |
 | `tests/parity/` | Optional model-dependent upstream numerical harnesses and historical logs |
 | `vendor/` | Third-party source, including the pinned GGML snapshot |
-| `docs/` | Runtime/development guides and the [Docker Hub overview](dockerhub.md) |
+| `docs/` | [Documentation index](README.md), user/developer guides and the Docker Hub overview |
+| `assets/` | [Artwork conversion notes](../assets/README.md) and documentation screenshots |
 
-Model files and generated `results/` stay outside version control. GGML is
+Model files and generated `data/results/` stay outside version control. GGML is
 ordinary vendored source; no recursive clone or nested Git checkout is needed.
+
+`src/` contains application code. `cmake/` and `docker/` describe how that code
+is built and packaged, so they stay beside it. The root `CMakeLists.txt`,
+`Dockerfile` and `Taskfile.yml` remain the build entry points; `.github/workflows/`
+is GitHub's workflow location. `LICENSE`, `THIRD_PARTY_NOTICES.md`, `VERSION`
+and the README remain easy to find at the repository root.
+
+`build/` holds disposable compiler output, dependency downloads and publication
+reports. User files belong in `data/`, separately from those build caches.
+Both directories are ignored by Git and excluded from Docker's build context.
+Product artwork belongs with the UI assets or documentation media, never in
+the local model-data directories.
+
+## Local data
+
+| Host location | Purpose | Container location |
+| --- | --- | --- |
+| `data/models/` | Required and optional GGUF files | `/models`, read-only |
+| `data/adapters/` | Optional LoRA adapters | `/adapters`, read-only |
+| `data/checkpoints/` | Original checkpoints for advanced conversion/reference checks | Not mounted by normal startup |
+| `data/results/` | Benchmark evidence and exported build-dependency archives | Per-run `/output` mount when needed |
+
+Tasks create these directories when needed. The tracked download manifest is
+[`docker/models.json`](../docker/models.json); model files are never tracked or
+baked into the image. Browser songs/settings still live in browser storage,
+and server jobs/results remain in memory.
+
+For an existing checkout with root-level `models/`, `adapters/`, `checkpoints/`
+or `results/`, finish active work before migrating:
+
+```text
+task stop
+task data:migrate
+task start
+```
+
+`task data:status` shows paths and pending moves. Migration renames local
+directories without re-downloading files, refuses destination collisions and
+live bind mounts, and never merges or overwrites existing data. If both old
+and new locations contain files, reconcile them manually before retrying.
+The downloader refuses legacy storage rather than downloading a second copy.
+Existing external Docker deployments can keep their own host directories;
+the in-container paths and server defaults have not changed.
 
 ## Task interface
 
@@ -30,6 +74,7 @@ ordinary vendored source; no recursive clone or nested Git checkout is needed.
 | --- | --- |
 | task doctor | Inspect Docker, Buildx and host GPU visibility |
 | task models | Verify/download pinned external models |
+| task data:status / data:migrate | Inspect storage or migrate an old checkout |
 | task init | Models, then CUDA image build |
 | task build | Rebuild current native engine and UI |
 | task deps:build | Prebuild a reusable GGML artifact with all distribution CUDA targets |
@@ -41,8 +86,9 @@ ordinary vendored source; no recursive clone or nested Git checkout is needed.
 | task test | Tooling tests and GGML snapshot verification |
 | task test:api | Read-only capabilities and GPU telemetry checks against the running server |
 | task check:cpu | Compile all native targets and check executable loading in Docker |
-| task web:check | Check Svelte/TypeScript and formatting in Node Docker |
+| task web:check | Check UI types, request behavior and formatting in Node Docker |
 | task web:build | Regenerate the embedded UI asset in Node Docker |
+| task assets:build | Convert the original PNG artwork to WebP with host FFmpeg |
 | task validate | Tooling, vendor, UI and CPU checks |
 | task test1 | Full GPU generation baseline |
 | task test1:prepare | Prepare the request without Docker inference |
@@ -125,7 +171,8 @@ No build task recursively deletes build/.
 
 tests/parity contains the inherited Torch/NumPy/model-based comparisons.
 Builds compile their native harnesses, but startup checks are not numerical parity.
-The Python scripts default to build/native-cpu and external models/checkpoints.
+The Python scripts default to `build/native-cpu`, `data/models/` and
+`data/checkpoints/`.
 Some require a sibling YuE source checkout. Run from tests/parity on Linux.
 Historical logs are in reference-logs; they are not evidence for the current image.
 
@@ -133,5 +180,5 @@ Historical logs are in reference-logs; they are not evidence for the current ima
 
 scripts/models retains advanced checkpoint download, conversion and quantization.
 These are secondary to inference, not training support. See MODELS.md.
-benchmarks/test1.py and tests/fixtures/test1.txt define the repeatable baseline.
-Generated artifacts stay under ignored results/.
+tests/benchmarks/test1.py and tests/fixtures/test1.txt define the repeatable baseline.
+Generated artifacts stay under ignored data/results/.

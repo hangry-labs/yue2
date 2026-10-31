@@ -17,7 +17,7 @@ def load(name, path):
     return module
 
 
-baseline = load('baseline', 'benchmarks/test1.py')
+baseline = load('baseline', 'tests/benchmarks/test1.py')
 sys.path.insert(0, str(ROOT / 'scripts'))
 dev = load('dev', 'scripts/dev.py')
 images = load('images', 'scripts/ci_images.py')

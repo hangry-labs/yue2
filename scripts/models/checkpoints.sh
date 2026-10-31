@@ -10,7 +10,7 @@
 set -eu
 cd "$(dirname "$0")/../.."
 
-DIR="checkpoints"
+DIR="data/checkpoints"
 mkdir -p "$DIR"
 
 HF="hf download --quiet"

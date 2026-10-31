@@ -5,15 +5,15 @@ tests/parity/tmp/
 tests/parity/dumps/
 tests/parity/*.log
 
-checkpoints/
-models/*.gguf
-adapters/*/
-adapters/*.safetensors
+# User models, adapters, original checkpoints and generated artifacts.
+/data/
+# Legacy paths stay ignored until existing checkouts migrate.
+/checkpoints/
+/models/
+/adapters/
 __pycache__/
 node_modules/
 web/dist/
-training/datasets/
-training/checkpoints/
 
 /.ai/
 /.idea/

@@ -3,6 +3,7 @@
 	import { ui } from '../lib/ui.svelte.js';
 	import { AudioLines, Library, Sparkles } from '@lucide/svelte';
 	import SongCard from './SongCard.svelte';
+	import productMascot from '../assets/yue2_mascot.webp';
 	let { library = false }: { library?: boolean } = $props();
 	let query = $state('');
 	let favorites = $state(false);
@@ -38,7 +39,11 @@
 		<SongCard {song} />
 	{:else}
 		<div class="empty-library">
-			<AudioLines size={30} />
+			{#if app.songs.length}
+				<AudioLines size={30} />
+			{:else}
+				<img class="empty-mascot" src={productMascot} alt="" width="140" height="140" />
+			{/if}
 			<h3>{app.songs.length ? 'No matching songs' : 'A little quiet in here'}</h3>
 			<p>
 				{app.songs.length
@@ -55,6 +60,11 @@
 </div>
 
 <style>
+	.empty-mascot {
+		width: 140px;
+		height: auto;
+		margin-bottom: 8px;
+	}
 	.song-list {
 		display: flex;
 		flex-direction: column;

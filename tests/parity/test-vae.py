@@ -24,8 +24,8 @@ import torch
 BIN = "../../build/native-cpu/test-vae"
 # A leading "--device <name>" is forwarded to the harness
 DEVICE = ["--device", sys.argv[2]] if sys.argv[1:2] == ["--device"] else []
-CKPT = "../../checkpoints/YuE2-Vae"
-GGUF = "../../models/YuE2-Vae-F32.gguf"
+CKPT = "../../data/checkpoints/YuE2-Vae"
+GGUF = "../../data/models/YuE2-Vae-F32.gguf"
 TMP = "tmp"
 MAX_REL = 1e-2
 

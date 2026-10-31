@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="web/src/assets/yue2-mark.svg" alt="Hangry Labs YuE2 music icon" width="96">
+  <img src="web/src/assets/yue2_logo_horizontal.webp" alt="Hangry Labs YuE2 logo" width="900">
 </p>
 
 # Hangry Labs YuE2
@@ -21,9 +21,9 @@ Use Docker with NVIDIA GPU support and a driver compatible with the CUDA 12.9.1
 runtime. The tested machine has an **RTX 5070 Ti with 16 GB VRAM**; other GPU
 configurations have not been qualified.
 
-**Download the models first.** Create a local `models/` folder and save these
+**Download the models first.** Create a local `data/models/` folder and save these
 two files there, keeping their filenames. Downloads total approximately 4.34 GB.
-The links use the pinned publisher revision in the [model manifest](models/manifest.json),
+The links use the pinned publisher revision in the [model manifest](docker/models.json),
 which also contains their SHA-256 checksums.
 
 | Download | Purpose | Size |
@@ -31,19 +31,19 @@ which also contains their SHA-256 checksums.
 | [YuE2-3B-Q8_0.gguf](https://huggingface.co/Serveurperso/YuE2-GGUF/resolve/e630f2b8f6aedf8254c3186438633c1b5eeaf80a/YuE2-3B-Q8_0.gguf) | Song generation backbone | 3.81 GB |
 | [YuE2-Vae-F32.gguf](https://huggingface.co/Serveurperso/YuE2-GGUF/resolve/e630f2b8f6aedf8254c3186438633c1b5eeaf80a/YuE2-Vae-F32.gguf) | Audio encoder/decoder | 530 MB |
 
-From the directory containing `models/`, start the container. These commands
+From the directory containing `data/models/`, start the container. These commands
 use the published, moving development tag `latest`.
 
 **Bash:**
 
 ```bash
-docker run -d --name yue2 --restart unless-stopped --gpus all -p 127.0.0.1:8087:8087 --mount "type=bind,source=$(pwd)/models,target=/models,readonly" hangrylabs/yue2:latest
+docker run -d --name yue2 --restart unless-stopped --gpus all -p 127.0.0.1:8087:8087 --mount "type=bind,source=$(pwd)/data/models,target=/models,readonly" hangrylabs/yue2:latest
 ```
 
 **PowerShell:**
 
 ```powershell
-docker run -d --name yue2 --restart unless-stopped --gpus all -p 127.0.0.1:8087:8087 --mount "type=bind,source=$($PWD.Path)\models,target=/models,readonly" hangrylabs/yue2:latest
+docker run -d --name yue2 --restart unless-stopped --gpus all -p 127.0.0.1:8087:8087 --mount "type=bind,source=$($PWD.Path)\data\models,target=/models,readonly" hangrylabs/yue2:latest
 ```
 
 Open **[http://localhost:8087](http://localhost:8087)**, enter style tags and
@@ -54,6 +54,8 @@ Generation can run offline once the image and models are present.
 
 For automatic model download and checksum verification from a checkout, use
 `task models`. To build locally, see [Local Development](#local-development).
+Existing checkouts can [migrate local data](docs/DEVELOPMENT.md#local-data)
+without downloading the models again.
 Model terms are separate from the application's MIT license; see [License](#license).
 
 ## What You Get
@@ -72,6 +74,12 @@ downloads. See [Models](docs/MODELS.md).
 
 ## Browser UI
 
+<p align="center">
+  <a href="assets/screenshots/create-ui.webp">
+    <img src="assets/screenshots/create-ui.webp" alt="YuE2 Create workspace with musical direction, lyrics and generation settings" width="1200">
+  </a>
+</p>
+
 | View | What you can do |
 | --- | --- |
 | Create | Enter musical direction and lyrics, edit an optional ABC score, adjust generation settings and play rendered songs. |
@@ -83,6 +91,11 @@ The studio uses the Hangry Labs charcoal-and-orange theme with a collapsible
 header. Switching views preserves the current composition and active generation.
 Examples fill the song content while preserving generation settings. UI assets
 are served locally without a CDN.
+
+Editing lyrics clears the previous score and replay inputs so the next run
+composes for the new words. If a saved score or take is already loaded, use
+**Clear score and replay** to start a fresh composition without changing your
+lyrics or generation settings. Saved songs remain in Library.
 
 ## Docker Reference
 
@@ -111,8 +124,8 @@ and prepared [Docker Hub overview](docs/dockerhub.md).
 
 | Storage | Contents and lifetime |
 | --- | --- |
-| Host `models/` mounted at `/models` | Required GGUFs; survive container replacement |
-| Optional host `adapters/` mounted at `/adapters` | LoRA files; see the [Docker guide](docs/DOCKER.md#runtime-settings) |
+| Host `data/models/` mounted at `/models` | Required GGUFs; survive container replacement |
+| Optional host `data/adapters/` mounted at `/adapters` | LoRA files; see the [Docker guide](docs/DOCKER.md#runtime-settings) |
 | Browser IndexedDB | Saved song cards, audio and latent artifacts |
 | Browser localStorage | Form settings and pending-job state |
 | Server memory | Jobs and results; cleared on restart |
@@ -202,13 +215,16 @@ Model hashing warmed the filesystem before measurement; this is one local run,
 not a performance guarantee.
 
 `task test1` uses [the recorded prompt](tests/fixtures/test1.txt) and saves audio,
-score, tokens, latents, replay settings, logs and timings under `results/test1/`.
+score, tokens, latents, replay settings, logs and timings under `data/results/test1/`.
 See [methodology and measured results](docs/BENCHMARKS.md).
 
 ## Documentation
 
+See the [documentation index](docs/README.md) for user and developer guides.
+
 - [Docker runtime and packaging safeguards](docs/DOCKER.md)
 - [Models, checksums and conversion](docs/MODELS.md)
+- [LoRA adapters](docs/ADAPTERS.md)
 - [Development and repository layout](docs/DEVELOPMENT.md)
 - [Reusable CUDA build dependencies](docs/BUILDING.md)
 - [Benchmark methodology](docs/BENCHMARKS.md)

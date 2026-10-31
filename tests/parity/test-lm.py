@@ -23,8 +23,8 @@ import torch
 BIN = "../../build/native-cpu/test-lm"
 # A leading "--device <name>" is forwarded to the harness
 DEVICE = ["--device", sys.argv[2]] if sys.argv[1:2] == ["--device"] else []
-CKPT = "../../checkpoints/YuE2-3B"
-GGUF = "../../models/YuE2-3B-BF16.gguf"
+CKPT = "../../data/checkpoints/YuE2-3B"
+GGUF = "../../data/models/YuE2-3B-BF16.gguf"
 TMP = "tmp"
 MAX_REL = 2e-2
 

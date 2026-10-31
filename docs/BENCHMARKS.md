@@ -4,7 +4,7 @@
 task test1
 ```
 
-Requires the built local image and models. It runs benchmarks/test1.py against
+Requires the built local image and models. It runs tests/benchmarks/test1.py against
 tests/fixtures/test1.txt in a temporary Docker container, independently of the UI
 server. Do not run competing generation jobs when comparing timings.
 
@@ -28,7 +28,7 @@ Rebuild the image after engine changes; the task does not silently rebuild it.
 
 ## Artifacts and timing
 
-Each ignored results/test1/<UTC timestamp>-<suffix>/ directory contains:
+Each ignored data/results/test1/<UTC timestamp>-<suffix>/ directory contains:
 - Original prompt and exact request JSON.
 - MP3, replay JSON, ABC score, semantic CSV and VAE latents.
 - Native generation log and summary.json.

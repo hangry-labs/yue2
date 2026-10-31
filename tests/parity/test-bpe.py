@@ -19,8 +19,8 @@ import numpy as np
 import tiktoken
 
 BIN = "../../build/native-cpu/test-bpe"
-CKPT = "../../checkpoints/YuE2-3B"
-GGUF = "../../models/YuE2-3B-BF16.gguf"
+CKPT = "../../data/checkpoints/YuE2-3B"
+GGUF = "../../data/models/YuE2-3B-BF16.gguf"
 TEXT = "bpe-text.txt"
 TMP = "tmp"
 

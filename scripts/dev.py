@@ -13,6 +13,7 @@ import urllib.request
 
 import ggml_deps
 import ggml_release
+import storage
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -154,7 +155,7 @@ def main():
             command += ['--target', 'cpu-checks', '-t', 'yue2:cpu-checks']
         run(command + ['.'], args.dry_run)
     elif args.command in ('web-check', 'web-build'):
-        script = 'npm ci --no-audit --no-fund && npm run check && npm run lint'
+        script = 'npm ci --no-audit --no-fund && npm run check && npm test && npm run lint'
         if args.command == 'web-build':
             version = (ROOT / 'VERSION').read_text().strip() + ' (' + revision() + ')'
             script += ' && npm run build'
@@ -166,11 +167,14 @@ def main():
                    'node:24-bookworm-slim', 'sh', '-c', script]
         run(command, args.dry_run)
     elif args.command == 'start':
-        models = ROOT / 'models'
+        models = storage.MODELS
+        adapters = storage.ADAPTERS
         for filename in ('YuE2-3B-Q8_0.gguf', 'YuE2-Vae-F32.gguf'):
             if not (models / filename).is_file() and not args.dry_run:
-                raise RuntimeError('Models missing. Run task models first.')
+                raise RuntimeError('Models missing in data/models/. Run task data:migrate for an old checkout, or task models to download.')
         if not args.dry_run:
+            storage.require_migrated()
+            adapters.mkdir(parents=True, exist_ok=True)
             image_info = json.loads(subprocess.check_output(['docker', 'image', 'inspect', image], text=True))[0]
             existing = subprocess.run(['docker', 'inspect', container], capture_output=True, text=True)
             if existing.returncode == 0:
@@ -184,7 +188,7 @@ def main():
                 binding = {'HostIp': setting('BIND_ADDRESS', '127.0.0.1'), 'HostPort': str(port)}
                 mounted = {m['Destination']: os.path.normcase(m['Source']) for m in info.get('Mounts', [])}
                 correct_mounts = all(mounted.get(target) == os.path.normcase(str(source))
-                                     for target, source in (('/models', models), ('/adapters', ROOT / 'adapters')))
+                                     for target, source in (('/models', models), ('/adapters', adapters)))
                 requests = info['HostConfig'].get('DeviceRequests') or []
                 selected = setting('GPU_DEVICE', 'all')
                 correct_gpu = any((r.get('Count') == -1 if selected == 'all'
@@ -202,7 +206,7 @@ def main():
              '--label', 'io.hangrylabs.project=yue2',
              '-p', setting('BIND_ADDRESS', '127.0.0.1') + f':{port}:8087',
              '--mount', f'type=bind,source={models},target=/models,readonly',
-             '--mount', f'type=bind,source={ROOT / "adapters"},target=/adapters,readonly', image], args.dry_run)
+             '--mount', f'type=bind,source={adapters},target=/adapters,readonly', image], args.dry_run)
         print(f'UI: http://localhost:{port}')
     elif args.command == 'stop':
         if not args.dry_run:

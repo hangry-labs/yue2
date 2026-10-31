@@ -7,6 +7,7 @@
 build
 build-*
 results
+data
 models
 checkpoints
 adapters

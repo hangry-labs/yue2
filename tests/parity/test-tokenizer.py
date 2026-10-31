@@ -27,9 +27,9 @@ import torch.nn as nn
 BIN = "../../build/native-cpu/test-tokenizer"
 # A leading "--device <name>" is forwarded to the harness
 DEVICE = ["--device", sys.argv[2]] if sys.argv[1:2] == ["--device"] else []
-MERT = "../../checkpoints/MERT-v2-FullSong"
-HEAD = "../../checkpoints/yue2-mothersuperior-realaudio-tokenizer-v4/tokenizer_head_joint_v9.safetensors"
-GGUF = "../../models/yue2-mothersuperior-realaudio-tokenizer-v4-F32.gguf"
+MERT = "../../data/checkpoints/MERT-v2-FullSong"
+HEAD = "../../data/checkpoints/yue2-mothersuperior-realaudio-tokenizer-v4/tokenizer_head_joint_v9.safetensors"
+GGUF = "../../data/models/yue2-mothersuperior-realaudio-tokenizer-v4-F32.gguf"
 TMP = "tmp"
 MAX_REL = 5e-2
 MIN_AGREE = 0.95

@@ -173,7 +173,7 @@ def export(output_dir=None, image=None):
     dependency = ggml_deps.plan()
     key = dependency['key']
     image = image or 'yue2-ggml:' + key[:20]
-    output_dir = output_dir or ROOT / 'results/build-deps' / key[:20]
+    output_dir = output_dir or ROOT / 'data/results/build-deps' / key[:20]
     output_dir.mkdir(parents=True, exist_ok=True)
     cuda = re.search(r':(\d+\.\d+)', dependency['cuda_base'])
     name = 'yue2-ggml-linux-amd64-' + ('cuda' + cuda[1] + '-' if cuda else '') + key[:20] + '.tar.gz'

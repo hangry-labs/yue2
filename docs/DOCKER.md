@@ -24,11 +24,11 @@ is maintained separately for the registry page.
 With the two external model files downloaded, PowerShell:
 
 ```powershell
-docker run -d --name yue2 --gpus all -p 127.0.0.1:8087:8087 --mount "type=bind,source=$($PWD.Path)\models,target=/models,readonly" hangrylabs/yue2:latest
+docker run -d --name yue2 --gpus all -p 127.0.0.1:8087:8087 --mount "type=bind,source=$($PWD.Path)\data\models,target=/models,readonly" hangrylabs/yue2:latest
 ```
 
 For GHCR, replace the image with `ghcr.io/hangry-labs/yue2:latest`. In Bash, use
-`--mount "type=bind,source=$(pwd)/models,target=/models,readonly"`. The models are
+`--mount "type=bind,source=$(pwd)/data/models,target=/models,readonly"`. The models are
 not included or downloaded by the server. `task models` prepares them. The
 rolling `latest` image follows development; stable release commands should use
 the version tag and the top-level OCI digest verified on both registries.
@@ -47,10 +47,10 @@ docker build --build-arg CUDA_ARCHITECTURES=120a-real --build-arg BUILD_JOBS=4 -
 PowerShell, from the checkout with both model files present:
 
 ```powershell
-docker run -d --name yue2-dev --gpus all -p 127.0.0.1:8087:8087 --mount "type=bind,source=$($PWD.Path)\models,target=/models,readonly" yue2:dev
+docker run -d --name yue2-dev --gpus all -p 127.0.0.1:8087:8087 --mount "type=bind,source=$($PWD.Path)\data\models,target=/models,readonly" yue2:dev
 ```
 
-For Bash, use `--mount "type=bind,source=$(pwd)/models,target=/models,readonly"`.
+For Bash, use `--mount "type=bind,source=$(pwd)/data/models,target=/models,readonly"`.
 The locally built tag is yue2:dev. Models are not baked in and are not
 automatically downloaded by the server; task models handles that.
 
@@ -72,7 +72,7 @@ headers even when a file has been renamed. A match or an unreadable file fails
 the build and identifies the offending path. Python stays in the checking stage.
 
 The Docker context also excludes those extensions everywhere, in addition to
-the entire `models/`, `checkpoints/` and `adapters/` directories. Model downloads
+the entire `data/` directory and legacy storage paths. Model downloads
 and read-only runtime mounts are unaffected. These checks catch common accidental
 inclusions; they do not identify every possible encoding or inspect archives.
 
@@ -96,14 +96,14 @@ to the first GPU visible inside the container, after Docker's GPU filtering.
 The `YUE2_*` values in `.env.example` configure host-side Task commands, not
 the server's container environment.
 
-For optional adapters, create a host `adapters/` directory alongside `models/`.
+For optional adapters, create a host `data/adapters/` directory alongside `data/models/`.
 Use this command when creating the container. PowerShell:
 
 ```powershell
-docker run -d --name yue2 --restart unless-stopped --gpus all -p 127.0.0.1:8087:8087 --mount "type=bind,source=$($PWD.Path)\models,target=/models,readonly" --mount "type=bind,source=$($PWD.Path)\adapters,target=/adapters,readonly" hangrylabs/yue2:latest
+docker run -d --name yue2 --restart unless-stopped --gpus all -p 127.0.0.1:8087:8087 --mount "type=bind,source=$($PWD.Path)\data\models,target=/models,readonly" --mount "type=bind,source=$($PWD.Path)\data\adapters,target=/adapters,readonly" hangrylabs/yue2:latest
 ```
 
-In Bash use `source=$(pwd)/models` and `source=$(pwd)/adapters` in the respective
+In Bash use `source=$(pwd)/data/models` and `source=$(pwd)/data/adapters` in the respective
 mounts. The default image command already sets `--adapters /adapters`. Adapter
 files remain external to the image.
 
@@ -112,15 +112,36 @@ For a CLI run, override --entrypoint with yue-synth or another native executable
 and mount a writable output directory at /output. Linux output directories must
 be writable by the container user; the baseline runner selects the host UID.
 
+## Request defaults and lyrics
+
+The generation defaults match
+[upstream request initialization](https://github.com/ServeurpersoCom/yue2.cpp/blob/8af01740686824ffd4a1839a457954f42e2a8ce7/src/request.cpp):
+full score mode, a 360-second duration ceiling, 32 flow-matching steps, one song
+and one variation, random seeds, and MP3 at 128 kbps. The standard server keeps
+the 24,576-token model context. The fixed `test1` benchmark explicitly uses
+8 steps and recorded seeds; it does not change normal request defaults.
+
+The browser leaves unset numeric fields for the server to resolve, and saved
+form values override those defaults. The 110 bundled example files retain
+upstream content. Choosing an example fills its content and score while keeping
+your generation settings.
+
+An ABC score or semantic replay can retain a previous composition even when
+new lyrics are present. The UI clears these inputs when you edit the lyrics,
+and **Clear score and replay** clears an already-loaded composition without
+changing your words or settings. A completed job does not restore its score
+over edits made while it was running. The native API still honors explicitly
+supplied scores and replay/continuation tokens.
+
 ## Persistence and health
 
 | Storage | Behavior |
 | --- | --- |
-| Host models/ mounted at /models | Model files survive container replacement |
-| Host adapters/ mounted at /adapters by task start | Optional LoRA files |
+| Host data/models/ mounted at /models | Model files survive container replacement |
+| Host data/adapters/ mounted at /adapters by task start | Optional LoRA files |
 | Browser IndexedDB/localStorage | Songs, artifacts and form state |
 | Server memory | Jobs/results are cleared on restart |
-| Host results/ | Baseline audio, requests and logs |
+| Host data/results/ | Baseline audio, requests and logs |
 
 The health check calls /health. It proves liveness, not a successful generation.
 task test1 performs a full model-dependent generation. See

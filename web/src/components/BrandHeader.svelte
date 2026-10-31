@@ -13,7 +13,8 @@
 	import { app } from '../lib/state.svelte.js';
 	import { ui } from '../lib/ui.svelte.js';
 	import labsLogo from '../assets/hangrylabs_logo.webp';
-	import musicMark from '../assets/yue2-mark.svg';
+	import musicMark from '../assets/yue2_favicon.webp';
+	import productLogo from '../assets/yue2_logo_horizontal.webp';
 
 	let hero: HTMLElement;
 	let animation: Animation | undefined;
@@ -80,12 +81,9 @@
 		>
 	</nav>
 	<div class="brand-copy">
-		<div class="product-wordmark">
-			<img src={musicMark} alt="" width="72" height="72" />
-			<h1>YuE<span>2</span></h1>
-		</div>
-		<p>Your words. Your music. Your machine.</p>
-		<span class="product-description">Local song generation studio</span>
+		<h1 class="product-wordmark">
+			<img src={productLogo} alt="YuE2" width="2172" height="724" />
+		</h1>
 	</div>
 	<div class="runtime-badge" class:ready={!!app.props} role="status" aria-live="polite">
 		<Activity size={20} class={app.generating ? 'pulse' : ''} />

@@ -25,9 +25,9 @@ import torch
 BIN = "../../build/native-cpu/test-sheetsage"
 # A leading "--device <name>" is forwarded to the harness
 DEVICE = ["--device", sys.argv[2]] if sys.argv[1:2] == ["--device"] else []
-CKPT = "../../checkpoints/SheetSage2"
-PARENT = "../../checkpoints/MERT-v2-FullSong"
-GGUF = "../../models/SheetSage2-F32.gguf"
+CKPT = "../../data/checkpoints/SheetSage2"
+PARENT = "../../data/checkpoints/MERT-v2-FullSong"
+GGUF = "../../data/models/SheetSage2-F32.gguf"
 TMP = "tmp"
 MAX_REL = 5e-2
 SAMPLE_RATE = 24000

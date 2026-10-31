@@ -1,9 +1,9 @@
 # Models and provenance
 
 task models downloads or verifies the two files required for song generation.
-Models remain in the host models/ directory and outside the image.
+Models remain in the host data/models/ directory and outside the image.
 
-models/manifest.json pins the GGUF publisher revision
+[`docker/models.json`](../docker/models.json) pins the GGUF publisher revision
 e630f2b8f6aedf8254c3186438633c1b5eeaf80a and each file's SHA-256/size.
 
 | File | Size | Purpose |
@@ -38,7 +38,7 @@ their new paths. Conversion requires Python packages gguf/numpy and hf for
 downloads. Some original checkpoint repositories require accepting their terms
 and authentication. Do not put credentials into source or images.
 
-The conversion paths are root checkpoints/ and models/. The quantization script
+The conversion paths are `data/checkpoints/` and `data/models/`. The quantization script
 defaults to build/native-cpu/quantize; override YUE2_BUILD_DIR for another build.
 These tools do not provide training or fine-tuning support.
 

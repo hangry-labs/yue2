@@ -3,6 +3,7 @@
 	import { ui } from '../lib/ui.svelte.js';
 	import { app } from '../lib/state.svelte.js';
 	import { examplePrompts, applyExample } from '../lib/example.js';
+	import productLogo from '../assets/yue2_logo.webp';
 	let dialog: HTMLDialogElement;
 	let query = $state('');
 	let matches = $derived(
@@ -35,10 +36,13 @@
 			onclick={() => (ui.examplesOpen = false)}><X size={18} /></button
 		>
 	</div>
-	<p>
-		Choose an upstream example, then make it yours. This replaces the title, style, lyrics and
-		score, clears replay inputs, and keeps your generation settings.
-	</p>
+	<div class="example-intro">
+		<img src={productLogo} alt="" width="110" height="110" />
+		<p>
+			Choose an upstream example, then make it yours. This replaces the title, style, lyrics and
+			score, clears replay inputs, and keeps your generation settings.
+		</p>
+	</div>
 	<label for="example-search">Search examples</label><input
 		id="example-search"
 		type="search"
@@ -61,6 +65,17 @@
 </dialog>
 
 <style>
+	.example-intro {
+		display: flex;
+		align-items: center;
+		gap: 18px;
+		margin: 15px 0;
+	}
+	.example-intro img {
+		width: clamp(70px, 15vw, 110px);
+		height: auto;
+		flex: 0 0 auto;
+	}
 	dialog {
 		width: min(820px, calc(100vw - 30px));
 		max-height: 85dvh;

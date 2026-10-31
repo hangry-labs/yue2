@@ -40,6 +40,12 @@ tasks:
   models:
     desc: Download or verify the two pinned GGUFs outside the image
     cmds: ['"{{.PYTHON}}" scripts/download_models.py']
+  data:status:
+    desc: Show local data paths and any legacy directories
+    cmds: ['"{{.PYTHON}}" scripts/storage.py status']
+  data:migrate:
+    desc: Move legacy local data into data/ without overwriting or moving live mounts
+    cmds: ['"{{.PYTHON}}" scripts/storage.py migrate']
   build:
     desc: Build the CUDA runtime with current UI and persistent compiler caches
     cmds: ['"{{.PYTHON}}" scripts/dev.py build']
@@ -74,7 +80,7 @@ tasks:
       - task: vendor:verify
   test1:
     desc: Run the fixed-seed 8-step music baseline in Docker
-    cmds: ['"{{.PYTHON}}" benchmarks/test1.py --image "{{.IMAGE}}" --lm-seed "{{.LM_SEED}}" --seed "{{.SEED}}"']
+    cmds: ['"{{.PYTHON}}" tests/benchmarks/test1.py --image "{{.IMAGE}}" --lm-seed "{{.LM_SEED}}" --seed "{{.SEED}}"']
   test:api:
     desc: Check capabilities and GPU telemetry against the running local server
     env:
@@ -82,7 +88,7 @@ tasks:
     cmds: ['"{{.PYTHON}}" -m unittest discover -s tests/integration -v']
   test1:prepare:
     desc: Prepare the baseline request without using Docker or a GPU
-    cmds: ['"{{.PYTHON}}" benchmarks/test1.py --prepare-only --lm-seed "{{.LM_SEED}}" --seed "{{.SEED}}"']
+    cmds: ['"{{.PYTHON}}" tests/benchmarks/test1.py --prepare-only --lm-seed "{{.LM_SEED}}" --seed "{{.SEED}}"']
   check:cpu:
     desc: Build all native targets and check executable startup inside Docker
     cmds: ['"{{.PYTHON}}" scripts/dev.py cpu-check']
@@ -92,6 +98,9 @@ tasks:
   web:check:
     desc: Check Svelte, TypeScript and formatting in a Node container
     cmds: ['"{{.PYTHON}}" scripts/dev.py web-check']
+  assets:build:
+    desc: Regenerate product WebP artwork from PNG sources using FFmpeg
+    cmds: ['"{{.PYTHON}}" scripts/convert_assets.py']
   web:build:
     desc: Rebuild the embedded UI asset in a Node container
     cmds: ['"{{.PYTHON}}" scripts/dev.py web-build']

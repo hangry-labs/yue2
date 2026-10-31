@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """GGML vs Python cosine similarity comparison for the YuE2 acoustic stack.
 
-Run from tests/ directory. All paths relative to CWD.
+Run from tests/parity/ directory. All paths relative to CWD.
 
 The GGML side runs the full yue-synth pipeline with --dump on a request that
 carries its semantic stream, so the autoregression reduces to one prefill.
@@ -13,7 +13,7 @@ isolates the prefill, the flow matching stack and the decoder from the
 stochastic AR stage, whose logits and draws are covered by the parity tests.
 
 Usage:
-    cd tests/
+    cd tests/parity/
     ./debug-nar-cossim.py                   # backbone BF16
     ./debug-nar-cossim.py --quant Q6_K      # backbone Q6_K
     ./debug-nar-cossim.py --device CPU      # pick the GGML device
@@ -114,8 +114,8 @@ def run_ggml(dump_dir, req, quant, device=None):
     with open(request_json, "w") as f:
         json.dump(merged, f, indent=4)
 
-    model = f"../../models/YuE2-3B-{quant}.gguf"
-    cmd = [ggml_bin, "--model", model, "--vae", "../../models/YuE2-Vae-F32.gguf", "--request", request_json,
+    model = f"../../data/models/YuE2-3B-{quant}.gguf"
+    cmd = [ggml_bin, "--model", model, "--vae", "../../data/models/YuE2-Vae-F32.gguf", "--request", request_json,
            "--dump", dump_dir, "--out", os.path.join(dump_dir, "output.wav")]
     print(f"[GGML] Running YuE2-3B-{quant}.gguf...")
     if device:
@@ -133,7 +133,7 @@ def run_ggml(dump_dir, req, quant, device=None):
 
 def run_python(dump_dir, ggml_dir, req):
     sys.path.insert(0, "../../../YuE/src")
-    sys.path.insert(0, "../../checkpoints/YuE2-Vae")
+    sys.path.insert(0, "../../data/checkpoints/YuE2-Vae")
     import torch
     import torch.nn.functional as F
     from yue2.modeling_yue2 import YuE2ForCausalLM
@@ -151,7 +151,7 @@ def run_python(dump_dir, ggml_dir, req):
     steps = int(req.get("steps", 32))
 
     print(f"[Python] Initializing backbone on {device} (prefix={len(ids)}, T={T}, {steps} steps)...")
-    model = YuE2ForCausalLM.from_pretrained("../../checkpoints/YuE2-3B", dtype=torch.float32,
+    model = YuE2ForCausalLM.from_pretrained("../../data/checkpoints/YuE2-3B", dtype=torch.float32,
                                             local_files_only=True)
     model.eval().to(device)
     engine = CachedNAR(model, Chunk(ar_tokens=ids, noise=noise))
@@ -200,7 +200,7 @@ def run_python(dump_dir, ggml_dir, req):
     engine.close()
 
     print("[Python] Decoding audio...")
-    vae = YuE2VAE.from_pretrained("../../checkpoints/YuE2-Vae", decoder_only=True, device=device,
+    vae = YuE2VAE.from_pretrained("../../data/checkpoints/YuE2-Vae", decoder_only=True, device=device,
                                   local_files_only=True)
     vae.eval()
     with torch.inference_mode():
