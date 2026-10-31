@@ -1,0 +1,14 @@
+{
+  "title": "Midnight Circuit",
+  "cot": "full",
+  "duration": 120,
+  "steps": 8,
+  "lm_batch_size": 1,
+  "synth_batch_size": 1,
+  "output_format": "wav24",
+  "mp3_bitrate": 128,
+  "style": "instrumental, no vocals, no singing, driving techno, four on the floor kick drum, rolling deep bassline, hypnotic analog synthesizer sequence, crisp hi hats, layered percussion, gradual filter movements, 132 BPM, club arrangement with a breakdown and a return to the beat",
+  "lyrics": "",
+  "lm_seed": 831501,
+  "seed": 831502
+}

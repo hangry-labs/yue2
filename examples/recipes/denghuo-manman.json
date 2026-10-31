@@ -1,0 +1,14 @@
+{
+  "title": "灯火慢慢 · Slowly Glowing Lights",
+  "cot": "full",
+  "duration": 180,
+  "steps": 8,
+  "lm_batch_size": 1,
+  "synth_batch_size": 1,
+  "output_format": "wav24",
+  "mp3_bitrate": 128,
+  "style": "Mandarin Chinese vocals, melodic Mandopop ballad, clear expressive female lead voice, gentle piano, warm string ensemble, soft acoustic guitar, restrained live drums, emotional chorus, hopeful evening atmosphere, 82 BPM, complete song",
+  "lyrics": "[Verse]\n晚风经过旧车站\n带来远处的灯光\n我把心事轻轻放\n放在回家的路旁\n\n[Chorus]\n灯火慢慢亮起来\n照着我们的期待\n走过雨后的长街\n还有温柔在等待\n\n[Verse]\n窗边留着一杯茶\n故事还没有讲完\n你说明天的阳光\n会把云朵都吹散\n\n[Chorus]\n灯火慢慢亮起来\n照着我们的期待\n走过雨后的长街\n还有温柔在等待\n\n[Outro]\n还有温柔在等待",
+  "lm_seed": 832001,
+  "seed": 832002
+}

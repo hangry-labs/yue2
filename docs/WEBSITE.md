@@ -49,6 +49,14 @@ to avoid colliding with the wrapper’s `/examples/` route. Both versions use th
 same scoped styles, player, catalog and audio. The [examples guide](../examples/README.md)
 has its own `/examples/guide/` route. The [documentation index](README.md) is `/docs/`.
 
+The gallery separates musical-style and lyric-language filters from website
+language. Playback and download share one Ogg Opus file per song, targeting
+modern browsers with Ogg Opus support.
+New recordings retain 24-bit PCM in ignored local data for further conversions;
+the public site contains compressed listening copies and their recipes.
+`task examples-convert` verifies or refreshes Opus exports without inference, and
+`task audio-convert -- input.wav output.flac --format flac` converts local files.
+
 ## Public inputs and deployment
 
 The local build stages Git’s tracked and nonignored public files, including

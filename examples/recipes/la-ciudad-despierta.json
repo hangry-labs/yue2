@@ -1,0 +1,14 @@
+{
+  "title": "La Ciudad Despierta",
+  "cot": "full",
+  "duration": 180,
+  "steps": 8,
+  "lm_batch_size": 1,
+  "synth_batch_size": 1,
+  "output_format": "wav24",
+  "mp3_bitrate": 128,
+  "style": "Spanish language vocals, melodic Latin pop, expressive clear female lead voice, acoustic guitar, warm bass, syncopated hand percussion, light brass accents, bright catchy chorus, joyful city morning mood, 104 BPM, complete song",
+  "lyrics": "[Verse]\nLa ventana deja entrar\nUna luz sobre la mesa\nEn la calle suena el mar\nY la ciudad se despereza\n\n[Chorus]\nVen conmigo a caminar\nDonde empieza la mañana\nCada paso al despertar\nAbre al mundo una ventana\n\n[Verse]\nEn la plaza hay un café\nY una canción entre las flores\nYo te cuento lo que sé\nTú me prestas tus colores\n\n[Chorus]\nVen conmigo a caminar\nDonde empieza la mañana\nCada paso al despertar\nAbre al mundo una ventana\n\n[Outro]\nLa ciudad despierta ya",
+  "lm_seed": 831901,
+  "seed": 831902
+}

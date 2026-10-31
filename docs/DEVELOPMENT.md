@@ -45,6 +45,13 @@ recordings are intentional versioned examples; personal generations still belong
 in the browser library or ignored `data/results/`. Gallery regeneration is an
 explicit `task examples-generate` action and requires the local GPU.
 
+`task examples-convert` verifies or refreshes the gallery's single Ogg Opus export
+per song without a GPU. Verification rejects duplicate public audio exports.
+`task audio-convert -- input.wav output.flac --format flac` uses the shared
+FFmpeg profiles for local exports. New demo PCM masters stay in ignored
+`data/results/gallery-masters/`; public compressed copies and provenance live
+in `examples/`. See the [format and generation guide](../examples/README.md).
+
 ## Local data
 
 | Host location | Purpose | Container location |

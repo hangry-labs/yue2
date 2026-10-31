@@ -28,7 +28,7 @@
     </section>
     <section class="listening-controls" aria-label="Listening controls">
       <div class="style-filters" role="group" aria-label="Filter by musical style"></div>
-      <div class="volume-control"><button type="button" data-mute aria-label="Mute audio">Sound on</button><label>Volume <input type="range" data-volume aria-label="Listening volume" min="0" max="1" step="0.01" value="0.7"></label></div>
+      <div class="volume-control"><label>Lyrics <select data-language aria-label="Filter by lyric language"></select></label><button type="button" data-mute aria-label="Mute audio">Sound on</button><label>Volume <input type="range" data-volume aria-label="Listening volume" min="0" max="1" step="0.01" value="0.7"></label></div>
     </section>
     <div class="gallery-status"><p data-count>Loading recordings…</p><p data-playing role="status" aria-live="polite">Choose a song to listen.</p></div>
     <section class="song-grid" aria-label="Generated songs"></section>
@@ -45,7 +45,7 @@
           <h3>Musical direction</h3><p data-style></p>
           <h3>Lyrics</h3><pre class="lyrics" data-lyrics></pre>
           <dl class="recipe-facts"></dl>
-          <div class="recipe-actions"><button type="button" data-copy>Copy request</button><a data-recipe download>Prompt JSON</a><a data-audio download>Download MP3</a><a data-replay download>Replay JSON</a></div>
+          <div class="recipe-actions"><button type="button" data-copy>Copy request</button><a data-recipe download>Prompt JSON</a><a data-opus download>Download Opus</a><a data-replay download>Replay JSON</a></div>
           <p class="recipe-tip">Open the prompt JSON in your local studio for a new take. The replay JSON also contains this recording’s score and audio codes.</p>
         </details>
       </article>
@@ -57,10 +57,11 @@
     </section>
     <footer class="gallery-notes">
       <p>These recordings were generated with YuE2 from original demo lyrics and text prompts, without uploaded reference recordings. Genre and voice descriptions are requests to the model, not guarantees. They are listening examples, not a performance benchmark.</p>
+      <p>The <a href="https://huggingface.co/m-a-p/YuE2-3B">upstream model card</a> lists English and Chinese. Japanese and Spanish recordings here are experimental language requests. Automatic excerpt checks are encouraging; full-song pronunciation and lyric accuracy have not been reviewed by fluent listeners. See the <a href="README.md">language notes</a>. The documentation remains in English.</p>
       <p>Model terms apply separately from the application’s MIT license. See <a href="../docs/MODELS.md">model sources and terms</a>. <a href="assets/manifest.json" download>Download provenance manifest</a> · <a href="README.md">Generation guide</a></p>
     </footer>
     <p class="sr-only" data-copy-status role="status" aria-live="polite"></p>
-    <noscript><p>Enable JavaScript to use the players, or download the <a href="assets/manifest.json">recording manifest</a> and its linked MP3 files.</p></noscript>
+    <noscript><p>Enable JavaScript to use the players, or download the <a href="assets/manifest.json">recording manifest</a> and its linked Opus files.</p></noscript>
     </div>
   </main>
   <script src="catalog.js"></script>

@@ -1,0 +1,14 @@
+{
+  "title": "Miles of Sunrise",
+  "cot": "full",
+  "duration": 180,
+  "steps": 8,
+  "lm_batch_size": 1,
+  "synth_batch_size": 1,
+  "output_format": "wav24",
+  "mp3_bitrate": 128,
+  "style": "English, modern country song, clear warm male lead vocals, acoustic guitar, pedal steel guitar, steady bass, brushed snare, melodic chorus, relaxed road trip mood, natural band sound, 96 BPM, complete song",
+  "lyrics": "[Verse]\nThere is dust upon the dashboard\nThere is coffee in my cup\nThere is one more town behind me\nAnd the morning coming up\n\n[Chorus]\nMiles of sunrise on the highway\nFields of gold beside the road\nEvery turn can bring me closer\nTo the place I call my own\n\n[Verse]\nThere is music in the engine\nThere is rain upon the screen\nI remember all the places\nAnd the people in between\n\n[Chorus]\nMiles of sunrise on the highway\nFields of gold beside the road\nEvery turn can bring me closer\nTo the place I call my own\n\n[Outro]\nThere is still a little daylight\nAnd a long way left to go",
+  "lm_seed": 831601,
+  "seed": 831602
+}

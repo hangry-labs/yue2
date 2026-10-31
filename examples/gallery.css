@@ -25,6 +25,7 @@ body.gallery-standalone > .song-gallery { max-width: 1220px; margin: 28px auto; 
 .song-gallery .style-filters button[aria-pressed='true'] { background: #7e3609; border-color: var(--sg-orange); color: #fff; }
 .song-gallery .volume-control { color: var(--sg-muted); font-size: .72rem; }
 .song-gallery .volume-control input { width: 85px; }
+.song-gallery .volume-control select { max-width: 190px; min-height: 32px; padding: 5px 7px; color: var(--sg-text); background: #1c140e; border: 1px solid #633d21; border-radius: 7px; font: inherit; }
 .song-gallery .gallery-status { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 8px; margin: 0 0 14px; color: var(--sg-muted); font-size: .75rem; }
 .song-gallery .gallery-status p { margin: 0; }
 .song-gallery .song-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; align-items: start; }

@@ -47,6 +47,12 @@ tasks:
   examples-verify:
     desc: Verify published sample recipes, definitions and media checksums
     cmds: ['"{{.PYTHON}}" scripts/verify_gallery.py']
+  examples-convert:
+    desc: Verify or refresh the single Ogg Opus gallery export without inference
+    cmds: ['"{{.PYTHON}}" scripts/convert_gallery.py']
+  audio-convert:
+    desc: Convert local audio to Opus, Ogg, MP3, FLAC, WAV or AAC (pass input output --format)
+    cmds: ['"{{.PYTHON}}" scripts/audio_formats.py {{.CLI_ARGS}}']
   doctor:
     desc: Check the Docker engine, build tools and NVIDIA GPU
     cmds: ['"{{.PYTHON}}" scripts/dev.py doctor']

@@ -60,11 +60,16 @@ def verify(root=ROOT):
             raise ValueError('Published files must not link outside the output.')
     check_weights(output)
     manifest = json.loads((root / 'examples/assets/manifest.json').read_text(encoding='utf-8'))
+    music = output / 'examples/assets/music'
+    expected_music = {output / 'examples' / song['audio']['path'] for song in manifest['songs']}
+    if {path for path in music.rglob('*') if path.is_file()} != expected_music:
+        raise ValueError('Published gallery must contain only the referenced Opus files.')
     for song in manifest['songs']:
-        for key in ('audio', 'recipe', 'replay'):
-            path = output / 'examples' / song[key]['path']
+        assets = [song[key] for key in ('audio', 'recipe', 'replay')] + list((song.get('downloads') or {}).values())
+        for asset in assets:
+            path = output / 'examples' / asset['path']
             with path.open('rb') as stream:
-                if hashlib.file_digest(stream, 'sha256').hexdigest() != song[key]['sha256']:
+                if hashlib.file_digest(stream, 'sha256').hexdigest() != asset['sha256']:
                     raise ValueError(f'Published copy differs from its gallery manifest: {path}')
     documents = {p: Document(p.read_text(encoding='utf-8')) for p in output.rglob('*.html')}
     problems = []

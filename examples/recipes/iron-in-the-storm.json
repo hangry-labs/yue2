@@ -1,0 +1,14 @@
+{
+  "title": "Iron in the Storm",
+  "cot": "full",
+  "duration": 180,
+  "steps": 8,
+  "lm_batch_size": 1,
+  "synth_batch_size": 1,
+  "output_format": "wav24",
+  "mp3_bitrate": 128,
+  "style": "English, melodic heavy metal, powerful clear male lead vocals, gritty edge, distorted electric guitar riffs, harmonized lead guitars, driving double kick drums, strong bass, dramatic chorus, energetic and defiant, 148 BPM, complete song",
+  "lyrics": "[Verse]\nThe sky is full of thunder\nThe ground is breaking wide\nWe carry sparks of daylight\nAnd keep the fire inside\n\n[Chorus]\nWe are iron in the storm\nWe are voices in the rain\nEvery broken road we walk\nBuilds the strength to rise again\n\n[Verse]\nThe towers cast their shadows\nAcross the empty square\nWe hear the morning calling\nAnd leave our silence there\n\n[Chorus]\nWe are iron in the storm\nWe are voices in the rain\nEvery broken road we walk\nBuilds the strength to rise again\n\n[Outro]\nKeep the fire inside",
+  "lm_seed": 831701,
+  "seed": 831702
+}

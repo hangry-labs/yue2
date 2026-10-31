@@ -62,6 +62,96 @@
         "lm_seed": 831401,
         "seed": 831402
       }
+    },
+    {
+      "id": "midnight-circuit",
+      "title": "Midnight Circuit",
+      "category": "Techno",
+      "language": "Instrumental request",
+      "description": "A driving techno request with a four-on-the-floor pulse, rolling bass and evolving synth patterns.",
+      "request": {
+        "style": "instrumental, no vocals, no singing, driving techno, four on the floor kick drum, rolling deep bassline, hypnotic analog synthesizer sequence, crisp hi hats, layered percussion, gradual filter movements, 132 BPM, club arrangement with a breakdown and a return to the beat",
+        "lyrics": "",
+        "duration": 120,
+        "output_format": "wav24",
+        "lm_seed": 831501,
+        "seed": 831502
+      }
+    },
+    {
+      "id": "miles-of-sunrise",
+      "title": "Miles of Sunrise",
+      "category": "Country",
+      "language": "English",
+      "description": "A country road story carried by warm vocals, steel guitar and an easy rhythm.",
+      "request": {
+        "style": "English, modern country song, clear warm male lead vocals, acoustic guitar, pedal steel guitar, steady bass, brushed snare, melodic chorus, relaxed road trip mood, natural band sound, 96 BPM, complete song",
+        "lyrics": "[Verse]\nThere is dust upon the dashboard\nThere is coffee in my cup\nThere is one more town behind me\nAnd the morning coming up\n\n[Chorus]\nMiles of sunrise on the highway\nFields of gold beside the road\nEvery turn can bring me closer\nTo the place I call my own\n\n[Verse]\nThere is music in the engine\nThere is rain upon the screen\nI remember all the places\nAnd the people in between\n\n[Chorus]\nMiles of sunrise on the highway\nFields of gold beside the road\nEvery turn can bring me closer\nTo the place I call my own\n\n[Outro]\nThere is still a little daylight\nAnd a long way left to go",
+        "duration": 180,
+        "output_format": "wav24",
+        "lm_seed": 831601,
+        "seed": 831602
+      }
+    },
+    {
+      "id": "iron-in-the-storm",
+      "title": "Iron in the Storm",
+      "category": "Metal",
+      "language": "English",
+      "description": "A melodic metal request with heavy guitar riffs, forceful drums and a defiant chorus.",
+      "request": {
+        "style": "English, melodic heavy metal, powerful clear male lead vocals, gritty edge, distorted electric guitar riffs, harmonized lead guitars, driving double kick drums, strong bass, dramatic chorus, energetic and defiant, 148 BPM, complete song",
+        "lyrics": "[Verse]\nThe sky is full of thunder\nThe ground is breaking wide\nWe carry sparks of daylight\nAnd keep the fire inside\n\n[Chorus]\nWe are iron in the storm\nWe are voices in the rain\nEvery broken road we walk\nBuilds the strength to rise again\n\n[Verse]\nThe towers cast their shadows\nAcross the empty square\nWe hear the morning calling\nAnd leave our silence there\n\n[Chorus]\nWe are iron in the storm\nWe are voices in the rain\nEvery broken road we walk\nBuilds the strength to rise again\n\n[Outro]\nKeep the fire inside",
+        "duration": 180,
+        "output_format": "wav24",
+        "lm_seed": 831701,
+        "seed": 831702
+      }
+    },
+    {
+      "id": "hikari-no-platform",
+      "title": "光のホーム · Platform of Light",
+      "category": "J-pop",
+      "language": "Japanese",
+      "description": "An experimental Japanese lyric request with bright guitars, piano and an uplifting pop chorus.",
+      "request": {
+        "style": "Japanese language vocals, J-pop, bright expressive female lead voice, energetic live drums, clean electric guitars, sparkling piano, melodic bass, uplifting emotional chorus, 126 BPM, complete song",
+        "lyrics": "[Verse]\n雨あがりの駅で\n君の声を探した\nポケットの小さな夢\n朝の風に広げた\n\n[Chorus]\n光のホームから\n新しい空へ行こう\n昨日の涙さえ\n明日の歌に変えよう\n\n[Verse]\n名前のない地図に\n二人の道を描く\n遠くで鳴るベルが\n胸の奥に響いた\n\n[Chorus]\n光のホームから\n新しい空へ行こう\n昨日の涙さえ\n明日の歌に変えよう\n\n[Outro]\n君と空へ行こう",
+        "duration": 180,
+        "output_format": "wav24",
+        "lm_seed": 831801,
+        "seed": 831802
+      }
+    },
+    {
+      "id": "la-ciudad-despierta",
+      "title": "La Ciudad Despierta",
+      "category": "Latin pop",
+      "language": "Spanish",
+      "description": "An experimental Spanish lyric request with acoustic guitar, syncopated percussion and a sunny refrain.",
+      "request": {
+        "style": "Spanish language vocals, melodic Latin pop, expressive clear female lead voice, acoustic guitar, warm bass, syncopated hand percussion, light brass accents, bright catchy chorus, joyful city morning mood, 104 BPM, complete song",
+        "lyrics": "[Verse]\nLa ventana deja entrar\nUna luz sobre la mesa\nEn la calle suena el mar\nY la ciudad se despereza\n\n[Chorus]\nVen conmigo a caminar\nDonde empieza la mañana\nCada paso al despertar\nAbre al mundo una ventana\n\n[Verse]\nEn la plaza hay un café\nY una canción entre las flores\nYo te cuento lo que sé\nTú me prestas tus colores\n\n[Chorus]\nVen conmigo a caminar\nDonde empieza la mañana\nCada paso al despertar\nAbre al mundo una ventana\n\n[Outro]\nLa ciudad despierta ya",
+        "duration": 180,
+        "output_format": "wav24",
+        "lm_seed": 831901,
+        "seed": 831902
+      }
+    },
+    {
+      "id": "denghuo-manman",
+      "title": "灯火慢慢 · Slowly Glowing Lights",
+      "category": "Mandopop",
+      "language": "Chinese",
+      "description": "A Mandarin lyric request with gentle piano, warm strings and a reflective chorus.",
+      "request": {
+        "style": "Mandarin Chinese vocals, melodic Mandopop ballad, clear expressive female lead voice, gentle piano, warm string ensemble, soft acoustic guitar, restrained live drums, emotional chorus, hopeful evening atmosphere, 82 BPM, complete song",
+        "lyrics": "[Verse]\n晚风经过旧车站\n带来远处的灯光\n我把心事轻轻放\n放在回家的路旁\n\n[Chorus]\n灯火慢慢亮起来\n照着我们的期待\n走过雨后的长街\n还有温柔在等待\n\n[Verse]\n窗边留着一杯茶\n故事还没有讲完\n你说明天的阳光\n会把云朵都吹散\n\n[Chorus]\n灯火慢慢亮起来\n照着我们的期待\n走过雨后的长街\n还有温柔在等待\n\n[Outro]\n还有温柔在等待",
+        "duration": 180,
+        "output_format": "wav24",
+        "lm_seed": 832001,
+        "seed": 832002
+      }
     }
   ]
 }

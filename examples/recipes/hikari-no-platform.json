@@ -1,0 +1,14 @@
+{
+  "title": "光のホーム · Platform of Light",
+  "cot": "full",
+  "duration": 180,
+  "steps": 8,
+  "lm_batch_size": 1,
+  "synth_batch_size": 1,
+  "output_format": "wav24",
+  "mp3_bitrate": 128,
+  "style": "Japanese language vocals, J-pop, bright expressive female lead voice, energetic live drums, clean electric guitars, sparkling piano, melodic bass, uplifting emotional chorus, 126 BPM, complete song",
+  "lyrics": "[Verse]\n雨あがりの駅で\n君の声を探した\nポケットの小さな夢\n朝の風に広げた\n\n[Chorus]\n光のホームから\n新しい空へ行こう\n昨日の涙さえ\n明日の歌に変えよう\n\n[Verse]\n名前のない地図に\n二人の道を描く\n遠くで鳴るベルが\n胸の奥に響いた\n\n[Chorus]\n光のホームから\n新しい空へ行こう\n昨日の涙さえ\n明日の歌に変えよう\n\n[Outro]\n君と空へ行こう",
+  "lm_seed": 831801,
+  "seed": 831802
+}
