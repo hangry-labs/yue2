@@ -1,4 +1,8 @@
 build/
+_site/
+.jekyll-cache/
+.jekyll-metadata
+/examples/**/*.tmp
 *.wav
 
 tests/parity/tmp/

@@ -5,6 +5,7 @@ yue2.cpp authors. Preserve the root LICENSE when redistributing the source.
 
 | Component | License | Source / local notice |
 | --- | --- | --- |
+| Hangry Labs Pages theme | Apache-2.0 | Adapted from Faster Qwen3-TTS Studio; [local license](site/theme/LICENSE) |
 | Patched GGML | MIT | [Source](https://github.com/ServeurpersoCom/ggml), vendor/ggml/LICENSE and UPSTREAM.md |
 | cpp-httplib | MIT | vendor/cpp-httplib/LICENSE |
 | yyjson | MIT | Full notice in vendor/yyjson/yyjson.h |

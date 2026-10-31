@@ -1,0 +1,65 @@
+/* SPDX-License-Identifier: MIT. Yue2 gallery; the surrounding site theme is Apache-2.0. */
+body.gallery-standalone { margin: 0; background: #0b0b0b; color: #e7dfd8; font: 16px/1.65 system-ui, sans-serif; }
+.standalone-header { display: flex; align-items: center; justify-content: space-between; gap: 20px; padding: 16px max(24px, calc((100% - 1200px)/2)); border-bottom: 1px solid #4b2d19; }
+.standalone-header nav { display: flex; flex-wrap: wrap; gap: 18px; }
+.standalone-header a { color: #ffb878; text-decoration: none; }
+body.gallery-standalone > .song-gallery { max-width: 1220px; margin: 28px auto; border: 1px solid #4b2d19; border-radius: 14px; }
+.song-gallery { --sg-text: #e7dfd8; --sg-muted: #b8aca3; --sg-accent: #ffad6b; --sg-line: #50321e; --sg-orange: #ff7900; min-width: 0; padding: 30px; color: var(--sg-text); font: 15px/1.65 system-ui, sans-serif; }
+.song-gallery * { box-sizing: border-box; }
+.song-gallery a { color: var(--sg-accent); text-underline-offset: 3px; }
+.song-gallery button, .song-gallery input { font: inherit; accent-color: var(--sg-orange); }
+.song-gallery button { cursor: pointer; }
+.song-gallery :is(a, button, input, summary):focus-visible { outline: 2px solid var(--sg-orange); outline-offset: 4px; }
+.song-gallery .gallery-hero { display: grid; grid-template-columns: minmax(0, 1fr) 265px; gap: 38px; align-items: center; padding: 2px 0 28px; }
+.song-gallery .gallery-logo { display: block; width: 100%; height: auto; max-width: 265px; justify-self: center; }
+.song-gallery .eyebrow { margin: 0 0 10px; color: var(--sg-accent); font-size: .69rem; font-weight: 750; letter-spacing: .16em; text-transform: uppercase; }
+.song-gallery h1 { margin: 0 0 16px; font-size: clamp(2rem, 4.3vw, 3.7rem); font-weight: 800; line-height: 1.1; letter-spacing: -.045em; color: var(--sg-orange); text-shadow: 0 0 28px #ff790035; }
+.song-gallery h2 { margin: 0 0 8px; font-size: 1.6rem; line-height: 1.25; letter-spacing: -.025em; color: #ffbd87; }
+.song-gallery .gallery-intro { max-width: 630px; margin: 0; font-size: 1.02rem; color: var(--sg-muted); }
+.song-gallery .gallery-badges { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 22px; }
+.song-gallery .gallery-badges span { padding: 4px 11px; border: 1px solid #69401e; border-radius: 30px; color: #ffbc86; background: #201409; font-size: .75rem; }
+.song-gallery .hero-links { display: flex; gap: 20px; flex-wrap: wrap; margin: 18px 0 0; font-size: .78rem; }
+.song-gallery .listening-controls { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 18px; padding: 23px 0 17px; border-top: 1px solid var(--sg-line); }
+.song-gallery .style-filters, .song-gallery .volume-control, .song-gallery .volume-control label { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
+.song-gallery :is(.style-filters button, .volume-control button, .recipe-actions button, .recipe-actions a) { padding: 7px 12px; border: 1px solid #633d21; border-radius: 7px; background: #1c140e; color: #ffc18f; font-size: .76rem; text-decoration: none; }
+.song-gallery .style-filters button[aria-pressed='true'] { background: #7e3609; border-color: var(--sg-orange); color: #fff; }
+.song-gallery .volume-control { color: var(--sg-muted); font-size: .72rem; }
+.song-gallery .volume-control input { width: 85px; }
+.song-gallery .gallery-status { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 8px; margin: 0 0 14px; color: var(--sg-muted); font-size: .75rem; }
+.song-gallery .gallery-status p { margin: 0; }
+.song-gallery .song-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; align-items: start; }
+.song-gallery .song-card { min-width: 0; padding: 24px; border: 1px solid #604024; border-radius: 12px; background: linear-gradient(140deg, #271a1099, #101010 72%); }
+.song-gallery .song-card[hidden] { display: none; }
+.song-gallery .song-card.is-playing { border-color: var(--sg-orange); box-shadow: 0 0 28px #ff790014; }
+.song-gallery .song-heading { display: flex; justify-content: space-between; gap: 12px; align-items: baseline; }
+.song-gallery .duration { color: var(--sg-muted); font: .75rem ui-monospace, monospace; white-space: nowrap; }
+.song-gallery .song-description { min-height: 50px; margin: 10px 0 18px; color: var(--sg-muted); font-size: .84rem; }
+.song-gallery .song-player { display: flex; align-items: center; gap: 15px; margin: 0 0 16px; }
+.song-gallery .play-button { width: 46px; height: 46px; flex: 0 0 46px; display: grid; place-items: center; border: 1px solid #ffa44d; border-radius: 50%; background: var(--sg-orange); color: #1a0b01; box-shadow: 0 0 20px #ff790025; }
+.song-gallery .play-button svg { width: 20px; height: 20px; fill: currentColor; }
+.song-gallery .song-timeline { min-width: 0; flex: 1; }
+.song-gallery .waveform { display: block; width: 100%; height: 42px; fill: #ba6e35; }
+.song-gallery .is-playing .waveform { fill: #ff9e49; }
+.song-gallery [data-seek] { display: block; width: 100%; margin: 5px 0; cursor: pointer; }
+.song-gallery .time-row { display: flex; justify-content: space-between; font: .68rem ui-monospace, monospace; color: var(--sg-muted); }
+.song-gallery .song-recipe { border-top: 1px solid var(--sg-line); padding-top: 12px; }
+.song-gallery .song-recipe summary { color: var(--sg-accent); font-size: .77rem; cursor: pointer; }
+.song-gallery .song-recipe h3 { font-size: .76rem; color: #ffbf8d; margin: 20px 0 7px; }
+.song-gallery .song-recipe p { margin: 0; overflow-wrap: anywhere; color: var(--sg-muted); font-size: .78rem; }
+.song-gallery .lyrics { white-space: pre-wrap; overflow-wrap: anywhere; padding: 14px; margin: 0; border-radius: 7px; border: 1px solid #49301f; background: #0d0c0b; color: #d7ccc2; font-family: inherit; font-size: .77rem; line-height: 1.7; }
+.song-gallery .recipe-facts { display: grid; grid-template-columns: 105px minmax(0, 1fr); gap: 5px 12px; margin: 20px 0; font-size: .73rem; }
+.song-gallery .recipe-facts dt { color: var(--sg-muted); }
+.song-gallery .recipe-facts dd { margin: 0; overflow-wrap: anywhere; }
+.song-gallery .recipe-actions { display: flex; gap: 7px; flex-wrap: wrap; }
+.song-gallery p.recipe-tip { margin-top: 12px; font-size: .71rem; }
+.song-gallery .gallery-howto { display: grid; grid-template-columns: 1fr 1fr; gap: 18px 35px; padding: 30px; margin: 30px 0 24px; border: 1px solid var(--sg-line); border-radius: 12px; background: #18120d; }
+.song-gallery .gallery-howto h2 { font-size: 1.45rem; }
+.song-gallery .gallery-howto ol { padding-left: 20px; margin: 0; color: var(--sg-muted); font-size: .8rem; }
+.song-gallery .gallery-howto li + li { margin-top: 7px; }
+.song-gallery .gallery-cta { justify-self: start; padding: 8px 13px; border: 1px solid #b35c1b; border-radius: 7px; text-decoration: none; font-size: .8rem; }
+.song-gallery .gallery-notes { color: var(--sg-muted); font-size: .72rem; }
+.song-gallery .gallery-notes p { margin: 10px 0; }
+.song-gallery .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
+@media (max-width: 900px) { .song-gallery .gallery-hero { grid-template-columns: minmax(0, 1fr); gap: 20px; } .song-gallery .gallery-logo { display: none; } .song-gallery .gallery-howto { grid-template-columns: 1fr; } }
+@media (max-width: 700px) { .song-gallery { padding: 22px 16px; } .song-gallery .song-grid { grid-template-columns: minmax(0, 1fr); } .song-gallery .song-card { padding: 20px 16px; } .song-gallery .gallery-howto { padding: 22px 16px; } body.gallery-standalone > .song-gallery { margin: 12px 10px; } .standalone-header { padding: 12px 16px; flex-wrap: wrap; } .standalone-header nav { gap: 12px; font-size: .8rem; } }
+@media (prefers-reduced-motion: reduce) { .song-gallery * { scroll-behavior: auto; transition: none; } }

@@ -1,0 +1,14 @@
+{
+  "title": "Slow Orbit",
+  "cot": "full",
+  "duration": 120,
+  "steps": 8,
+  "lm_batch_size": 1,
+  "synth_batch_size": 1,
+  "output_format": "mp3",
+  "mp3_bitrate": 128,
+  "style": "instrumental, no singing, no vocals, cinematic ambient electronica, spacious felt piano, warm slowly evolving analog pads, gentle deep bass pulse, subtle shimmering textures, peaceful, wide stereo, gradual development and a gentle ending, 70 BPM",
+  "lyrics": "",
+  "lm_seed": 831401,
+  "seed": 831402
+}

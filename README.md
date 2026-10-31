@@ -4,6 +4,10 @@
 
 # Hangry Labs YuE2
 
+**[Listen to generated songs](https://hangry-labs.github.io/yue2/examples/)** ·
+[Project website](https://hangry-labs.github.io/yue2/) ·
+[Documentation](https://hangry-labs.github.io/yue2/docs/)
+
 Development version **v0.1.0-snapshot**. See the [version history](#version-history).
 
 Local song generation from style tags and lyrics in a Docker container, with a
@@ -234,6 +238,8 @@ See the [documentation index](docs/README.md) for user and developer guides.
 - [CI and releases](docs/RELEASING.md)
 - [Architecture, API and CLI reference](docs/ARCHITECTURE.md)
 - [Docker Hub overview](docs/dockerhub.md)
+- [Listening gallery and generation recipes](examples/README.md)
+- [Website preview and Pages deployment](docs/WEBSITE.md)
 
 ## Version History
 

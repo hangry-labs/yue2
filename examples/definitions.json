@@ -1,0 +1,67 @@
+{
+  "schema": 1,
+  "settings": {
+    "cot": "full",
+    "duration": 180,
+    "steps": 8,
+    "lm_batch_size": 1,
+    "synth_batch_size": 1,
+    "output_format": "mp3",
+    "mp3_bitrate": 128
+  },
+  "songs": [
+    {
+      "id": "paper-satellites",
+      "title": "Paper Satellites",
+      "category": "Acoustic pop",
+      "language": "English",
+      "description": "Piano, acoustic guitar and a hopeful chorus about finding your way home.",
+      "request": {
+        "style": "English, warm acoustic pop, intimate clear female vocals, acoustic guitar, soft piano, gentle live drums, hopeful chorus, 92 BPM, complete song with a short instrumental outro",
+        "lyrics": "[Verse]\nI folded up a map of where we'd been\nAnd tucked it in the pocket of my jeans\nThe station clock was running out of light\nYou said the longest roads can turn out right\n\n[Chorus]\nWe are paper satellites\nFinding home in borrowed light\nEvery road and every mile\nBrings me closer to your smile\n\n[Verse]\nThe morning paints the windows amber gold\nA thousand little stories left untold\nI trace the towns like freckles on your hand\nAnd find my way across this paper land\n\n[Chorus]\nWe are paper satellites\nFinding home in borrowed light\nEvery road and every mile\nBrings me closer to your smile\n\n[Outro]\nFinding home in borrowed light",
+        "lm_seed": 831101,
+        "seed": 831102
+      }
+    },
+    {
+      "id": "after-the-last-train",
+      "title": "After the Last Train",
+      "category": "Synth pop",
+      "language": "English",
+      "description": "A late-night city song with pulsing synths, a steady beat and a bright refrain.",
+      "request": {
+        "style": "English, melodic synth pop, expressive male vocals, analog synthesizer arpeggios, warm synth bass, crisp electronic drums, wide atmospheric pads, nostalgic but uplifting, 112 BPM, complete song",
+        "lyrics": "[Verse]\nThe last train leaves a silver line\nBetween your street and mine\nThe city hums a quiet tune\nBeneath a yellow moon\n\n[Pre-Chorus]\nNo timetable can tell us where to go\nWe follow all the little lights we know\n\n[Chorus]\nAfter the last train\nWe'll dance beneath the rain\nWith nowhere we must be\nAnd every road set free\nAfter the last train\nLet's find our names again\n\n[Verse]\nYour shadow moves across the wall\nI catch it when you call\nThe traffic sings in distant keys\nOur song rides on the breeze\n\n[Chorus]\nAfter the last train\nWe'll dance beneath the rain\nWith nowhere we must be\nAnd every road set free\nAfter the last train\nLet's find our names again\n\n[Outro]\nWe'll find our names again",
+        "lm_seed": 831201,
+        "seed": 831202
+      }
+    },
+    {
+      "id": "lanterns-on-the-river",
+      "title": "Lanterns on the River",
+      "category": "Folk",
+      "language": "English",
+      "description": "A gentle folk arrangement with fingerpicked guitar and a river-town story.",
+      "request": {
+        "style": "English, intimate folk ballad, clear warm female lead voice, fingerpicked acoustic guitar, soft upright bass, brushed percussion, delicate violin, natural acoustic sound, reflective and hopeful, 78 BPM, complete song",
+        "lyrics": "[Verse]\nThere's a bridge beside the water\nWhere the willow branches lean\nAnd the boats return at sundown\nFrom the places we have seen\n\n[Chorus]\nSet a lantern on the river\nLet it carry what we know\nAll the words we never managed\nAll the things we couldn't show\n\n[Verse]\nYou were humming in the kitchen\nWith the window open wide\nAnd the summer kept a promise\nIn the turning of the tide\n\n[Chorus]\nSet a lantern on the river\nLet it carry what we know\nAll the words we never managed\nAll the things we couldn't show\n\n[Outro]\nWhen the morning finds the water\nWe will let the lantern go",
+        "lm_seed": 831301,
+        "seed": 831302
+      }
+    },
+    {
+      "id": "slow-orbit",
+      "title": "Slow Orbit",
+      "category": "Ambient",
+      "language": "Instrumental request",
+      "description": "An instrumental direction built around spacious piano, soft pads and a slow pulse.",
+      "request": {
+        "style": "instrumental, no singing, no vocals, cinematic ambient electronica, spacious felt piano, warm slowly evolving analog pads, gentle deep bass pulse, subtle shimmering textures, peaceful, wide stereo, gradual development and a gentle ending, 70 BPM",
+        "lyrics": "",
+        "duration": 120,
+        "lm_seed": 831401,
+        "seed": 831402
+      }
+    }
+  ]
+}

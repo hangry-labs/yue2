@@ -21,6 +21,8 @@ Python helpers use the standard library; Python is not added to the inference im
 | `vendor/` | Third-party source, including the pinned GGML snapshot |
 | `docs/` | [Documentation index](README.md), user/developer guides and the Docker Hub overview |
 | `assets/` | [Artwork conversion notes](../assets/README.md) and documentation screenshots |
+| `site/` | Independent Pages builder and shared Apache-2.0 documentation theme |
+| `examples/` | Public song gallery, generated recordings, original prompts and provenance |
 
 Model files and generated `data/results/` stay outside version control. GGML is
 ordinary vendored source; no recursive clone or nested Git checkout is needed.
@@ -36,6 +38,12 @@ reports. User files belong in `data/`, separately from those build caches.
 Both directories are ignored by Git and excluded from Docker's build context.
 Product artwork belongs with the UI assets or documentation media, never in
 the local model-data directories.
+
+Preview the [project website](WEBSITE.md) with `task pages`, validate with
+`task pages-test`, and stop its container with `task pages-stop`. Public gallery
+recordings are intentional versioned examples; personal generations still belong
+in the browser library or ignored `data/results/`. Gallery regeneration is an
+explicit `task examples-generate` action and requires the local GPU.
 
 ## Local data
 

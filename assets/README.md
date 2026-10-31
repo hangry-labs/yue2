@@ -1,7 +1,7 @@
 # Product artwork
 
 Optimized WebP files live in
-[`web/src/assets/`](../web/src/assets/) so Vite embeds the artwork in the local
+[`web/src/assets/`](https://github.com/hangry-labs/yue2/tree/master/web/src/assets) so Vite embeds the artwork in the local
 studio without external image requests.
 
 | File | Role |

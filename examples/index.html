@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <title>Song examples · Hangry Labs YuE2</title>
+  <link rel="icon" href="../web/src/assets/yue2_favicon.webp" type="image/webp">
+  <link rel="stylesheet" href="gallery.css">
+</head>
+<body class="gallery-standalone">
+  <header class="standalone-header">
+    <a href="https://hangrylabs.app/"><img src="../web/src/assets/hangrylabs_logo.webp" width="42" height="42" alt="Hangry Labs"></a>
+    <nav aria-label="Project"><a href="https://hangry-labs.github.io/yue2/">Overview</a><a href="https://hangry-labs.github.io/yue2/docs/">Documentation</a><a href="https://github.com/hangry-labs/yue2">GitHub ↗</a></nav>
+  </header>
+  <main class="song-gallery">
+    <div class="gallery-body">
+    <section class="gallery-hero" aria-labelledby="gallery-heading">
+      <div>
+        <p class="eyebrow">YuE2 listening room</p>
+        <h1 id="gallery-heading">From words to music.</h1>
+        <p class="gallery-intro">Original lyrics, a little musical direction, and a local GPU.
+          Listen to the results, explore the recipes, and try a prompt on your own machine.</p>
+        <div class="gallery-badges"><span>8 steps</span><span>48 kHz stereo</span><span>Generated locally</span></div>
+        <p class="hero-links"><a href="README.md">About these recordings</a><a href="definitions.json" download>Download all prompts ↗</a></p>
+      </div>
+      <img class="gallery-logo" src="../web/src/assets/yue2_logo.webp" alt="Hangry Labs YuE2" width="1254" height="1254">
+    </section>
+    <section class="listening-controls" aria-label="Listening controls">
+      <div class="style-filters" role="group" aria-label="Filter by musical style"></div>
+      <div class="volume-control"><button type="button" data-mute aria-label="Mute audio">Sound on</button><label>Volume <input type="range" data-volume aria-label="Listening volume" min="0" max="1" step="0.01" value="0.7"></label></div>
+    </section>
+    <div class="gallery-status"><p data-count>Loading recordings…</p><p data-playing role="status" aria-live="polite">Choose a song to listen.</p></div>
+    <section class="song-grid" aria-label="Generated songs"></section>
+    <template id="song-card-template">
+      <article class="song-card">
+        <div class="song-heading"><p class="eyebrow" data-category></p><span class="duration" data-duration></span></div>
+        <h2 data-title></h2><p class="song-description" data-description></p>
+        <div class="song-player">
+          <button type="button" class="play-button" data-play><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg><span class="sr-only">Play</span></button>
+          <div class="song-timeline"><svg class="waveform" viewBox="0 0 384 48" preserveAspectRatio="none" aria-hidden="true"></svg><input type="range" data-seek min="0" max="100" step="0.1" value="0" disabled><div class="time-row"><span data-position>0:00</span><span data-length></span></div></div>
+          <audio preload="none"></audio>
+        </div>
+        <details class="song-recipe"><summary>Lyrics, prompt &amp; downloads</summary>
+          <h3>Musical direction</h3><p data-style></p>
+          <h3>Lyrics</h3><pre class="lyrics" data-lyrics></pre>
+          <dl class="recipe-facts"></dl>
+          <div class="recipe-actions"><button type="button" data-copy>Copy request</button><a data-recipe download>Prompt JSON</a><a data-audio download>Download MP3</a><a data-replay download>Replay JSON</a></div>
+          <p class="recipe-tip">Open the prompt JSON in your local studio for a new take. The replay JSON also contains this recording’s score and audio codes.</p>
+        </details>
+      </article>
+    </template>
+    <section class="gallery-howto" aria-labelledby="try-heading">
+      <div><p class="eyebrow">Make it your own</p><h2 id="try-heading">Start with a prompt. Find your sound.</h2></div>
+      <ol><li>Download a song’s <strong>Prompt JSON</strong>.</li><li>In your local YuE2 studio, select <strong>Open</strong> and choose the file.</li><li>Edit the lyrics or musical direction. Leave seeds blank for a fresh take, then generate.</li></ol>
+      <a class="gallery-cta" href="../README.md#quick-start">Run the local studio ↗</a>
+    </section>
+    <footer class="gallery-notes">
+      <p>These recordings were generated with YuE2 from original demo lyrics and text prompts, without uploaded reference recordings. Genre and voice descriptions are requests to the model, not guarantees. They are listening examples, not a performance benchmark.</p>
+      <p>Model terms apply separately from the application’s MIT license. See <a href="../docs/MODELS.md">model sources and terms</a>. <a href="assets/manifest.json" download>Download provenance manifest</a> · <a href="README.md">Generation guide</a></p>
+    </footer>
+    <p class="sr-only" data-copy-status role="status" aria-live="polite"></p>
+    <noscript><p>Enable JavaScript to use the players, or download the <a href="assets/manifest.json">recording manifest</a> and its linked MP3 files.</p></noscript>
+    </div>
+  </main>
+  <script src="catalog.js"></script>
+  <script src="player.js"></script>
+</body>
+</html>

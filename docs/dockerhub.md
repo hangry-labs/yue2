@@ -6,6 +6,10 @@
 
 # Hangry Labs YuE2
 
+**[Listen to generated songs](https://hangry-labs.github.io/yue2/examples/)** ·
+[Project website](https://hangry-labs.github.io/yue2/) ·
+[Documentation](https://hangry-labs.github.io/yue2/docs/)
+
 Local song generation from style tags and lyrics, with a browser studio,
 asynchronous HTTP API and stereo 48 kHz MP3 or WAV output in one CUDA container.
 

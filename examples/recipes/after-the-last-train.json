@@ -1,0 +1,14 @@
+{
+  "title": "After the Last Train",
+  "cot": "full",
+  "duration": 180,
+  "steps": 8,
+  "lm_batch_size": 1,
+  "synth_batch_size": 1,
+  "output_format": "mp3",
+  "mp3_bitrate": 128,
+  "style": "English, melodic synth pop, expressive male vocals, analog synthesizer arpeggios, warm synth bass, crisp electronic drums, wide atmospheric pads, nostalgic but uplifting, 112 BPM, complete song",
+  "lyrics": "[Verse]\nThe last train leaves a silver line\nBetween your street and mine\nThe city hums a quiet tune\nBeneath a yellow moon\n\n[Pre-Chorus]\nNo timetable can tell us where to go\nWe follow all the little lights we know\n\n[Chorus]\nAfter the last train\nWe'll dance beneath the rain\nWith nowhere we must be\nAnd every road set free\nAfter the last train\nLet's find our names again\n\n[Verse]\nYour shadow moves across the wall\nI catch it when you call\nThe traffic sings in distant keys\nOur song rides on the breeze\n\n[Chorus]\nAfter the last train\nWe'll dance beneath the rain\nWith nowhere we must be\nAnd every road set free\nAfter the last train\nLet's find our names again\n\n[Outro]\nWe'll find our names again",
+  "lm_seed": 831201,
+  "seed": 831202
+}

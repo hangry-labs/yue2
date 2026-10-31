@@ -29,6 +29,24 @@ tasks:
   default:
     desc: List available tasks
     cmds: ['task --list']
+  pages-build:
+    desc: Build the README website and song gallery with the shared theme
+    cmds: ['"{{.PYTHON}}" scripts/pages.py build']
+  pages:
+    desc: Preview the project website at http://127.0.0.1:9005/yue2/
+    cmds: ['"{{.PYTHON}}" scripts/pages.py preview']
+  pages-test:
+    desc: Build and check website routes, public files and gallery integrity
+    cmds: ['"{{.PYTHON}}" scripts/pages.py test']
+  pages-stop:
+    desc: Stop only this project website preview container
+    cmds: ['"{{.PYTHON}}" scripts/pages.py stop']
+  examples-generate:
+    desc: Generate public demo songs in an isolated CUDA container
+    cmds: ['"{{.PYTHON}}" scripts/generate_gallery.py --image "{{.IMAGE}}" {{.CLI_ARGS}}']
+  examples-verify:
+    desc: Verify published sample recipes, definitions and media checksums
+    cmds: ['"{{.PYTHON}}" scripts/verify_gallery.py']
   doctor:
     desc: Check the Docker engine, build tools and NVIDIA GPU
     cmds: ['"{{.PYTHON}}" scripts/dev.py doctor']

@@ -1,0 +1,14 @@
+{
+  "title": "Paper Satellites",
+  "cot": "full",
+  "duration": 180,
+  "steps": 8,
+  "lm_batch_size": 1,
+  "synth_batch_size": 1,
+  "output_format": "mp3",
+  "mp3_bitrate": 128,
+  "style": "English, warm acoustic pop, intimate clear female vocals, acoustic guitar, soft piano, gentle live drums, hopeful chorus, 92 BPM, complete song with a short instrumental outro",
+  "lyrics": "[Verse]\nI folded up a map of where we'd been\nAnd tucked it in the pocket of my jeans\nThe station clock was running out of light\nYou said the longest roads can turn out right\n\n[Chorus]\nWe are paper satellites\nFinding home in borrowed light\nEvery road and every mile\nBrings me closer to your smile\n\n[Verse]\nThe morning paints the windows amber gold\nA thousand little stories left untold\nI trace the towns like freckles on your hand\nAnd find my way across this paper land\n\n[Chorus]\nWe are paper satellites\nFinding home in borrowed light\nEvery road and every mile\nBrings me closer to your smile\n\n[Outro]\nFinding home in borrowed light",
+  "lm_seed": 831101,
+  "seed": 831102
+}

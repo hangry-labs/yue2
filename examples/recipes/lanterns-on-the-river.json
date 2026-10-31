@@ -1,0 +1,14 @@
+{
+  "title": "Lanterns on the River",
+  "cot": "full",
+  "duration": 180,
+  "steps": 8,
+  "lm_batch_size": 1,
+  "synth_batch_size": 1,
+  "output_format": "mp3",
+  "mp3_bitrate": 128,
+  "style": "English, intimate folk ballad, clear warm female lead voice, fingerpicked acoustic guitar, soft upright bass, brushed percussion, delicate violin, natural acoustic sound, reflective and hopeful, 78 BPM, complete song",
+  "lyrics": "[Verse]\nThere's a bridge beside the water\nWhere the willow branches lean\nAnd the boats return at sundown\nFrom the places we have seen\n\n[Chorus]\nSet a lantern on the river\nLet it carry what we know\nAll the words we never managed\nAll the things we couldn't show\n\n[Verse]\nYou were humming in the kitchen\nWith the window open wide\nAnd the summer kept a promise\nIn the turning of the tide\n\n[Chorus]\nSet a lantern on the river\nLet it carry what we know\nAll the words we never managed\nAll the things we couldn't show\n\n[Outro]\nWhen the morning finds the water\nWe will let the lantern go",
+  "lm_seed": 831301,
+  "seed": 831302
+}

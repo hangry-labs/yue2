@@ -1,3 +1,8 @@
+---
+layout: default
+title: Documentation
+permalink: /docs/
+---
 # Documentation
 
 Start with the [project quick start](../README.md#quick-start) to run the CUDA
@@ -7,6 +12,7 @@ container with external models.
 
 | Guide | Contents |
 | --- | --- |
+| [Song examples](../examples/README.md) | Listening gallery, original prompts, recipes and generation provenance |
 | [Docker runtime](DOCKER.md) | Registry images, mounts, GPU selection, defaults and weight-free packaging |
 | [Models](MODELS.md) | Pinned downloads, optional components, provenance and conversion |
 | [LoRA adapters](ADAPTERS.md) | Supported adapter files, placement and loading |
@@ -17,6 +23,7 @@ container with external models.
 | Guide | Contents |
 | --- | --- |
 | [Development](DEVELOPMENT.md) | Repository layout, local data migration, Task commands and native builds |
+| [Website](WEBSITE.md) | Themed README site, local preview, gallery integration and Pages deployment |
 | [Build dependencies](BUILDING.md) | Reusable CUDA libraries, integrity checks and source rebuilds |
 | [Benchmarks](BENCHMARKS.md) | Fixed generation profile, measurement method and recorded results |
 | [CI and releases](RELEASING.md) | Tags, registry publication and Docker Hub overview maintenance |

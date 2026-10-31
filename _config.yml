@@ -1,0 +1,99 @@
+title: Hangry Labs YuE2
+description: Local song generation from lyrics and musical direction, with a CUDA studio and HTTP API.
+url: https://hangry-labs.github.io
+baseurl: /yue2
+repository: hangry-labs/yue2
+lang: en
+encoding: utf-8
+markdown: kramdown
+highlighter: rouge
+theme: null
+logo: /web/src/assets/yue2_logo.webp
+layouts_dir: site/theme/_layouts
+plugins:
+  - jekyll-seo-tag
+  - jekyll-relative-links
+  - jekyll-optional-front-matter
+  - jekyll-readme-index
+  - jekyll-default-layout
+  - jekyll-titles-from-headings
+relative_links:
+  enabled: true
+  collections: true
+kramdown:
+  input: GFM
+  hard_wrap: false
+  parse_block_html: false
+defaults:
+  - scope:
+      path: ""
+    values:
+      layout: default
+      lang: en
+hangry:
+  languages: [en]
+  asset_root: /site/theme/assets/hangry-pages
+  favicon: /web/src/assets/yue2_favicon.webp
+  examples_path: /examples/
+  docs_path: /docs/
+  repository_url: https://github.com/hangry-labs/yue2
+  source_branch: master
+  source_paths: [Dockerfile, CMakeLists.txt, Taskfile.yml, VERSION, src/, cmake/, docker/, scripts/, tests/, vendor/, web/example/]
+  background: matrix
+exclude:
+  - AGENTS.md
+  - "**/AGENTS.md"
+  - .ai
+  - .idea
+  - .github
+  - .env
+  - .env.example
+  - .gitignore
+  - .gitattributes
+  - .dockerignore
+  - build
+  - data
+  - models
+  - adapters
+  - results
+  - checkpoints
+  - vendor
+  - src
+  - cmake
+  - docker
+  - scripts
+  - tests
+  - node_modules
+  - .jekyll-cache
+  - .jekyll-metadata
+  - .sass-cache
+  - Gemfile
+  - Gemfile.lock
+  - CMakeLists.txt
+  - Dockerfile
+  - Taskfile.yml
+  - VERSION
+  - site/Dockerfile
+  - site/Gemfile
+  - site/Gemfile.lock
+  - site/README.md
+  - site/theme/hangry-labs-pages.gemspec
+  - web/example
+  - web/public
+  - web/dist
+  - web/node_modules
+  - web/src/components
+  - web/src/lib
+  - web/src/App.svelte
+  - web/src/main.ts
+  - web/src/theme.css
+  - web/src/env.d.ts
+  - web/index.html
+  - web/package.json
+  - web/package-lock.json
+  - web/tsconfig.json
+  - web/vite.config.ts
+  - examples/index.html
+  - docs/internal
+  - "**/__pycache__"
+  - "**/*.tmp"

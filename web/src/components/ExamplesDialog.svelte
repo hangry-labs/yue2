@@ -44,6 +44,11 @@
 			generation settings stay unchanged.
 		</p>
 	</div>
+	<p class="listening-link">
+		<a href="https://hangry-labs.github.io/yue2/examples/" target="_blank" rel="noreferrer"
+			>Listen to generated songs <ArrowUpRight size={14} /></a
+		>
+	</p>
 	<label for="example-search">Search examples</label><input
 		id="example-search"
 		type="search"
@@ -66,6 +71,16 @@
 </dialog>
 
 <style>
+	.listening-link {
+		margin: 0 0 18px;
+		font-size: 0.8rem;
+	}
+	.listening-link a {
+		display: inline-flex;
+		align-items: center;
+		gap: 5px;
+		color: var(--accent);
+	}
 	.example-intro {
 		display: flex;
 		align-items: center;
