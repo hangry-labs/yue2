@@ -1,4 +1,4 @@
-name: Build CUDA container
+name: Build and publish CUDA image
 
 on:
   push:
@@ -6,54 +6,85 @@ on:
     tags: ['v*.*.*']
   workflow_dispatch:
     inputs:
-      publish:
-        description: Publish this build to GHCR
-        type: boolean
-        default: false
       image_tag:
-        description: Container tag for a manual build
+        description: Optional existing stable Git tag, such as v0.1.0
         type: string
-        default: latest
+        required: false
+      checkout_ref:
+        description: Optional ref to build; defaults to image_tag or the selected workflow ref
+        type: string
+        required: false
+      push_latest:
+        description: Also publish the rolling latest tag to Docker Hub and GHCR
+        type: boolean
+        default: true
 
 permissions:
   contents: read
 
 jobs:
   build:
+    name: Build and publish CUDA image
     if: github.repository == 'hangry-labs/yue2'
     runs-on: ubuntu-latest
     timeout-minutes: 120
     concurrency:
-      group: yue2-container-${{ github.ref }}
+      group: yue2-container-publication
       cancel-in-progress: false
     permissions:
       contents: read
       packages: write
     steps:
-      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - name: Check out source
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
+          ref: ${{ inputs.checkout_ref || inputs.image_tag || github.ref }}
+          fetch-depth: 0
           persist-credentials: false
-      - name: Verify source and publication rules
-        run: |
-          python3 -m unittest discover -s tests/unit -v
-          python3 scripts/verify_vendor.py
-      - name: Plan one image variant
+      - name: Test build tools
+        run: python3 -m unittest discover -s tests/unit -v
+      - name: Verify GGML source snapshot
+        run: python3 scripts/verify_vendor.py
+      - name: Choose image tag and publishing settings
         id: plan
         env:
-          INPUT_TAG: ${{ inputs.image_tag }}
-          INPUT_PUBLISH: ${{ inputs.publish }}
+          INPUT_IMAGE_TAG: ${{ inputs.image_tag }}
+          INPUT_PUSH_LATEST: ${{ github.event_name != 'workflow_dispatch' || inputs.push_latest }}
         run: python3 scripts/ci_images.py
-      - name: Download and verify matching GGML dependency
+      - name: Check Docker Hub credentials are configured
+        if: steps.plan.outputs.publish == 'true'
+        env:
+          DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
+          DOCKER_TOKEN: ${{ secrets.DOCKER_TOKEN }}
+        run: |
+          if [[ -z "$DOCKER_USERNAME" || -z "$DOCKER_TOKEN" ]]; then
+            echo "::error::Configure DOCKER_USERNAME and DOCKER_TOKEN with push access to hangrylabs/yue2."
+            exit 1
+          fi
+      - name: Download and verify prebuilt GGML libraries
         id: deps
         run: python3 scripts/ggml_release.py prepare --cache-dir "$RUNNER_TEMP/yue2-ggml"
-      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4
-      - uses: docker/login-action@81c6f93d4bc991e510b342a00b419b3bb4efc5c6 # v4
+      - name: Set up Docker builder
+        uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4
+      - name: Sign in to Docker Hub
+        uses: docker/login-action@81c6f93d4bc991e510b342a00b419b3bb4efc5c6 # v4
+        if: steps.plan.outputs.publish == 'true'
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_TOKEN }}
+      - name: Sign in to GitHub Container Registry
+        uses: docker/login-action@81c6f93d4bc991e510b342a00b419b3bb4efc5c6 # v4
         if: steps.plan.outputs.publish == 'true'
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-      - uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7
+      - name: Check stable image tags have not been published
+        if: steps.plan.outputs.publish == 'true'
+        run: python3 scripts/ci_images.py --check-existing
+      - name: ${{ steps.plan.outputs.publish == 'true' && 'Build and publish CUDA image' || 'Build CUDA image' }}
+        id: image
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7
         with:
           context: .
           build-contexts: ${{ steps.deps.outputs.context }}
@@ -64,12 +95,30 @@ jobs:
           provenance: mode=max
           sbom: true
           cache-from: |
-            type=gha,scope=yue2-cuda
-            type=gha,scope=yue2-ggml
-          cache-to: type=gha,scope=yue2-cuda,mode=max
+            type=registry,ref=hangrylabs/yue2:latest
+            type=registry,ref=ghcr.io/hangry-labs/yue2:latest
+          cache-to: type=inline
           build-args: |
-            SOURCE_REVISION=${{ github.sha }}
+            SOURCE_REVISION=${{ steps.plan.outputs.revision }}
             BUILD_JOBS=2
             CUDA_BASE=${{ steps.deps.outputs.cuda_base }}
             CUDA_ARCHITECTURES=${{ steps.deps.outputs.architectures }}
             GGML_DEPS_IMAGE=${{ steps.deps.outputs.image }}
+      - name: Verify both registries contain the same image
+        if: steps.plan.outputs.publish == 'true'
+        env:
+          IMAGE_DIGEST: ${{ steps.image.outputs.digest }}
+        run: python3 scripts/ci_images.py --verify
+      - name: Verify public pull access to both registries
+        if: steps.plan.outputs.publish == 'true'
+        env:
+          IMAGE_DIGEST: ${{ steps.image.outputs.digest }}
+        run: python3 scripts/ci_images.py --verify-public
+      - name: Save publication plan and verification reports
+        if: always() && steps.plan.outcome == 'success'
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: container-publication-${{ github.run_id }}-${{ github.run_attempt }}
+          path: build/publication/
+          if-no-files-found: error
+          retention-days: 30

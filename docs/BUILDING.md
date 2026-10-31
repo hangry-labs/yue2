@@ -115,10 +115,17 @@ for these Linux Docker-built libraries.
 
 ## Caches and measurements
 
-The source fallback also keeps installed GGML in an ordinary Docker layer, so
-external layer caches can retain it. Cache mounts alone are not preserved by
-GitHub Actions caching. The release archive avoids depending on a warm layer
-cache or a one-time cold CI kernel compilation.
+The source fallback also keeps installed GGML in an ordinary Docker layer,
+which external layer caches can retain. Cache mounts alone are not preserved
+by GitHub Actions caching. The release archive avoids depending on a warm
+layer cache or a one-time cold CI kernel compilation.
+
+Normal application publication attaches inline cache metadata to its registry
+images and imports it from the published `latest` tags. It avoids a separate
+large GitHub Actions cache upload: the first optimized CI run spent 971 seconds
+exporting that cache after native compilation finished in about 66 seconds.
+Inline caching retains less intermediate build state than `mode=max`; the
+precompiled GGML release remains the primary reuse mechanism.
 
 Local qualification on 2026-10-31 used Docker Desktop with 20 CPUs and about
 31 GiB RAM. Two app/UI builds against the prebuilt distribution image took

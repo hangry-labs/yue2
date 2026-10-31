@@ -11,6 +11,29 @@ task status
 Open http://localhost:8087. task init downloads/verifies external models and
 builds the image; task start preserves upstream inference defaults.
 
+## Registry images
+
+The publication workflow targets `hangrylabs/yue2` on Docker Hub and
+`ghcr.io/hangry-labs/yue2` on GHCR. `master` publishes `latest` to both; stable
+Git tags publish matching `vX.Y.Z` tags. Use the commands below after the first
+successful publication. The GGML dependency release is separate from this
+runnable application image.
+
+With the two external model files downloaded, PowerShell:
+
+```powershell
+docker run -d --name yue2 --gpus all -p 127.0.0.1:8087:8087 --mount "type=bind,source=$($PWD.Path)\models,target=/models,readonly" hangrylabs/yue2:latest
+```
+
+For GHCR, replace the image with `ghcr.io/hangry-labs/yue2:latest`. In Bash, use
+`--mount "type=bind,source=$(pwd)/models,target=/models,readonly"`. The models are
+not included or downloaded by the server. `task models` prepares them. The
+rolling `latest` image follows development; stable release commands should use
+the version tag and the top-level OCI digest verified on both registries.
+
+See [publication and visibility](RELEASING.md) for the first GHCR package's public
+access setting and the workflow's post-upload digest checks.
+
 ## Manual build and run
 
 For the development RTX 5070 Ti:
@@ -26,8 +49,8 @@ docker run -d --name yue2-dev --gpus all -p 127.0.0.1:8087:8087 --mount "type=bi
 ```
 
 For Bash, use `--mount "type=bind,source=$(pwd)/models,target=/models,readonly"`.
-No image is published yet. The local tag is yue2:dev. Models are not baked in
-and are not automatically downloaded by the server; task models handles that.
+The locally built tag is yue2:dev. Models are not baked in and are not
+automatically downloaded by the server; task models handles that.
 
 GGML/CUDA compilation has its own reusable stage, independent of application,
 UI and revision changes. `task deps:build` can prepare a portable dependency

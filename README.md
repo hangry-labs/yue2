@@ -35,8 +35,12 @@ verified and reused. Models remain outside the image and are mounted read-only.
 Every runtime image build checks the assembled filesystem and fails if it finds
 model-weight filenames or GGUF/GGML headers. See [packaging safeguards](docs/DOCKER.md#weight-free-packaging).
 
-There is one image variant. No registry image has been published yet; the
-commands above build locally. See [Docker details](docs/DOCKER.md).
+There is one image variant. The publishing workflow sends the same image to
+`hangrylabs/yue2` on Docker Hub and `ghcr.io/hangry-labs/yue2` on GHCR. Pushes to
+`master` publish the moving `latest` tag; matching release tags publish `vX.Y.Z`.
+The first tags become available after the publishing workflow succeeds.
+See [Docker image commands](docs/DOCKER.md#registry-images) and
+[publication rules](docs/RELEASING.md).
 
 ## What you get
 

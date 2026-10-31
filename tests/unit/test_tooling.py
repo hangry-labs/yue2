@@ -41,22 +41,84 @@ class PromptTests(unittest.TestCase):
 
 
 class PublicationTests(unittest.TestCase):
-    def test_main_build_does_not_publish(self):
-        self.assertEqual(images.plan('0.1.0-snapshot', 'push', 'refs/heads/main')['publish'], 'false')
+    def test_master_publishes_latest_to_both_registries(self):
+        result = images.plan('0.1.0-snapshot', 'push', 'refs/heads/master')
+        self.assertEqual(result['publish'], 'true')
+        self.assertEqual(result['tags'], ['hangrylabs/yue2:latest', 'ghcr.io/hangry-labs/yue2:latest'])
+
+    def test_pull_requests_and_other_branches_do_not_publish(self):
+        for event, ref in (('pull_request', 'refs/pull/1/merge'), ('push', 'refs/heads/main'),
+                           ('push', 'refs/heads/feature')):
+            with self.subTest(event=event, ref=ref):
+                result = images.plan('0.1.0-snapshot', event, ref)
+                self.assertEqual((result['publish'], result['tags']), ('false', []))
 
     def test_release_identity_must_match(self):
         with self.assertRaises(ValueError):
             images.plan('0.1.0-snapshot', 'push', 'refs/tags/v0.1.0')
         result = images.plan('0.1.0', 'push', 'refs/tags/v0.1.0')
-        self.assertEqual(result['tags'], 'ghcr.io/hangry-labs/yue2:v0.1.0')
+        self.assertEqual(result['tags'], ['hangrylabs/yue2:v0.1.0', 'ghcr.io/hangry-labs/yue2:v0.1.0'])
         self.assertEqual(result['publish'], 'true')
 
-    def test_manual_publication_requires_explicit_selection(self):
-        self.assertEqual(images.plan('0.1.0', 'workflow_dispatch', '', 'latest')['publish'], 'false')
-        with self.assertRaises(ValueError):
-            images.plan('0.1.0', 'workflow_dispatch', '', 'tag\nother=value', True)
-        with self.assertRaises(ValueError):
-            images.plan('0.1.0-snapshot', 'workflow_dispatch', '', 'v0.1.0', True)
+    def test_manual_defaults_match_master_and_stable_can_promote_latest(self):
+        self.assertEqual(images.plan('0.1.0-snapshot', 'workflow_dispatch', '')['tags'],
+                         ['hangrylabs/yue2:latest', 'ghcr.io/hangry-labs/yue2:latest'])
+        stable = images.plan('0.1.0', 'workflow_dispatch', '', 'v0.1.0', False)
+        self.assertEqual(stable['tags'], ['hangrylabs/yue2:v0.1.0', 'ghcr.io/hangry-labs/yue2:v0.1.0'])
+        promoted = images.plan('0.1.0', 'workflow_dispatch', '', 'v0.1.0', True)
+        self.assertEqual(len(promoted['tags']), 4)
+        for version, tag, latest in (('0.1.0', '', False), ('0.1.0', 'tag\nother=value', True),
+                                     ('0.1.0-snapshot', 'v0.1.0', True), ('0.1.0', 'latest', True)):
+            with self.subTest(version=version, tag=tag):
+                with self.assertRaises(ValueError):
+                    images.plan(version, 'workflow_dispatch', '', tag, latest)
+
+    def test_stable_tag_must_match_the_checked_out_commit(self):
+        publication = images.plan('0.1.0', 'push', 'refs/tags/v0.1.0')
+        head = Mock(returncode=0, stdout='a' * 40 + '\n')
+        wrong_tag = Mock(returncode=0, stdout='b' * 40 + '\n')
+        with patch.object(images, 'run', side_effect=[head, wrong_tag]):
+            with self.assertRaisesRegex(ValueError, 'existing Git tag'):
+                images.check_checkout(publication)
+        with patch.object(images, 'run', side_effect=[head, head]):
+            self.assertEqual(images.check_checkout(publication), 'a' * 40)
+
+    def test_stable_registry_tags_cannot_be_overwritten(self):
+        publication = images.plan('0.1.0', 'push', 'refs/tags/v0.1.0')
+        with patch.object(images, 'run', return_value=Mock(returncode=0)):
+            with self.assertRaisesRegex(ValueError, 'already exists'):
+                images.check_unpublished(publication)
+        with patch.object(images, 'run', return_value=Mock(returncode=1, stderr='network timeout', stdout='')):
+            with self.assertRaisesRegex(RuntimeError, 'Cannot confirm'):
+                images.check_unpublished(publication)
+        with patch.object(images, 'run', return_value=Mock(
+                returncode=1, stderr='credential helper executable not found', stdout='')):
+            with self.assertRaisesRegex(RuntimeError, 'Cannot confirm'):
+                images.check_unpublished(publication)
+        with patch.object(images, 'run', return_value=Mock(returncode=1, stderr='manifest unknown', stdout='')):
+            images.check_unpublished(publication)
+
+    def test_both_registries_must_match_the_build_index(self):
+        publication = images.plan('0.1.0-snapshot', 'push', 'refs/heads/master')
+        expected = 'sha256:' + 'a' * 64
+        with patch.object(images, 'inspect_digest', return_value=expected) as inspect:
+            records = images.verify_publication(publication, expected)
+            self.assertEqual([record['image'] for record in records], publication['tags'])
+            self.assertEqual(inspect.call_count, 2)
+        with patch.object(images, 'inspect_digest', side_effect=lambda ref, env: (
+                expected if ref.startswith('hangrylabs/') else 'sha256:' + 'b' * 64)), \
+                patch.object(images.time, 'sleep'):
+            with self.assertRaisesRegex(RuntimeError, 'differs'):
+                images.verify_publication(publication, expected)
+        with self.assertRaisesRegex(ValueError, 'valid OCI digest'):
+            images.verify_publication(publication, '')
+
+    def test_digest_parser_uses_the_top_level_index(self):
+        index = 'sha256:' + 'a' * 64
+        child = 'sha256:' + 'b' * 64
+        output = f'Name: registry/image\nDigest: {index}\nManifests:\n  Digest: {child}\n'
+        with patch.object(images, 'run', return_value=Mock(returncode=0, stdout=output)):
+            self.assertEqual(images.inspect_digest('registry/image'), index)
 
 
 class LifecycleTests(unittest.TestCase):

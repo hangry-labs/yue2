@@ -13,6 +13,7 @@ permissions:
 
 jobs:
   dependency:
+    name: Build reusable GGML libraries
     if: github.repository == 'hangry-labs/yue2'
     runs-on: ubuntu-latest
     timeout-minutes: 120
@@ -23,24 +24,27 @@ jobs:
       contents: read
       packages: write
     steps:
-      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - name: Check out source
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
           persist-credentials: false
-      - name: Verify dependency inputs
-        run: |
-          python3 -m unittest discover -s tests/unit -v
-          python3 scripts/verify_vendor.py
-      - name: Plan dependency identity
+      - name: Test build tools
+        run: python3 -m unittest discover -s tests/unit -v
+      - name: Verify GGML source snapshot
+        run: python3 scripts/verify_vendor.py
+      - name: Calculate GGML build fingerprint
         id: deps
         run: python3 scripts/ggml_deps.py plan
-      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4
-      - uses: docker/login-action@81c6f93d4bc991e510b342a00b419b3bb4efc5c6 # v4
+      - name: Set up Docker builder
+        uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4
+      - name: Sign in to GitHub Container Registry
+        uses: docker/login-action@81c6f93d4bc991e510b342a00b419b3bb4efc5c6 # v4
         if: inputs.publish
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-      - name: Build dependency once
+      - name: ${{ inputs.publish && 'Build and publish GGML libraries' || 'Build GGML libraries' }}
         id: build
         uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7
         with:
@@ -59,7 +63,7 @@ jobs:
             CUDA_BASE=${{ steps.deps.outputs.cuda_base }}
             CUDA_ARCHITECTURES=${{ steps.deps.outputs.architectures }}
             BUILD_JOBS=2
-      - name: Record artifact identity
+      - name: Write GGML build summary
         env:
           DEPENDENCY_KEY: ${{ steps.deps.outputs.key }}
           DEPENDENCY_DIGEST: ${{ steps.build.outputs.digest }}
