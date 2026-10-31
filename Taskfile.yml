@@ -48,7 +48,13 @@ tasks:
     cmds: ['"{{.PYTHON}}" scripts/dev.py deps-build']
   deps:plan:
     desc: Show the dependency fingerprint and selected CI artifact
-    cmds: ['"{{.PYTHON}}" scripts/ggml_deps.py plan']
+    cmds: ['"{{.PYTHON}}" scripts/ggml_release.py plan']
+  deps:prepare:
+    desc: Download and verify the pinned public GGML release archive
+    cmds: ['"{{.PYTHON}}" scripts/ggml_release.py prepare']
+  deps:export:
+    desc: Export the local GGML artifact and checksum for a GitHub Release upload
+    cmds: ['"{{.PYTHON}}" scripts/ggml_release.py export']
   start:
     desc: Start or replace this project server with upstream runtime defaults
     cmds: ['"{{.PYTHON}}" scripts/dev.py start']

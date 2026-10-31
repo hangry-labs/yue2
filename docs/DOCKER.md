@@ -31,8 +31,10 @@ and are not automatically downloaded by the server; task models handles that.
 
 GGML/CUDA compilation has its own reusable stage, independent of application,
 UI and revision changes. `task deps:build` can prepare a portable dependency
-artifact for CI. See [build dependencies](BUILDING.md) for registry reuse and
-digest pinning. This artifact contains code libraries, never model weights.
+artifact for CI. Normal Task/CI builds download and verify the pinned public
+release archive; direct Docker builds use the source fallback unless a named
+context or artifact image is supplied. See [build dependencies](BUILDING.md).
+The artifact contains code libraries, never model weights.
 
 ## Weight-free packaging
 

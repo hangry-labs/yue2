@@ -25,12 +25,12 @@ task start
 
 Open **http://localhost:8087**. Enter style tags and lyrics, then Generate.
 The local CUDA image has been tested on an RTX 5070 Ti with 16 GB VRAM.
-The first source build compiles CUDA kernels; broad distribution builds can take
-over an hour on a small CI runner. Later app/UI builds reuse the separate GGML
-dependency layer. A pinned prebuilt artifact can also skip that first compilation.
+Task downloads a checksum-pinned **99 MB GGML/CUDA build dependency** from
+GitHub Releases, then compiles the app and UI. This skips the expensive CUDA
+kernel compilation, including on a fresh builder. See [build dependencies](docs/BUILDING.md).
 
 `task init` verifies/downloads the two pinned GGUF files into `models/` and
-builds `yue2:dev`. Downloads total approximately 4.34 GB. Cached models are
+builds `yue2:dev`. Model downloads total approximately 4.34 GB. Cached models are
 verified and reused. Models remain outside the image and are mounted read-only.
 Every runtime image build checks the assembled filesystem and fails if it finds
 model-weight filenames or GGUF/GGML headers. See [packaging safeguards](docs/DOCKER.md#weight-free-packaging).

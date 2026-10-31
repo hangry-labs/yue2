@@ -13,7 +13,9 @@ Python helpers use the standard library; Python is not added to the inference im
 | task init | Models, then CUDA image build |
 | task build | Rebuild current native engine and UI |
 | task deps:build | Prebuild a reusable GGML artifact with all distribution CUDA targets |
-| task deps:plan | Show the dependency fingerprint and selected CI artifact |
+| task deps:plan | Show the dependency fingerprint and pinned release artifact |
+| task deps:prepare | Download and verify the public dependency archive |
+| task deps:export | Export a local dependency archive and checksum for release upload |
 | task start | Start the default server or replace an older project image |
 | task stop / status / logs | Operate this project's container |
 | task test | Tooling tests and GGML snapshot verification |
@@ -32,7 +34,7 @@ known job is running and does not stop another project's container with that nam
 Changing images restarts the process and clears its in-memory jobs/results.
 Models and browser data persist.
 
-Local builds reuse a configured or locally prebuilt distribution dependency when
+Local builds reuse the pinned public release dependency when
 targeting is automatic. Otherwise they detect host NVIDIA compute capability and
 compile for that hardware. Set CUDA_ARCHITECTURES explicitly for a different build. Docker
 builds have no GPU access, so do not pass the CMake value native to Docker builds.
@@ -47,7 +49,7 @@ Dockerfile stages:
 - cpu-checks: compiles all native targets and verifies startup without weights.
 - cuda-toolchain: pinned CUDA 12.9.1 development base and build tools.
 - ggml-deps-build / ggml-deps: isolated GGML compilation and portable dependency artifact.
-- selected-ggml: source artifact or explicitly selected prebuilt image.
+- selected-ggml: verified release named context, source artifact or selected prebuilt image.
 - build: C++17 app compilation linked against the verified GGML installation.
 - weights-check: verifies the assembled image contains no common model-weight files.
 - runtime: CUDA runtime, native executables, notices and embedded UI.
@@ -56,7 +58,8 @@ Compiled GGML libraries live in a normal Docker layer, separate from app source,
 UI and revision inputs. This layer survives external cache export; BuildKit cache
 mounts alone are not preserved by GitHub Actions caching. Local cache mounts also
 retain app objects and compiler results. No cache or artifact contains model weights.
-See [build dependencies](BUILDING.md) for prebuilding, pinning and invalidation rules.
+Normal Task/CI builds use the pinned public release archive as a named context.
+See [build dependencies](BUILDING.md) for downloads, source builds and invalidation rules.
 
 VERSION owns the application version. Task builds inject the Git revision;
 CI injects the validated commit. The same version/revision is embedded in UI and

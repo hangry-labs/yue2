@@ -12,6 +12,7 @@ import urllib.error
 import urllib.request
 
 import ggml_deps
+import ggml_release
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -65,7 +66,7 @@ def local_dependency(key, dry=False):
 
 
 def build_dependency(dry=False):
-    dependency = ggml_deps.plan()
+    dependency = ggml_release.plan()
     requested = setting('CUDA_ARCHITECTURES', 'auto')
     selected = setting('GGML_DEPS_IMAGE', '')
     arch = requested if dry else architectures()
@@ -75,14 +76,17 @@ def build_dependency(dry=False):
         available = {value.split('-')[0] for value in dependency['architectures'].split(';')}
         detected = {value.split('-')[0] for value in (arch or '').split(';') if value}
         if dry or not detected or detected <= available:
-            selected = (dependency['image'] if dependency['image'] != 'ggml-deps'
+            selected = ('release-archive' if dependency.get('archive') else
+                        dependency['image'] if dependency['image'] != 'ggml-deps'
                         else local_dependency(dependency['key'], dry))
             if selected:
                 arch = dependency['architectures']
     if not arch or arch == 'auto':
         arch = dependency['architectures']
     if not selected:
-        if arch == dependency['architectures'] and dependency['image'] != 'ggml-deps':
+        if arch == dependency['architectures'] and dependency.get('archive'):
+            selected = 'release-archive'
+        elif arch == dependency['architectures'] and dependency['image'] != 'ggml-deps':
             selected = dependency['image']
         else:
             selected = local_dependency(ggml_deps.fingerprint(architectures=arch), dry)
@@ -140,7 +144,10 @@ def main():
             dependency, arch, selected = build_dependency(args.dry_run)
             command += ['--build-arg', 'CUDA_ARCHITECTURES=' + arch,
                         '--platform', 'linux/amd64', '--build-arg', 'CUDA_BASE=' + dependency['cuda_base']]
-            if selected and selected != 'ggml-deps':
+            if selected == 'release-archive':
+                context = ggml_release.prepare(dependency, dry=args.dry_run)
+                command += ['--build-context', 'selected-ggml=' + str(context)]
+            elif selected and selected != 'ggml-deps':
                 command += ['--build-arg', 'GGML_DEPS_IMAGE=' + selected]
             command += ['--build-arg', 'BUILD_JOBS=' + setting('BUILD_JOBS', '4'), '-t', image]
         else:

@@ -60,12 +60,23 @@ class PublicationTests(unittest.TestCase):
 
 
 class LifecycleTests(unittest.TestCase):
+    def test_auto_uses_pinned_archive_even_when_local_image_exists(self):
+        dependency = {'image': 'ggml-deps', 'key': 'current', 'archive': {'sha256': 'pinned'},
+                      'architectures': '86-real;120a-real', 'cuda_base': 'cuda'}
+        with patch.dict(dev.os.environ, {'YUE2_TASK_CUDA_ARCHITECTURES': 'auto',
+                                         'YUE2_TASK_GGML_DEPS_IMAGE': ''}), \
+                patch.object(dev.ggml_release, 'plan', return_value=dependency), \
+                patch.object(dev, 'local_dependency', return_value='local-artifact'), \
+                patch.object(dev, 'architectures', return_value='120a-real'):
+            _, arch, selected = dev.build_dependency()
+            self.assertEqual((arch, selected), ('86-real;120a-real', 'release-archive'))
+
     def test_auto_reuses_distribution_artifact_on_covered_gpu(self):
         dependency = {'image': 'ggml-deps', 'key': 'current',
                       'architectures': '86-real;120a-real', 'cuda_base': 'cuda'}
         with patch.dict(dev.os.environ, {'YUE2_TASK_CUDA_ARCHITECTURES': 'auto',
                                          'YUE2_TASK_GGML_DEPS_IMAGE': ''}), \
-                patch.object(dev.ggml_deps, 'plan', return_value=dependency), \
+                patch.object(dev.ggml_release, 'plan', return_value=dependency), \
                 patch.object(dev, 'local_dependency', return_value='local-artifact'), \
                 patch.object(dev, 'architectures', return_value='120a-real'):
             _, arch, image = dev.build_dependency()
@@ -76,7 +87,7 @@ class LifecycleTests(unittest.TestCase):
                       'architectures': '86-real;120a-real', 'cuda_base': 'cuda'}
         with patch.dict(dev.os.environ, {'YUE2_TASK_CUDA_ARCHITECTURES': 'auto',
                                          'YUE2_TASK_GGML_DEPS_IMAGE': ''}), \
-                patch.object(dev.ggml_deps, 'plan', return_value=dependency), \
+                patch.object(dev.ggml_release, 'plan', return_value=dependency), \
                 patch.object(dev, 'local_dependency', return_value=''), \
                 patch.object(dev.ggml_deps, 'fingerprint', return_value='other-gpu'), \
                 patch.object(dev, 'architectures', return_value='121a-real'):
@@ -88,7 +99,7 @@ class LifecycleTests(unittest.TestCase):
                       'architectures': '86-real;120a-real', 'cuda_base': 'cuda'}
         with patch.dict(dev.os.environ, {'YUE2_TASK_CUDA_ARCHITECTURES': '120a-real',
                                          'YUE2_TASK_GGML_DEPS_IMAGE': ''}), \
-                patch.object(dev.ggml_deps, 'plan', return_value=dependency), \
+                patch.object(dev.ggml_release, 'plan', return_value=dependency), \
                 patch.object(dev, 'local_dependency', return_value=''), \
                 patch.object(dev.ggml_deps, 'fingerprint', return_value='narrow'), \
                 patch.object(dev, 'architectures', return_value='120a-real'):

@@ -20,10 +20,11 @@ Actions are pinned to immutable commits. Builds use BuildKit layer caching,
 provenance and SBOM generation.
 
 GGML compilation is isolated from app/UI changes. The workflow reads
-`docker/ggml-deps.json` and consumes its matching digest-pinned dependency image
-when configured, or reuses/builds the independent source layer. A separate manual
-`ggml-deps.yml` workflow prepares the artifact and publishes only on explicit
-selection. See [reusable build dependencies](BUILDING.md).
+`docker/ggml-deps.json`, downloads the pinned public release archive, verifies
+its checksum and installed files, and supplies it as a Docker named context. A
+failed artifact check stops the build before Docker. A registry image or explicit
+source fallback remains available. A separate manual `ggml-deps.yml` workflow
+prepares an optional OCI artifact and publishes only on explicit selection. See [reusable build dependencies](BUILDING.md).
 
 ## Stable publication
 

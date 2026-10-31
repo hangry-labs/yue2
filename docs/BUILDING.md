@@ -1,110 +1,132 @@
 # Reusable CUDA build dependencies
 
-GGML's CUDA kernels are expensive to compile and change much less often than the
-app or UI. The Docker build installs them in a separate dependency stage, then
-links the app against those libraries. The vendored engine and inference defaults
-are unchanged. There is still one runtime image variant, with external weights.
+Normal `task build` and CI download a **99 MB, checksum-pinned GitHub Release
+archive** of the compiled GGML/CUDA libraries. They compile the current app and UI
+against that installation. No registry login is needed to download the public
+archive. There is still one runtime image variant, with external model weights.
 
-## Local builds
-
-`task build` remains the normal entry point. With targeting set to `auto`, it
-prefers the configured pinned distribution artifact or a locally prebuilt one.
-Otherwise it detects local GPU targets and reuses/builds that dependency layer.
-
-To prepare an artifact for the broader CI/distribution architecture list:
+## Normal builds
 
 ```text
 task deps:plan
+task deps:prepare
+task build
+```
+
+The first two commands inspect the lock and optionally warm the dependency cache;
+`task build` performs those checks automatically. The cache lives under ignored
+`build/ggml-release/<archive-sha256>/`. Subsequent builds verify and reuse it.
+
+The lock in `docker/ggml-deps.json` records the versioned asset URL, exact download
+size, archive SHA-256 and dependency input key. It currently points to
+[the tested GGML dependency release](https://github.com/hangry-labs/yue2/releases/tag/ggml-deps-486cfbc9cab44f7eb35f).
+It uses that specific asset, never the latest-release endpoint. The adjacent
+uploaded `.sha256` file is useful for manual downloads; builds trust the checksum
+committed in the lock rather than fetching a replacement checksum from the server.
+
+The downloader checks the compressed bytes before extraction. It rejects unsafe
+paths, links, special files, duplicate members and excessive payload size. It then
+checks the source/options key, installed-file hashes and absence of weights.
+Docker repeats the source, compiler/CUDA and file checks before linking the app.
+A missing, modified or incompatible configured artifact fails the build. It does
+not trigger a long source compilation as an automatic recovery step.
+
+With GPU targeting set to `auto`, Task uses the released distribution targets
+when they cover the detected GPU. Explicit narrower targets and GPUs outside
+that list retain a separate matching source dependency path. Those builds can
+still require an initial CUDA compilation.
+
+## How CI consumes the archive
+
+The container workflow prepares the dependency before starting Docker. The
+verified installation is supplied as the `selected-ggml` named build context,
+overriding the dependency-image stage. This works with a fresh Buildx builder;
+no locally loaded Docker image or retained native compiler cache is required.
+The vendored GGML compile stages are outside that consumer's build graph.
+
+The archive contains `opt/ggml/`: public headers, static libraries, CMake exports,
+license and `yue2-ggml.json` provenance metadata. Its roughly 233 MB unpacked payload
+contains no compiler, application, build tree or model weights. Build tools and
+standalone static archives stay out of the final runtime image; GGML code is
+linked into the native executables. The final whole-image weight guard remains
+mandatory.
+
+Plain `docker build .` uses the source dependency stages unless an artifact image
+or named context is explicitly supplied. Use Task for the automatic release
+archive path. See [Docker runtime commands](DOCKER.md).
+
+## Refreshing the dependency release
+
+Rebuild only after an intentional GGML, ABI/options, toolchain or GPU target
+change. C++17, inference defaults and the existing distribution targets are
+preserved by the current package.
+
+```text
+task vendor:verify
 task deps:build
+task deps:export
 ```
 
-This builds a local `yue2-ggml:<first-20-characters-of-input-key>` image. It contains
-headers, static libraries, CMake exports, build metadata and the GGML license.
-It contains no compiler, app, weights or runnable service. The initial cold build
-still takes time. App/UI changes do not repeat the CUDA compilation afterward.
+`deps:build` deliberately compiles the dependency from source, even while a
+release archive is configured. The initial cold compilation is expensive. It
+creates `yue2-ggml:<first-20-characters-of-input-key>` in local Docker.
+`deps:export` verifies and exports that installation into
+`results/build-deps/<key-prefix>/`, producing a `.tar.gz` and matching `.sha256`.
+These generated binary files remain outside Git source control.
 
-Task automatically selects an existing local artifact when its input key and GPU
-targets match. For a manual check, use the full tag printed by `task deps:build`:
+Upload both files to a separate GitHub Release tagged `ggml-deps-<key-prefix>`.
+Use a prerelease and leave the product's latest-release label unset. Update the
+lock's input key and archive URL, size and SHA-256 from the verified export.
+Commit the matching build recipe before creating its dependency tag. A
+`ggml-deps-*` tag does not match the product's `v*.*.*` publication trigger.
+
+Then run `task test`, `task build` and the GPU `task test1` baseline. Qualify the
+actual uploaded download before considering the lock ready. A stale archive pin
+fails early while the replacement is being prepared; `deps:build` and `deps:export`
+remain available to produce it. To deliberately build the app entirely from
+source, clear `archive`, `image` and `input_key` in the lock.
+
+## Identity and alternative transport
+
+The input key covers actual GGML source bytes, the shared ABI definitions,
+dependency CMake wrapper, metadata/checker scripts, dependency-only Docker stages,
+pinned CUDA base, platform and architecture list. App/UI/version edits and release
+transport changes do not invalidate those compiled libraries. Keep the Dockerfile
+fingerprint boundary and shared ABI definitions intact.
+
+Metadata records the GGML commit, exact compiler/CUDA versions, target list, input
+key and installed-file SHA-256 hashes. It is also copied into `/opt/yue/licenses/`
+in the runtime. Checksums and metadata verify consistency; artifact hosting and
+reviewed locks establish which binary to trust.
+
+The OCI artifact image remains an optional transport. The manual
+`.github/workflows/ggml-deps.yml` workflow builds it and publishes to GHCR only
+when its publish input is selected. This is not required by normal builds.
+To use a registry artifact instead of the release archive, clear `archive`, then
+pin the actual published digest:
 
 ```text
-task build CUDA_ARCHITECTURES="75-virtual;80-virtual;86-real;89-real;120a-real" GGML_DEPS_IMAGE=yue2-ggml:<printed-key-prefix>
-```
-
-Explicit narrower architecture lists need their own matching dependency layer.
-A single-GPU artifact cannot substitute for the distribution artifact. CUDA
-compilation needs the toolkit, not a GPU on the builder.
-
-## Reuse across machines
-
-The artifact is an ordinary OCI image. It can be built locally inside Linux Docker,
-pushed to GHCR or another OCI registry, and consumed by CI. Windows-native binaries
-are not interchangeable with these Linux libraries.
-
-The prepared manual workflow `.github/workflows/ggml-deps.yml` builds the dependency
-only. It publishes to `ghcr.io/hangry-labs/yue2-ggml:<full-input-key>` only when its
-`publish` checkbox is explicitly selected. Normal app builds never publish this
-package. Its digest is reported in the workflow summary.
-
-For a locally built artifact, an operator can tag and push the printed local tag
-to the same registry path. Local GHCR uploads need Docker authentication with
-a classic PAT scoped to `write:packages`; GitHub Actions uses its repository
-token instead. See [GHCR authentication](https://docs.github.com/en/packages/working-with-a-github-packages-registry/working-with-the-container-registry#authenticating-with-a-personal-access-token-classic).
-New GHCR packages default to private, so enable public read access for this
-public project's artifact. Inspect the published image to obtain its top-level
-OCI digest, then pin it in this checkout:
-
-```text
-docker buildx imagetools inspect ghcr.io/hangry-labs/yue2-ggml:<full-input-key>
-docker pull ghcr.io/hangry-labs/yue2-ggml@sha256:<published-digest>
 python scripts/ggml_deps.py pin --image ghcr.io/hangry-labs/yue2-ggml@sha256:<published-digest>
 ```
 
-The pin command reads the artifact's metadata without executing it and refuses a
-different input key. Review and commit `docker/ggml-deps.json` with the pin. Public
-builds need public read access to the package; publishing permissions are separate.
-No artifact is published or selected merely by adding this workflow.
-
-CI reads that lock and uses its immutable image reference. The source fallback
-works while `image` and `input_key` are null. A stale configured pin fails early
-instead of silently using incompatible libraries. To intentionally rebuild from
-source, clear both fields, then build and pin the replacement.
-
-## Identity and verification
-
-The input key covers actual GGML source bytes, the dependency CMake wrapper,
-metadata/checker scripts, the Dockerfile's dependency stages, pinned CUDA base,
-platform and architecture list. App/UI/version stages are outside that boundary.
-Compiler flags and ABI definitions belong in the dependency wrapper. Keep the
-Dockerfile boundary in place when editing build stages.
-
-Each artifact records the exact compiler and CUDA versions, architecture list,
-GGML commit, input key and installed-file SHA-256 hashes in `/opt/ggml/yue2-ggml.json`.
-Every app build checks these before linking. The metadata is also included under
-`/opt/yue/licenses/` in the runtime. Missing, altered or incompatible artifacts fail
-the build. This is compatibility verification, not a signature/trust mechanism;
-select artifacts from a trusted registry and pin the digest.
-
-The dependency stage scans its installed files for model weights, and the final
-runtime retains its mandatory whole-filesystem weight check. Build tools and
-static libraries stay out of the runtime; existing CUDA runtime libraries remain.
+Local GHCR uploads require separate package-write credentials; public read access
+is needed for unauthenticated builds. Native Windows binaries cannot substitute
+for these Linux Docker-built libraries.
 
 ## Caches and measurements
 
-GGML output is deliberately a normal image layer. Docker's external layer cache
-can reuse it on fresh CI runners; the old cache mounts alone could not do that.
-A pinned artifact additionally avoids needing a warm CI layer cache. The compiler
-cache remains useful when an intentional dependency update requires rebuilding.
-
-Cold dependency builds, warm dependency reuse, app compilation and registry
-transfers are different costs. A prebuilt artifact removes kernel compilation
-from app builds but still needs to be downloaded. No GitHub timing improvement
-is claimed until the changed workflow has run there.
+The source fallback also keeps installed GGML in an ordinary Docker layer, so
+external layer caches can retain it. Cache mounts alone are not preserved by
+GitHub Actions caching. The release archive avoids depending on a warm layer
+cache or a one-time cold CI kernel compilation.
 
 Local qualification on 2026-10-31 used Docker Desktop with 20 CPUs and about
-31 GiB RAM. Two app/UI builds against the same prebuilt distribution artifact
-took 68 and 58 seconds, including packaging, with zero CUDA objects compiled.
-Base images and local build caches were warm. The source fallback also reused
-its compiled GGML layer. These are local checks, not GitHub runner benchmarks.
+31 GiB RAM. Two app/UI builds against the prebuilt distribution image took
+68 and 58 seconds, including packaging, with zero CUDA objects compiled.
+Base images and local build caches were warm. These are local checks, not GitHub
+runner benchmarks. The eight-step generation baseline produced byte-identical
+score, tokens, latents and MP3; this is not an inference speed improvement claim.
 
-References: [Docker cache ordering](https://docs.docker.com/build/cache/optimize/)
-and [GitHub Actions cache mounts](https://docs.docker.com/build/ci/github-actions/cache/#cache-mounts).
+References: [Docker named contexts](https://docs.docker.com/reference/cli/docker/buildx/build/#build-context),
+[cache ordering](https://docs.docker.com/build/cache/optimize/), and
+[GitHub Actions cache mounts](https://docs.docker.com/build/ci/github-actions/cache/#cache-mounts).

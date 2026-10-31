@@ -3,5 +3,10 @@
   "cuda_base": "nvidia/cuda:12.9.1-devel-ubuntu24.04@sha256:020bc241a628776338f4d4053fed4c38f6f7f3d7eb5919fecb8de313bb8ba47c",
   "architectures": "75-virtual;80-virtual;86-real;89-real;120a-real",
   "image": null,
-  "input_key": null
+  "input_key": "486cfbc9cab44f7eb35f21ba3483d7feb1e05693ccf66c08ef8882ba1af909b0",
+  "archive": {
+    "url": "https://github.com/hangry-labs/yue2/releases/download/ggml-deps-486cfbc9cab44f7eb35f/yue2-ggml-linux-amd64-cuda12.9-486cfbc9cab44f7eb35f.tar.gz",
+    "sha256": "63b9621135d5de01df99ec4d20f528ca6a75f8691ef14a335ad282a65b2b9eb0",
+    "size": 99091970
+  }
 }
