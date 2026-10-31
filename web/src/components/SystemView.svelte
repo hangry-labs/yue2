@@ -3,6 +3,7 @@
 	import { app } from '../lib/state.svelte.js';
 	import GpuMonitor from './GpuMonitor.svelte';
 	import LogCard from './LogCard.svelte';
+	import SettingHelp from './SettingHelp.svelte';
 	let { active }: { active: boolean } = $props();
 	const filename = (path?: string) => path?.split(/[/\\]/).pop() || 'Unavailable';
 </script>
@@ -64,16 +65,22 @@
 			</section>
 			<section class="surface">
 				<h3>Browser preferences</h3>
-				<label class="preference-row"
-					><span><Volume2 size={15} /> Playback volume</span><input
+				<div class="preference-row">
+					<span
+						><label for="playback-volume"><Volume2 size={15} /> Playback volume</label><SettingHelp
+							title="Playback volume"
+							text="Listening volume in this browser. It does not change the generated song, its loudness normalization, or downloaded files."
+						/></span
+					><input
+						id="playback-volume"
 						type="range"
 						aria-label="Playback volume"
 						min="0"
 						max="1"
 						step="0.01"
 						bind:value={app.volume}
-					/></label
-				>
+					/>
+				</div>
 				<p class="field-help">These preferences are saved in this browser.</p>
 			</section>
 			<section class="surface">

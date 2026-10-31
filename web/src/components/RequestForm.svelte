@@ -2,7 +2,7 @@
 	import { onMount, type Snippet } from 'svelte';
 	import { parse as yamlParse, stringify as yamlStringify } from 'yaml';
 	import { RotateCcw, Download, FolderOpen, X } from '@lucide/svelte';
-	import { app, toast, setRequest } from '../lib/state.svelte.js';
+	import { app, toast, setRequest, setInputMode } from '../lib/state.svelte.js';
 	import { example, applyExample } from '../lib/example.js';
 	import {
 		synthSubmit,
@@ -13,8 +13,10 @@
 		jobResultBlob
 	} from '../lib/api.js';
 	import { putSong, getAllSongs, saveJob, loadJob, clearJob } from '../lib/db.js';
-	import { num, buildSparse, clearSection, emptyRequest } from '../lib/fields.js';
-	import { updateLyrics, clearCompositionInputs, canAdoptScore } from '../lib/lyrics.js';
+	import { clearSection, emptyRequest } from '../lib/fields.js';
+	import { updateLyrics, clearCompositionInputs } from '../lib/lyrics.js';
+	import { generationRequest, inputRequest } from '../lib/generation.js';
+	import SettingHelp from './SettingHelp.svelte';
 	import { COT_FULL, COT_MELODY, COT_OFF } from '../lib/config.js';
 	import type { Yue2Request, Song } from '../lib/types.js';
 	import type { PendingJob } from '../lib/db.js';
@@ -29,7 +31,6 @@
 	});
 	let fileInput: HTMLInputElement;
 	let saveFormatOpen = $state(false);
-	let takeOpen = $state(false);
 
 	let d = $derived(app.props?.defaults);
 
@@ -54,14 +55,6 @@
 	// The mode menu shows the published default until a mode is picked, so
 	// the request carries a cot only when it is yours.
 	let cot = $derived(app.request.cot || d?.cot || '');
-	let hasComposition = $derived(
-		Boolean(
-			app.request.abc?.trim() ||
-			app.request.semantic_tokens?.trim() ||
-			app.request.source_tokens?.trim() ||
-			app.srcSongId != null
-		)
-	);
 
 	// resume a pending job after page reload, or land a fresh submission.
 	// shared tail of both the onMount resume and the generate path.
@@ -89,29 +82,21 @@
 			song.id = await putSong(song);
 		}
 		app.songs = (await getAllSongs()).reverse();
-		// The score travels back: resubmitting it varies the interpretation of
-		// the same composition. The semantic stream stays out, it would render
-		// the very same music.
-		if (tracks.length && canAdoptScore(app.request, job.request)) {
-			app.request.abc = tracks[0].request.abc || '';
-		}
 	}
 
 	function editLyrics(value: string) {
 		if (value === (app.request.lyrics || '')) return;
-		const hadSource = app.srcSongId != null;
-		const cleared = updateLyrics(app.request, value);
+		updateLyrics(app.request, value);
 		app.srcSongId = null;
-		if (cleared || hadSource)
-			toast('Lyrics changed. Previous score and replay inputs cleared; saved songs are unchanged.');
+		setInputMode('fresh');
 	}
 
-	function clearComposition() {
+	function editStyle(value: string) {
+		if (value === app.request.style) return;
+		app.request.style = value;
 		clearCompositionInputs(app.request);
 		app.srcSongId = null;
-		toast(
-			'Previous score and replay inputs cleared. The next generation will compose from these lyrics.'
-		);
+		setInputMode('fresh');
 	}
 
 	// on mount: resume polling for a pending job in localStorage.
@@ -272,7 +257,7 @@
 	// snapshot app.request into a clean Yue2Request with proper types.
 	// bind:value guarantees app.request always matches the DOM.
 	function buildRequest(): Yue2Request {
-		return buildSparse(app.request);
+		return inputRequest(app.request, app.inputMode);
 	}
 
 	// Example: pick a random official demo prompt, fill the form and name
@@ -287,25 +272,17 @@
 	async function generate() {
 		busy = true;
 		try {
-			const req = buildRequest();
+			const req = generationRequest(app.request, app.inputMode);
 			// An adapter the server no longer lists stays visible in its menu
 			// and out of the run
 			req.adapters = req.adapters?.filter((a) => adapterList.some((e) => e.name === a.name));
-			// Both seeds are resolved here so the stored request replays the
-			// exact track, the token draw and the acoustic noise alike
-			const userLmSeed = num(req.lm_seed);
-			req.lm_seed =
-				userLmSeed != null && userLmSeed >= 0
-					? userLmSeed
-					: Math.floor(Math.random() * 0x100000000);
-			const userSeed = num(req.seed);
-			req.seed =
-				userSeed != null && userSeed >= 0 ? userSeed : Math.floor(Math.random() * 0x100000000);
-
 			// A source card opens the song with its section: its codes ride in
 			// source_tokens, kept on the card by its generation or by
 			// Tokenize audio
-			const src = app.srcSongId != null ? app.songs.find((s) => s.id === app.srcSongId) : null;
+			const src =
+				app.inputMode === 'source' && app.srcSongId != null
+					? app.songs.find((s) => s.id === app.srcSongId)
+					: null;
 			if (src && !src.request.semantic_tokens) {
 				toast('Tokenize audio on the source card first');
 				return;
@@ -314,6 +291,12 @@
 				req.source_tokens = src.request.semantic_tokens;
 				req.semantic_tokens = undefined;
 			}
+			if (app.inputMode === 'replay' && !req.semantic_tokens?.trim())
+				throw new Error('Choose a take from the library to replay, or supply audio codes.');
+			if (app.inputMode === 'source' && !req.source_tokens?.trim())
+				throw new Error('Select a source song in the library first.');
+			if (app.inputMode === 'score' && !req.abc?.trim())
+				throw new Error('Enter an ABC score or choose a score from the library.');
 			const jobId = await synthSubmit(req, app.format);
 			const job: PendingJob = { id: jobId, name: app.name || 'Untitled', request: req };
 			saveJob(job);
@@ -323,26 +306,6 @@
 		} finally {
 			busy = false;
 		}
-	}
-
-	// A request carrying audio codes renders the take they hold, so the run
-	// asks which take is wanted before it starts. An empty box goes straight
-	// to the pipeline.
-	function askTake() {
-		if (app.request.semantic_tokens?.trim() && app.srcSongId == null) {
-			takeOpen = true;
-			return;
-		}
-		generate();
-	}
-
-	// The codes leave the request and both seeds go back to a free draw, so
-	// the AR half performs the prompt again instead of retracing the take
-	function newTake() {
-		app.request.semantic_tokens = '';
-		app.request.lm_seed = -1;
-		app.request.seed = -1;
-		generate();
 	}
 
 	// cancel the active pipeline job
@@ -365,10 +328,12 @@
 	// from a free composition again
 	function clearScoreText() {
 		app.request.abc = '';
+		if (app.inputMode === 'score') setInputMode('fresh');
 	}
 
 	function clearSemantic() {
 		clearSection(app.request, 'semantic');
+		if (app.inputMode === 'replay') setInputMode('fresh');
 	}
 
 	function clearPost() {
@@ -410,8 +375,14 @@
 					<div class="details-body">
 						{#each adapterRows as a, i}
 							<div class="field-row">
-								<span class="field-label">LoRA</span>
+								<div class="setting-label">
+									<label class="field-label" for={`adapter-${i}`}>LoRA</label><SettingHelp
+										title="LoRA"
+										text="An optional model adapter that biases style or delivery according to its training. Its effect depends on the adapter and may affect composition, sound, or both."
+									/>
+								</div>
 								<select
+									id={`adapter-${i}`}
 									class="field-select"
 									value={a.name}
 									onchange={(e) => pickAdapter(i, e.currentTarget.value)}
@@ -426,7 +397,14 @@
 									{/each}
 								</select>
 								{#if a.name && app.request.adapters}
+									<div class="setting-label">
+										<label for={`adapter-strength-${i}`}>Strength</label><SettingHelp
+											title="Adapter strength"
+											text="How much the adapter influences the result. 1 applies its normal strength; lower values soften the effect. Higher values can make it stronger but may introduce artifacts."
+										/>
+									</div>
 									<input
+										id={`adapter-strength-${i}`}
 										type="text"
 										class="scale-input"
 										placeholder="1.0"
@@ -452,8 +430,28 @@
 				</button>
 			</div>
 			<div class="field-row">
-				<label class="field-label" for="composition-mode">Mode</label>
+				<div class="setting-label">
+					<label for="composition-input">Composition input</label><SettingHelp
+						title="Composition input"
+						text="New song composes from the current lyrics and musical direction on every click. Use ABC score deliberately keeps a written tune. Replay audio codes renders an existing performance. Continue source uses the selected library excerpt as the opening."
+					/>
+				</div>
+				<select id="composition-input" bind:value={() => app.inputMode, setInputMode}>
+					<option value="fresh">New song</option>
+					<option value="score">Use ABC score</option>
+					<option value="replay">Replay audio codes</option>
+					<option value="source">Continue source</option>
+				</select>
+			</div>
+			<div class="field-row">
+				<div class="setting-label">
+					<label class="field-label" for="composition-mode">Mode</label><SettingHelp
+						title="Mode"
+						text="Full composes a score with chords before the performance. Melody uses a score without chords. Off skips the score stage. This changes how the song is planned, rather than its recording format."
+					/>
+				</div>
 				<select
+					id="composition-mode"
 					class="field-select"
 					value={cot}
 					onchange={(e) => (app.request.cot = e.currentTarget.value)}
@@ -465,30 +463,51 @@
 				</select>
 			</div>
 			<div class="meta-grid">
-				<label
-					>Duration <input
+				<div class="setting-field">
+					<div class="setting-label">
+						<label for="setting-1">Duration</label><SettingHelp
+							title="Duration"
+							text="Maximum requested length in seconds. Longer songs take more time and memory; the model may finish earlier. Lyrics and musical structure also influence the length."
+						/>
+					</div>
+					<input
+						id="setting-1"
 						type="text"
 						placeholder={ph(d?.duration)}
 						bind:value={app.request.duration}
 						title="Target length in seconds. The model can end the song earlier."
-					/></label
-				>
-				<label
-					>LM batch <input
+					/>
+				</div>
+				<div class="setting-field">
+					<div class="setting-label">
+						<label for="setting-2">LM batch</label><SettingHelp
+							title="LM batch"
+							text="Number of independently composed songs from this prompt. More songs give you more alternatives and increase generation time and memory use."
+						/>
+					</div>
+					<input
+						id="setting-2"
 						type="text"
 						placeholder={ph(d?.lm_batch_size)}
 						bind:value={app.request.lm_batch_size}
 						title="Songs drawn from this prompt, each with its own score and codes, seeds LM seed + index."
-					/></label
-				>
-				<label
-					>LM seed <input
+					/>
+				</div>
+				<div class="setting-field">
+					<div class="setting-label">
+						<label for="setting-3">LM seed</label><SettingHelp
+							title="LM seed"
+							text="Random by default: each click creates a new composition. A fixed nonnegative number helps repeat the melody, phrasing and musical structure with the same inputs. Blank or -1 restores random."
+						/>
+					</div>
+					<input
+						id="setting-3"
 						type="text"
-						placeholder={ph(d?.lm_seed)}
+						placeholder="Random"
 						bind:value={app.request.lm_seed}
 						title="Seed of the token draw: the score, the melody and the length come from this one."
-					/></label
-				>
+					/>
+				</div>
 			</div>
 			<details class="has-clear">
 				<summary>Score sampling</summary>
@@ -503,55 +522,104 @@
 				</button>
 				<div class="details-body">
 					<div class="meta-grid">
-						<label
-							>Temperature <input
+						<div class="setting-field">
+							<div class="setting-label">
+								<label for="setting-4">Temperature</label><SettingHelp
+									title="Score: Temperature"
+									text="Randomness of token selection. Higher values allow more surprising choices but can become incoherent; lower values are more predictable. These choices affect the written notes, rhythm and harmony."
+								/>
+							</div>
+							<input
+								id="setting-4"
 								type="text"
 								placeholder={ph(d?.abc_sampling?.temperature)}
 								bind:value={app.request.abc_sampling.temperature}
-							/></label
-						>
-						<label
-							>Top P <input
+							/>
+						</div>
+						<div class="setting-field">
+							<div class="setting-label">
+								<label for="setting-5">Top P</label><SettingHelp
+									title="Score: Top P"
+									text="Keeps likely tokens until their combined probability reaches this value. Lower values narrow the choices; values nearer 1 allow more variety. These choices affect the written notes, rhythm and harmony."
+								/>
+							</div>
+							<input
+								id="setting-5"
 								type="text"
 								placeholder={ph(d?.abc_sampling?.top_p)}
 								bind:value={app.request.abc_sampling.top_p}
-							/></label
-						>
-						<label
-							>Top K <input
+							/>
+						</div>
+						<div class="setting-field">
+							<div class="setting-label">
+								<label for="setting-6">Top K</label><SettingHelp
+									title="Score: Top K"
+									text="Limits selection to this many likely tokens. Lower values are more conservative; higher values allow more alternatives. Use a positive integer; 1 restricts selection to the most likely token. These choices affect the written notes, rhythm and harmony."
+								/>
+							</div>
+							<input
+								id="setting-6"
 								type="text"
 								placeholder={ph(d?.abc_sampling?.top_k)}
 								bind:value={app.request.abc_sampling.top_k}
-							/></label
-						>
-						<label
-							>Repetition penalty <input
+							/>
+						</div>
+						<div class="setting-field">
+							<div class="setting-label">
+								<label for="setting-7">Repetition penalty</label><SettingHelp
+									title="Score: Repetition penalty"
+									text="Discourages recently used tokens. Values above 1 can reduce repetitive patterns; too much can disrupt musical consistency or pronunciation. These choices affect the written notes, rhythm and harmony."
+								/>
+							</div>
+							<input
+								id="setting-7"
 								type="text"
 								placeholder={ph(d?.abc_sampling?.repetition_penalty)}
 								bind:value={app.request.abc_sampling.repetition_penalty}
-							/></label
-						>
-						<label
-							>Penalty window <input
+							/>
+						</div>
+						<div class="setting-field">
+							<div class="setting-label">
+								<label for="setting-8">Penalty window</label><SettingHelp
+									title="Score: Penalty window"
+									text="Number of recent tokens checked for repetition. A larger window discourages repeats over a longer span, but can also discourage useful musical motifs. These choices affect the written notes, rhythm and harmony."
+								/>
+							</div>
+							<input
+								id="setting-8"
 								type="text"
 								placeholder={ph(d?.abc_sampling?.penalty_window)}
 								bind:value={app.request.abc_sampling.penalty_window}
-							/></label
-						>
-						<label
-							>Min tokens <input
+							/>
+						</div>
+						<div class="setting-field">
+							<div class="setting-label">
+								<label for="setting-9">Min tokens</label><SettingHelp
+									title="Score: Min tokens"
+									text="Prevents the stage from ending before this many tokens. Raising it can force more material, but may cause repetition or an unnaturally long passage. These choices affect the written notes, rhythm and harmony."
+								/>
+							</div>
+							<input
+								id="setting-9"
 								type="text"
 								placeholder={ph(d?.abc_sampling?.min_tokens)}
 								bind:value={app.request.abc_sampling.min_tokens}
-							/></label
-						>
-						<label
-							>Max tokens <input
+							/>
+						</div>
+						<div class="setting-field">
+							<div class="setting-label">
+								<label for="setting-10">Max tokens</label><SettingHelp
+									title="Score: Max tokens"
+									text="Hard limit for this stage. Higher limits allow more material and cost more time and context; limits that are too low can cut the result short. These choices affect the written notes, rhythm and harmony."
+								/>
+							</div>
+							<input
+								id="setting-10"
 								type="text"
 								placeholder={ph(d?.abc_sampling?.max_tokens)}
 								bind:value={app.request.abc_sampling.max_tokens}
-							/></label
-						>
+							/>
+						</div>
 					</div>
 				</div>
 			</details>
@@ -568,72 +636,140 @@
 				</button>
 				<div class="details-body">
 					<div class="meta-grid">
-						<label
-							>CFG scale <input
+						<div class="setting-field">
+							<div class="setting-label">
+								<label for="setting-11">CFG scale</label><SettingHelp
+									title="CFG scale"
+									text="How strongly audio generation follows its conditioning. Higher values may improve adherence but can sound less natural or introduce artifacts. Blank uses the mode-specific default; 1 disables the extra guidance branch and reduces its cost."
+								/>
+							</div>
+							<input
+								id="setting-11"
 								type="text"
 								placeholder={ph(d?.cfg_scale)}
 								bind:value={app.request.cfg_scale}
 								title="Guidance of the stage. Exactly 1 keeps a single branch and halves the cost."
-							/></label
-						>
-						<label
-							>Temperature <input
+							/>
+						</div>
+						<div class="setting-field">
+							<div class="setting-label">
+								<label for="setting-12">Temperature</label><SettingHelp
+									title="Performance: Temperature"
+									text="Randomness of token selection. Higher values allow more surprising choices but can become incoherent; lower values are more predictable. These choices affect the sung delivery and musical performance."
+								/>
+							</div>
+							<input
+								id="setting-12"
 								type="text"
 								placeholder={ph(d?.semantic_sampling?.temperature)}
 								bind:value={app.request.semantic_sampling.temperature}
-							/></label
-						>
-						<label
-							>Top P <input
+							/>
+						</div>
+						<div class="setting-field">
+							<div class="setting-label">
+								<label for="setting-13">Top P</label><SettingHelp
+									title="Performance: Top P"
+									text="Keeps likely tokens until their combined probability reaches this value. Lower values narrow the choices; values nearer 1 allow more variety. These choices affect the sung delivery and musical performance."
+								/>
+							</div>
+							<input
+								id="setting-13"
 								type="text"
 								placeholder={ph(d?.semantic_sampling?.top_p)}
 								bind:value={app.request.semantic_sampling.top_p}
-							/></label
-						>
-						<label
-							>Top K <input
+							/>
+						</div>
+						<div class="setting-field">
+							<div class="setting-label">
+								<label for="setting-14">Top K</label><SettingHelp
+									title="Performance: Top K"
+									text="Limits selection to this many likely tokens. Lower values are more conservative; higher values allow more alternatives. Use a positive integer; 1 restricts selection to the most likely token. These choices affect the sung delivery and musical performance."
+								/>
+							</div>
+							<input
+								id="setting-14"
 								type="text"
 								placeholder={ph(d?.semantic_sampling?.top_k)}
 								bind:value={app.request.semantic_sampling.top_k}
-							/></label
-						>
-						<label
-							>Repetition penalty <input
+							/>
+						</div>
+						<div class="setting-field">
+							<div class="setting-label">
+								<label for="setting-15">Repetition penalty</label><SettingHelp
+									title="Performance: Repetition penalty"
+									text="Discourages recently used tokens. Values above 1 can reduce repetitive patterns; too much can disrupt musical consistency or pronunciation. These choices affect the sung delivery and musical performance."
+								/>
+							</div>
+							<input
+								id="setting-15"
 								type="text"
 								placeholder={ph(d?.semantic_sampling?.repetition_penalty)}
 								bind:value={app.request.semantic_sampling.repetition_penalty}
-							/></label
-						>
-						<label
-							>Penalty window <input
+							/>
+						</div>
+						<div class="setting-field">
+							<div class="setting-label">
+								<label for="setting-16">Penalty window</label><SettingHelp
+									title="Performance: Penalty window"
+									text="Number of recent tokens checked for repetition. A larger window discourages repeats over a longer span, but can also discourage useful musical motifs. These choices affect the sung delivery and musical performance."
+								/>
+							</div>
+							<input
+								id="setting-16"
 								type="text"
 								placeholder={ph(d?.semantic_sampling?.penalty_window)}
 								bind:value={app.request.semantic_sampling.penalty_window}
-							/></label
-						>
-						<label
-							>Min tokens <input
+							/>
+						</div>
+						<div class="setting-field">
+							<div class="setting-label">
+								<label for="setting-17">Min tokens</label><SettingHelp
+									title="Performance: Min tokens"
+									text="Prevents the stage from ending before this many tokens. Raising it can force more material, but may cause repetition or an unnaturally long passage. These choices affect the sung delivery and musical performance."
+								/>
+							</div>
+							<input
+								id="setting-17"
 								type="text"
 								placeholder={ph(d?.semantic_sampling?.min_tokens)}
 								bind:value={app.request.semantic_sampling.min_tokens}
-							/></label
-						>
-						<label
-							>Max tokens <input
+							/>
+						</div>
+						<div class="setting-field">
+							<div class="setting-label">
+								<label for="setting-18">Max tokens</label><SettingHelp
+									title="Performance: Max tokens"
+									text="Hard limit for this stage. Higher limits allow more material and cost more time and context; limits that are too low can cut the result short. These choices affect the sung delivery and musical performance."
+								/>
+							</div>
+							<input
+								id="setting-18"
 								type="text"
 								placeholder={ph(d?.semantic_sampling?.max_tokens)}
 								bind:value={app.request.semantic_sampling.max_tokens}
-							/></label
-						>
+							/>
+						</div>
 					</div>
-					<label
-						>Audio codes
+					<div class="setting-field">
+						<div class="setting-label">
+							<label for="setting-19">Audio codes</label><SettingHelp
+								title="Audio codes"
+								text="A saved performance in model-token form. Use Replay audio codes to render it again; those codes already contain the singing, so editing lyrics cannot rewrite that performance."
+							/>
+						</div>
 						<textarea
+							id="setting-19"
 							rows="4"
 							placeholder="Filled when reusing a rendered song. Do not edit unless you know what you are doing."
-							bind:value={app.request.semantic_tokens}
+							bind:value={
+								() => app.request.semantic_tokens || '',
+								(value) => {
+									app.request.semantic_tokens = value;
+									setInputMode(value.trim() ? 'replay' : 'fresh');
+								}
+							}
 						></textarea>
-					</label>
+					</div>
 				</div>
 			</details>
 			<details class="has-clear">
@@ -649,62 +785,118 @@
 				</button>
 				<div class="details-body">
 					<div class="meta-grid">
-						<label
-							>Steps <input
+						<div class="setting-field">
+							<div class="setting-label">
+								<label for="setting-20">Steps</label><SettingHelp
+									title="Steps"
+									text="Acoustic refinement steps. The default is 8 for faster generation. More steps take longer and may refine the sound, with diminishing returns; they do not guarantee better lyrics or a better song."
+								/>
+							</div>
+							<input
+								id="setting-20"
 								type="text"
 								placeholder={ph(d?.steps)}
 								bind:value={app.request.steps}
 								title="Midpoint steps of the acoustic ODE."
-							/></label
-						>
-						<label
-							>Batch <input
+							/>
+						</div>
+						<div class="setting-field">
+							<div class="setting-label">
+								<label for="setting-21">Batch</label><SettingHelp
+									title="Batch"
+									text="Acoustic variations of each composition, up to 9. These share the same musical performance but start with different noise. More variations require more time and memory."
+								/>
+							</div>
+							<input
+								id="setting-21"
 								type="text"
 								placeholder={ph(d?.synth_batch_size)}
 								bind:value={app.request.synth_batch_size}
 								title="Noise variations per song on the same codes, seeds noise seed + index, 9 at most."
-							/></label
-						>
-						<label
-							>Noise seed <input
+							/>
+						</div>
+						<div class="setting-field">
+							<div class="setting-label">
+								<label for="setting-22">Noise seed</label><SettingHelp
+									title="Noise seed"
+									text="Random by default. This controls acoustic texture rather than the underlying composition. Fix a nonnegative number for repeatable rendering; blank or -1 chooses fresh noise."
+								/>
+							</div>
+							<input
+								id="setting-22"
 								type="text"
-								placeholder={ph(d?.seed)}
+								placeholder="Random"
 								bind:value={app.request.seed}
 								title="Seed of the acoustic noise. Change it to re-render the same song differently."
-							/></label
-						>
-						<label
-							>Source start <input
+							/>
+						</div>
+						<div class="setting-field">
+							<div class="setting-label">
+								<label for="setting-23">Source start</label><SettingHelp
+									title="Source start"
+									text="Start of the source excerpt in seconds, used only with Continue source. Drag a range on the selected source waveform to choose the musical opening."
+								/>
+							</div>
+							<input
+								id="setting-23"
 								type="text"
 								placeholder={ph(d?.source_start)}
 								bind:value={app.request.source_start}
 								title="Seconds into the Src audio card where the section opening the song starts. Drag on its waveform to set the section."
-							/></label
-						>
-						<label
-							>Source end <input
+							/>
+						</div>
+						<div class="setting-field">
+							<div class="setting-label">
+								<label for="setting-24">Source end</label><SettingHelp
+									title="Source end"
+									text="End of the source excerpt in seconds, used only with Continue source. -1 uses the end of the recording. The model continues after this excerpt."
+								/>
+							</div>
+							<input
+								id="setting-24"
 								type="text"
 								placeholder={ph(d?.source_end)}
 								bind:value={app.request.source_end}
 								title="Seconds into the Src audio card where the section ends and the model writes on, -1 its end."
-							/></label
-						>
-						<label
-							>Peak clip <input
+							/>
+						</div>
+						<div class="setting-field">
+							<div class="setting-label">
+								<label for="setting-25">Peak clip</label><SettingHelp
+									title="Peak clip"
+									text="Controls loudness normalization by allowing a small fraction of peaks to clip. 0 preserves all peaks; higher values can make the result louder but may distort transients. The default is 10. WAV32 bypasses normalization."
+								/>
+							</div>
+							<input
+								id="setting-25"
 								type="text"
 								placeholder={ph(d?.peak_clip)}
 								bind:value={app.request.peak_clip}
-							/></label
-						>
-						<label
-							>MP3 bitrate <input
+							/>
+						</div>
+						<div class="setting-field">
+							<div class="setting-label">
+								<label for="setting-26">MP3 bitrate</label><SettingHelp
+									title="MP3 bitrate"
+									text="MP3 encoding quality in kilobits per second. Higher values usually preserve more detail and produce larger files. This has no effect on WAV output or the composition."
+								/>
+							</div>
+							<input
+								id="setting-26"
 								type="text"
 								placeholder={ph(d?.mp3_bitrate)}
 								bind:value={app.request.mp3_bitrate}
-							/></label
-						>
-						<label
-							>Format <select
+							/>
+						</div>
+						<div class="setting-field">
+							<div class="setting-label">
+								<label for="setting-27">Format</label><SettingHelp
+									title="Format"
+									text="MP3 makes smaller, compressed files. WAV16 and WAV24 store uncompressed audio, with WAV24 providing more precision for editing. WAV32 stores raw floating-point audio without normalization."
+								/>
+							</div>
+							<select
+								id="setting-27"
 								bind:value={app.format}
 								title="Output audio format. WAV32 outputs raw IEEE float without normalization."
 							>
@@ -712,8 +904,8 @@
 								<option value="wav16">WAV16</option>
 								<option value="wav24">WAV24</option>
 								<option value="wav32">WAV32</option>
-							</select></label
-						>
+							</select>
+						</div>
 					</div>
 				</div>
 			</details>
@@ -737,39 +929,46 @@
 				>
 			</div>
 		</div>
-		<label class="section-title" for="song-name">Song name</label>
+		<div class="setting-label">
+			<label class="section-title" for="song-name">Song name</label><SettingHelp
+				title="Song name"
+				text="A library and filename label. It is not sent as musical direction and does not change the generated music."
+			/>
+		</div>
 		<input id="song-name" type="text" bind:value={app.name} placeholder="Untitled" />
-		<label class="section-title" for="song-style">Musical direction</label>
+		<div class="setting-label">
+			<label class="section-title" for="song-style">Musical direction</label><SettingHelp
+				title="Musical direction"
+				text="Describe genre, instruments, mood, language and vocal character. Clear, compatible directions tend to work better than conflicting instructions; exact tempo or instrumentation is not guaranteed."
+			/>
+		</div>
 		<textarea
 			id="song-style"
 			rows="3"
 			placeholder="English, warm piano pop, expressive female voice, acoustic piano..."
-			bind:value={app.request.style}
+			bind:value={() => app.request.style, editStyle}
 		></textarea>
-		<label class="section-title" for="song-lyrics">Lyrics</label>
+		<div class="setting-label">
+			<label class="section-title" for="song-lyrics">Lyrics</label><SettingHelp
+				title="Lyrics"
+				text="Words you want sung. Section labels such as [Verse] and [Chorus] help describe the structure. Leave empty for an instrumental request and describe that in musical direction."
+			/>
+		</div>
 		<textarea
 			id="song-lyrics"
 			rows="11"
 			placeholder={'[Verse]\nWrite your lyrics here...'}
 			bind:value={() => app.request.lyrics || '', editLyrics}
 		></textarea>
-		<p class="field-help">
-			Editing lyrics starts a new composition and clears the previous score and replay inputs.
-		</p>
-		{#if hasComposition}
-			<div class="composition-notice" role="status">
-				<span
-					>An existing score or replay is loaded. Clear it to compose anew from these lyrics.</span
-				>
-				<button type="button" class="secondary-button" disabled={busy} onclick={clearComposition}
-					>Clear score and replay</button
-				>
-			</div>
-		{/if}
 		<details class="score-editor">
 			<summary>Score · optional ABC notation</summary>
 			<div class="section-title section-header">
-				Score
+				<span class="setting-label"
+					>Score <SettingHelp
+						title="ABC score"
+						text="Optional musical notation for a tune and its chords. Typing here selects Use ABC score. Leave it empty and use New song to let the model compose a fresh score. Generated scores stay with their saved songs."
+					/></span
+				>
 				<button
 					type="button"
 					class="clear-btn"
@@ -784,7 +983,13 @@
 				aria-label="ABC score"
 				rows="6"
 				placeholder={'ABC notation. Left empty the model writes one.\nX:1\nL:1/8\nM:4/4\nK:Cmaj\n"C"c2 e2 g2 c\'2|'}
-				bind:value={app.request.abc}
+				bind:value={
+					() => app.request.abc || '',
+					(value) => {
+						app.request.abc = value;
+						setInputMode(value.trim() ? 'score' : 'fresh');
+					}
+				}
 			></textarea>
 		</details>
 		<div class="action-row">
@@ -798,7 +1003,7 @@
 				type="button"
 				class="generate-button"
 				disabled={busy || !app.props || !app.request.style.trim()}
-				onclick={askTake}
+				onclick={generate}
 				title="Run the full pipeline: score, semantic codes, flow matching, VAE"
 				>{busy ? 'Generating…' : 'Generate song'}</button
 			>
@@ -818,26 +1023,6 @@
 	</section>
 	<div class="result-area">{@render children?.()}</div>
 </div>
-<Dialog bind:open={takeOpen} title="Reuse this take?">
-	{#snippet body()}
-		The audio codes hold a performance already sung. Keeping them renders it again, dropping them
-		performs the prompt anew.
-	{/snippet}
-	{#snippet actions(close)}
-		<DialogButton
-			onclick={() => {
-				close();
-				generate();
-			}}>Same take</DialogButton
-		>
-		<DialogButton
-			onclick={() => {
-				close();
-				newTake();
-			}}>New take</DialogButton
-		>
-	{/snippet}
-</Dialog>
 <Dialog bind:open={saveFormatOpen} title="Save format">
 	{#snippet actions(close)}
 		<DialogButton onclick={close}>Cancel</DialogButton>
@@ -857,18 +1042,6 @@
 </Dialog>
 
 <style>
-	.composition-notice {
-		display: flex;
-		flex-wrap: wrap;
-		align-items: center;
-		justify-content: space-between;
-		gap: 10px;
-		padding: 10px 12px;
-		border: 1px solid var(--border);
-		border-radius: 5px;
-		color: var(--fg-dim);
-		font-size: 0.75rem;
-	}
 	.request-form {
 		display: grid;
 		grid-template-columns: minmax(240px, 278px) minmax(0, 1fr);
@@ -954,7 +1127,8 @@
 		margin: 0 auto;
 		padding: 30px;
 	}
-	label {
+	label,
+	.setting-field {
 		display: flex;
 		flex-direction: column;
 		gap: 6px;
@@ -1024,6 +1198,15 @@
 		align-items: stretch;
 		gap: 7px;
 	}
+	.setting-label {
+		display: flex;
+		align-items: center;
+		gap: 5px;
+		min-height: 24px;
+	}
+	.setting-label label {
+		min-width: 0;
+	}
 	.field-label {
 		font-size: 0.72rem;
 		color: var(--fg-dim);
@@ -1040,7 +1223,7 @@
 		grid-template-columns: repeat(2, minmax(0, 1fr));
 		gap: 12px;
 	}
-	.meta-grid > label:first-child {
+	.meta-grid > .setting-field:first-child {
 		grid-column: 1 / -1;
 	}
 	details {

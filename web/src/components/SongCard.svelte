@@ -13,7 +13,8 @@
 		AudioWaveform,
 		Cpu
 	} from '@lucide/svelte';
-	import { app, setRequest, toast } from '../lib/state.svelte.js';
+	import { app, setRequest, setInputMode, toast } from '../lib/state.svelte.js';
+	import { editablePrompt } from '../lib/generation.js';
 	import { ui } from '../lib/ui.svelte.js';
 	import {
 		transcribeSubmit,
@@ -29,6 +30,7 @@
 	import Waveform from './Waveform.svelte';
 	import Menu, { type MenuItem } from './Menu.svelte';
 	import Dialog from './Dialog.svelte';
+	import SettingHelp from './SettingHelp.svelte';
 
 	let { song }: { song: Song } = $props();
 
@@ -38,12 +40,13 @@
 	let rangeStart = $state(0);
 	let rangeEnd = $state(0);
 
-	let isSrc = $derived(app.srcSongId === song.id);
+	let isSrc = $derived(app.inputMode === 'source' && app.srcSongId === song.id);
 
 	// the source of a continuation: one card at a time, its section staying
 	// in the request
 	function toggleSrc() {
 		app.srcSongId = isSrc ? null : (song.id ?? null);
+		setInputMode(app.srcSongId == null ? 'fresh' : 'source');
 	}
 
 	// waveform drag to the request
@@ -76,7 +79,14 @@
 	function load() {
 		ui.view = 'create';
 		app.name = song.name;
+		setRequest(editablePrompt(song.request));
+	}
+
+	function replay() {
+		ui.view = 'create';
+		app.name = song.name;
 		setRequest({ ...song.request });
+		setInputMode('replay');
 	}
 
 	function downloadAudio() {
@@ -183,7 +193,7 @@
 	}
 
 	// transcribe audio: send the recording to /transcribe and keep the score
-	// it heard on the card and in the form. Only the card that was analyzed
+	// it heard on the card. Only the card that was analyzed
 	// changes; the lyrics, the style and the mode stay yours.
 	async function transcribe(melodyOnly: boolean) {
 		try {
@@ -193,7 +203,6 @@
 			song.score = result.abc ?? '';
 			song.request = { ...song.request, abc: song.score };
 			if (song.id != null) await putSong($state.snapshot(song));
-			app.request.abc = song.score;
 			toast('Transcribed: ' + song.name, 4000, true);
 		} catch (e) {
 			toast('Transcription failed: ' + (e instanceof Error ? e.message : String(e)));
@@ -201,9 +210,8 @@
 	}
 
 	// tokenize audio: the semantic codes of the recording kept on the card,
-	// the card then ready to open a continuation, and put in the form, so
-	// Generate renders the song again through the NAR half. The style, the
-	// lyrics and the mode stay yours.
+	// so the card can be chosen explicitly for replay or continuation.
+	// The current editor remains unchanged.
 	async function tokenize() {
 		try {
 			const jobId = await tokenizeSubmit(song.audio);
@@ -211,7 +219,6 @@
 			const result = await jobResultTokenize(jobId);
 			song.request = { ...song.request, semantic_tokens: result.codes };
 			if (song.id != null) await putSong($state.snapshot(song));
-			app.request.semantic_tokens = result.codes;
 			toast('Tokenized: ' + song.name, 4000, true);
 		} catch (e) {
 			toast('Tokenization failed: ' + (e instanceof Error ? e.message : String(e)));
@@ -222,6 +229,22 @@
 	// Destructive entries open a confirm dialog.
 	const actionItems: MenuItem[] = $derived([
 		{ icon: Pencil, label: 'Edit prompt', onSelect: load },
+		{
+			icon: AudioWaveform,
+			label: 'Replay this take',
+			onSelect: replay,
+			disabled: !song.request.semantic_tokens
+		},
+		{
+			icon: Music,
+			label: 'Use this score',
+			onSelect: () => {
+				load();
+				app.request.abc = song.score;
+				setInputMode('score');
+			},
+			disabled: !song.score
+		},
 		{ icon: Type, label: 'Rename song', onSelect: openRename },
 		{ icon: Download, label: 'Download audio', onSelect: downloadAudio },
 		{ icon: Cpu, label: 'Compute VAE latents', onSelect: encodeOnly, disabled: !!song.latents },
@@ -319,6 +342,10 @@
 						: 'Audio tokenization requires the optional tokenizer model'}
 				/> Continuation source</label
 			>
+			<SettingHelp
+				title="Continuation source"
+				text="Select this song as the opening of a continuation, then choose an excerpt on its waveform. The next generation continues that musical material. Turn this off or choose New song for an independent composition."
+			/>
 		</div>
 	</div>
 </div>

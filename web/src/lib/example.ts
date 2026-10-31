@@ -4,7 +4,7 @@
 // carrying their melody score.
 
 import type { Yue2Request } from './types.js';
-import { app } from './state.svelte.js';
+import { app, setInputMode } from './state.svelte.js';
 
 const modules = import.meta.glob('../../example/*.json', { eager: true });
 
@@ -26,6 +26,7 @@ export const examplePrompts = examples.map((ex, index) => ({
 }));
 
 export function applyExample(ex: { title: string; request: Yue2Request }) {
+	setInputMode('fresh');
 	app.name = ex.title;
 	app.request.style = ex.request.style;
 	app.request.lyrics = ex.request.lyrics;

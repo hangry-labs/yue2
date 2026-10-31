@@ -1,10 +1,14 @@
 import type { Yue2Request, Yue2Props, Song } from './types.js';
 import { OUTPUT_FORMATS } from './config.js';
 import { emptyRequest } from './fields.js';
+import type { InputMode } from './generation.js';
+import { editablePrompt } from './generation.js';
+import { clearCompositionInputs } from './lyrics.js';
 
 const STORAGE_KEY = 'yue2';
 
 interface Saved {
+	editorVersion: number;
 	name: string;
 	volume: number;
 	format: string;
@@ -19,11 +23,16 @@ function load(): Saved {
 		if (raw) {
 			const parsed = JSON.parse(raw);
 			return {
+				editorVersion: 2,
 				name: parsed.name || '',
 				volume: parsed.volume ?? 0.5,
 				format: OUTPUT_FORMATS.includes(parsed.format) ? parsed.format : 'mp3',
 				logsOpen: parsed.logsOpen ?? true,
-				request: parsed.request || emptyRequest(),
+				request: parsed.request
+					? parsed.editorVersion === 2
+						? parsed.request
+						: editablePrompt(parsed.request)
+					: emptyRequest(),
 				srcSongId: parsed.srcSongId ?? null
 			};
 		}
@@ -31,6 +40,7 @@ function load(): Saved {
 		// corrupt or unavailable
 	}
 	return {
+		editorVersion: 2,
 		name: '',
 		volume: 0.5,
 		format: 'mp3',
@@ -47,13 +57,19 @@ export const app = $state({
 	volume: saved.volume,
 	format: saved.format,
 	logsOpen: saved.logsOpen,
-	request: saved.request as Yue2Request,
+	request: {
+		...emptyRequest(),
+		...saved.request,
+		abc_sampling: { ...saved.request.abc_sampling },
+		semantic_sampling: { ...saved.request.semantic_sampling }
+	} as Yue2Request,
 	songs: [] as Song[],
 	props: null as Yue2Props | null,
 	toast: '' as string,
 	toastOk: false,
 	generating: false,
-	srcSongId: saved.srcSongId
+	srcSongId: null as number | null,
+	inputMode: 'fresh' as InputMode
 });
 
 let toastTimer = 0;
@@ -73,6 +89,8 @@ export function toast(msg: string, ms = 4000, ok = false) {
 // an empty one: a field the sender omitted reads back as unset instead of
 // missing, which is what the form binds to.
 export function setRequest(incoming: Yue2Request) {
+	app.inputMode = 'fresh';
+	app.srcSongId = null;
 	const base = emptyRequest();
 	app.request = {
 		...base,
@@ -82,10 +100,22 @@ export function setRequest(incoming: Yue2Request) {
 	};
 }
 
+export function setInputMode(mode: InputMode) {
+	// Resolved seeds loaded for a replay belong only to that performance.
+	if (app.inputMode === 'replay' && mode !== 'replay') {
+		app.request.lm_seed = undefined;
+		app.request.seed = undefined;
+	}
+	if (mode === 'fresh') clearCompositionInputs(app.request);
+	if (mode !== 'source') app.srcSongId = null;
+	app.inputMode = mode;
+}
+
 // persist on every change
 $effect.root(() => {
 	$effect(() => {
 		const data: Saved = {
+			editorVersion: 2,
 			name: app.name,
 			volume: app.volume,
 			format: app.format,

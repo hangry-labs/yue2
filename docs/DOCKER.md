@@ -114,24 +114,35 @@ be writable by the container user; the baseline runner selects the host UID.
 
 ## Request defaults and lyrics
 
-The generation defaults match
-[upstream request initialization](https://github.com/ServeurpersoCom/yue2.cpp/blob/8af01740686824ffd4a1839a457954f42e2a8ce7/src/request.cpp):
-full score mode, a 360-second duration ceiling, 32 flow-matching steps, one song
-and one variation, random seeds, and MP3 at 128 kbps. The standard server keeps
-the 24,576-token model context. The fixed `test1` benchmark explicitly uses
-8 steps and recorded seeds; it does not change normal request defaults.
+Requests use full score mode, a 360-second duration ceiling, **8 flow-matching
+steps**, one song and one variation, random seeds, and MP3 at 128 kbps. The
+8-step default is a deliberate Hangry Labs choice; upstream uses 32. Other
+inference defaults retain the
+[upstream initialization](https://github.com/ServeurpersoCom/yue2.cpp/blob/8af01740686824ffd4a1839a457954f42e2a8ce7/src/request.cpp).
+The standard server keeps the 24,576-token model context. The fixed `test1`
+benchmark explicitly records 8 steps and its seeds.
 
-The browser leaves unset numeric fields for the server to resolve, and saved
-form values override those defaults. The 110 bundled example files retain
-upstream content. Choosing an example fills its content and score while keeping
-your generation settings.
+The browser leaves blank numeric fields for the server to resolve. Explicit
+form settings override defaults. Normal **Generate song** uses the current words
+and direction, with fresh seeds unless fixed values were entered. Generated
+scores never fill the next request automatically. The 110 bundled examples
+retain upstream content and preserve generation settings when selected.
 
-An ABC score or semantic replay can retain a previous composition even when
-new lyrics are present. The UI clears these inputs when you edit the lyrics,
-and **Clear score and replay** clears an already-loaded composition without
-changing your words or settings. A completed job does not restore its score
-over edits made while it was running. The native API still honors explicitly
-supplied scores and replay/continuation tokens.
+**Composition input** defaults to **New song**. To deliberately reuse musical
+material, select **Use ABC score**, **Replay audio codes** or **Continue source**.
+Typing a score or audio codes selects the corresponding reuse mode; editing
+lyrics or musical direction returns to New song. Library **Edit prompt** reuses
+text with fresh seeds, while **Use this score** and **Replay this take** load the
+chosen material explicitly. Transcription and tokenization update the library
+card without changing the current editor. Info buttons beside settings explain
+their effects and tradeoffs, including on touch devices.
+
+Existing browser forms are migrated once to remove old generated conditioning
+and resolved replay seeds, preserving text, generation controls and the library.
+Reloading always starts in New song mode; deliberate reuse must be selected again.
+The native API continues to honor supplied scores and replay/continuation tokens.
+For old sparse replay files that omitted the former default, set `steps: 32`
+explicitly to retain their original refinement setting.
 
 ## Persistence and health
 

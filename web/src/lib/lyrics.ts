@@ -19,10 +19,3 @@ export function clearCompositionInputs(request: Yue2Request): boolean {
 	request.source_end = undefined;
 	return cleared;
 }
-
-// A completed job must not restore its score over edits made while it ran.
-export function canAdoptScore(current: Yue2Request, submitted: Yue2Request): boolean {
-	return (['style', 'lyrics', 'abc'] as const).every(
-		(key) => (current[key] || '') === (submitted[key] || '')
-	);
-}

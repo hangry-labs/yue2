@@ -158,7 +158,7 @@ then the semantic codes, one per 40 ms frame, and every token it processes
 lands in the KV cache. The NAR half is the same network used the other way
 round: it starts from Gaussian noise for every frame of the song, attends
 on the cache the AR half just left, and refines all the frames together
-with a midpoint flow matching solver, 32 steps of two evaluations, from
+with a midpoint flow matching solver, 8 steps by default, with two evaluations per step, from
 noise to latents. The VAE turns the latents into sound, 1920 samples per
 frame.
 
@@ -482,7 +482,7 @@ cache resolves to the same executable instead of thrashing. This is not a
 precaution: a cached `cgraph` replayed as is does not survive on CUDA,
 which cost a measured debugging session.
 
-Solver: 32 midpoint steps, `t` walking from 1 down to 0, `dt = 1 / steps`.
+Solver: 8 midpoint steps by default, `t` walking from 1 down to 0, `dt = 1 / steps`.
 The raw timestep fed to the embedder is `logit(t)` saturated at plus or
 minus 20, then reshaped by the release curve, which is the identity at the
 checkpoint `timestep_shift` of 1.0. Per step:
@@ -534,7 +534,7 @@ the server rejects a request with neither.
     "duration":        360.0,
     "lm_seed":         -1,
     "seed":            -1,
-    "steps":           32,
+    "steps":           8,
     "lm_batch_size":   1,
     "synth_batch_size": 1,
     "cfg_scale":       -1.0,
@@ -585,7 +585,7 @@ both stages from a single seed; splitting them is ours, and it buys
 re-rendering the same codes under another noise. Both are resolved before
 the job starts and returned with the track, so a replay reproduces it.
 
-**`steps`** (int, default `32`)
+**`steps`** (int, default `8`)
 Midpoint steps of the flow matching ODE. Minimum 1.
 
 **`lm_batch_size`** (int, default `1`)
@@ -831,7 +831,7 @@ request, which is the source of truth for the WebUI placeholders:
   "frame_rate": 25,
   "context": 24576,
   "adapters": [ { "name": "lorn.safetensors", "ar": true, "nar": true } ],
-  "defaults": { "cot": "full", "steps": 32, "abc_sampling": { }, "semantic_sampling": { }, "...": null }
+  "defaults": { "cot": "full", "steps": 8, "abc_sampling": { }, "semantic_sampling": { }, "...": null }
 }
 ```
 

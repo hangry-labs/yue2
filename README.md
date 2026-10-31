@@ -92,10 +92,12 @@ header. Switching views preserves the current composition and active generation.
 Examples fill the song content while preserving generation settings. UI assets
 are served locally without a CDN.
 
-Editing lyrics clears the previous score and replay inputs so the next run
-composes for the new words. If a saved score or take is already loaded, use
-**Clear score and replay** to start a fresh composition without changing your
-lyrics or generation settings. Saved songs remain in Library.
+**Generate song** starts a new composition from the current lyrics and musical
+direction, with random seeds and 8 refinement steps by default. Each setting has
+an info button explaining its effect. Generated scores and replay data stay with
+their saved songs in Library. **Edit prompt** reuses the text for a fresh take;
+**Use this score**, **Replay this take** and **Continue source** explicitly reuse
+earlier musical material. Fixed seeds remain available for repeatable tests.
 
 ## Docker Reference
 
@@ -138,7 +140,8 @@ The server does not automatically save generated songs into a host output folder
 
 Normal startup preserves the upstream **24,576-token context**, automatic
 backend selection and strict model eviction between stages. Request defaults
-use **32 flow-matching steps**; the repeatable benchmark explicitly uses 8.
+use **8 flow-matching steps**, matching the repeatable benchmark. This is an
+intentional change from upstream's 32-step default.
 Existing browser form settings control subsequent UI requests.
 
 Server settings are command-line arguments, not `YUE2_*` container environment

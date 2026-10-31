@@ -32,6 +32,7 @@ export const FIELDS: readonly FieldDef[] = [
 	// semantic: the token stage, its guidance, its sampling and its codes
 	{ key: 'cfg_scale', section: 'semantic', type: 'num' },
 	{ key: 'semantic_tokens', section: 'semantic', type: 'str' },
+	{ key: 'source_tokens', section: 'semantic', type: 'str' },
 
 	// post: the acoustic solver, output normalization and encoding
 	{ key: 'steps', section: 'post', type: 'num' },

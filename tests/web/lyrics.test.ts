@@ -1,7 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import {
-  canAdoptScore,
   clearCompositionInputs,
   updateLyrics,
 } from "../../web/src/lib/lyrics.ts";
@@ -50,13 +49,4 @@ test("a previously saved composition can be cleared without changing lyrics or s
   assert.equal(value.lm_seed, 42);
   assert.equal(value.abc, "");
   assert.equal(value.semantic_tokens, "");
-});
-
-test("a finished job cannot overwrite newer lyrics, musical direction or manual score edits", () => {
-  const submitted = request();
-  for (const key of ["lyrics", "style", "abc"]) {
-    const current = { ...submitted, [key]: "New input" };
-    assert.equal(canAdoptScore(current, submitted), false);
-  }
-  assert.equal(canAdoptScore(request(), submitted), true);
 });

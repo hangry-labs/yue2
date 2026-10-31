@@ -24,7 +24,7 @@ void request_init(Yue2Request * r) {
     r->duration         = 360.0f;
     r->lm_seed          = -1;
     r->seed             = -1;
-    r->steps            = 32;
+    r->steps            = 8;
     r->lm_batch_size    = 1;
     r->synth_batch_size = 1;
     r->peak_clip        = 10;

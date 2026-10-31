@@ -40,7 +40,8 @@
 		<img src={productLogo} alt="" width="110" height="110" />
 		<p>
 			Choose an upstream example, then make it yours. This replaces the title, style, lyrics and
-			score, clears replay inputs, and keeps your generation settings.
+			score. New song composes a fresh take; choose Use ABC score to use the example tune. Your
+			generation settings stay unchanged.
 		</p>
 	</div>
 	<label for="example-search">Search examples</label><input

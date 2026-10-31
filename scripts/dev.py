@@ -96,7 +96,8 @@ def build_dependency(dry=False):
 
 def active_jobs(container, port):
     """Do not replace a live server while it is computing or has queued work."""
-    logs = subprocess.run(['docker', 'logs', container], capture_output=True, text=True, check=True)
+    logs = subprocess.run(['docker', 'logs', container], capture_output=True,
+                          encoding='utf-8', errors='replace', check=True)
     ids = dict.fromkeys(re.findall(r'\[Server\] (?:[^\n:]*? )?[Jj]ob ([0-9a-f]+):', logs.stdout + logs.stderr))
     for job in ids:
         try:

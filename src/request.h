@@ -40,7 +40,7 @@ struct Yue2Request {
     // after rd().
     int64_t lm_seed;  // -1 = random
     int64_t seed;     // -1 = random
-    int     steps;    // 32, midpoint steps of the flow matching ODE
+    int     steps;    // 8, midpoint steps of the flow matching ODE
 
     // batching: number of songs generated from this prompt. Song i draws
     // its tokens with lm_seed + i, consecutive seeds.

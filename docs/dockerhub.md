@@ -84,9 +84,10 @@ The local studio uses the Hangry Labs charcoal-and-orange theme with four views:
 Switching views preserves the current composition and active generation. All
 UI assets are served locally; no CDN is required.
 
-Editing lyrics clears the previous score and replay inputs. Use **Clear score
-and replay** for an already-loaded take when you want a fresh composition from
-the current words. Saved songs and generation settings are preserved.
+**Generate song** composes from the current lyrics and musical direction, with
+random seeds and 8 steps by default. Info buttons explain every setting. Saved
+scores stay with songs in Library. **Edit prompt** starts a fresh take from saved
+text; score reuse, replay and source continuation are explicit choices.
 
 ## Image Tags
 
@@ -122,8 +123,8 @@ a different browser or service address has a separate library. Server generation
 does not automatically write songs into a host folder.
 
 Defaults are a **24,576-token context**, automatic backend selection and strict
-model eviction between stages. Requests default to **32 flow-matching steps**;
-the recorded baseline uses 8. Saved browser settings control UI requests.
+model eviction between stages. Requests default to **8 flow-matching steps**,
+matching the recorded baseline and intentionally differing from upstream's 32. Saved browser settings control UI requests.
 
 Choose a single GPU with Docker's `--gpus device=0` instead of `--gpus all`.
 Server settings use command-line flags. Custom arguments replace the default
