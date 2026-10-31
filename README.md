@@ -25,7 +25,9 @@ task start
 
 Open **http://localhost:8087**. Enter style tags and lyrics, then Generate.
 The local CUDA image has been tested on an RTX 5070 Ti with 16 GB VRAM.
-The first build compiles CUDA kernels and can take several minutes.
+The first source build compiles CUDA kernels; broad distribution builds can take
+over an hour on a small CI runner. Later app/UI builds reuse the separate GGML
+dependency layer. A pinned prebuilt artifact can also skip that first compilation.
 
 `task init` verifies/downloads the two pinned GGUF files into `models/` and
 builds `yue2:dev`. Downloads total approximately 4.34 GB. Cached models are
@@ -146,6 +148,7 @@ Its license, source commit and file hashes are preserved. See
 ## Documentation
 
 - [Development and repository layout](docs/DEVELOPMENT.md)
+- [Reusable CUDA build dependencies](docs/BUILDING.md)
 - [Docker runtime](docs/DOCKER.md)
 - [Models and conversion](docs/MODELS.md)
 - [Baseline generation](docs/BENCHMARKS.md)

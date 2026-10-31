@@ -12,6 +12,8 @@ Python helpers use the standard library; Python is not added to the inference im
 | task models | Verify/download pinned external models |
 | task init | Models, then CUDA image build |
 | task build | Rebuild current native engine and UI |
+| task deps:build | Prebuild a reusable GGML artifact with all distribution CUDA targets |
+| task deps:plan | Show the dependency fingerprint and selected CI artifact |
 | task start | Start the default server or replace an older project image |
 | task stop / status / logs | Operate this project's container |
 | task test | Tooling tests and GGML snapshot verification |
@@ -30,8 +32,9 @@ known job is running and does not stop another project's container with that nam
 Changing images restarts the process and clears its in-memory jobs/results.
 Models and browser data persist.
 
-Local builds detect host NVIDIA compute capability when possible and compile for
-that hardware. Set CUDA_ARCHITECTURES explicitly for a different build. Docker
+Local builds reuse a configured or locally prebuilt distribution dependency when
+targeting is automatic. Otherwise they detect host NVIDIA compute capability and
+compile for that hardware. Set CUDA_ARCHITECTURES explicitly for a different build. Docker
 builds have no GPU access, so do not pass the CMake value native to Docker builds.
 The Dockerfile's broader architecture default is for distribution builds and
 has not been qualified as a support matrix.
@@ -42,13 +45,18 @@ Dockerfile stages:
 - web: Node 24 checks and builds the current Svelte source.
 - source: selects source files; excludes models and local state.
 - cpu-checks: compiles all native targets and verifies startup without weights.
-- build: C++17/CUDA 12.9.1 compilation with CMake, Ninja and ccache.
+- cuda-toolchain: pinned CUDA 12.9.1 development base and build tools.
+- ggml-deps-build / ggml-deps: isolated GGML compilation and portable dependency artifact.
+- selected-ggml: source artifact or explicitly selected prebuilt image.
+- build: C++17 app compilation linked against the verified GGML installation.
 - weights-check: verifies the assembled image contains no common model-weight files.
 - runtime: CUDA runtime, native executables, notices and embedded UI.
 
-BuildKit cache mounts retain native object files and compiler cache locally.
-Rebuilds still configure dependencies; source or compiler changes invalidate
-affected files. The caches contain no model weights.
+Compiled GGML libraries live in a normal Docker layer, separate from app source,
+UI and revision inputs. This layer survives external cache export; BuildKit cache
+mounts alone are not preserved by GitHub Actions caching. Local cache mounts also
+retain app objects and compiler results. No cache or artifact contains model weights.
+See [build dependencies](BUILDING.md) for prebuilding, pinning and invalidation rules.
 
 VERSION owns the application version. Task builds inject the Git revision;
 CI injects the validated commit. The same version/revision is embedded in UI and

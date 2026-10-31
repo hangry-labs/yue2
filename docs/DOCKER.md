@@ -29,6 +29,11 @@ For Bash, use `--mount "type=bind,source=$(pwd)/models,target=/models,readonly"`
 No image is published yet. The local tag is yue2:dev. Models are not baked in
 and are not automatically downloaded by the server; task models handles that.
 
+GGML/CUDA compilation has its own reusable stage, independent of application,
+UI and revision changes. `task deps:build` can prepare a portable dependency
+artifact for CI. See [build dependencies](BUILDING.md) for registry reuse and
+digest pinning. This artifact contains code libraries, never model weights.
+
 ## Weight-free packaging
 
 The runtime build must pass `scripts/check_no_weights.py` before Docker can

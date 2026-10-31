@@ -11,6 +11,7 @@ vars:
   GPU_DEVICE: '{{.YUE2_GPU_DEVICE | default "all"}}'
   CUDA_ARCHITECTURES: '{{.YUE2_CUDA_ARCHITECTURES | default "auto"}}'
   BUILD_JOBS: '{{.YUE2_BUILD_JOBS | default "4"}}'
+  GGML_DEPS_IMAGE: '{{.YUE2_GGML_DEPS_IMAGE | default ""}}'
   LM_SEED: '831001'
   SEED: '831001'
 
@@ -22,6 +23,7 @@ env:
   YUE2_TASK_GPU_DEVICE: '{{.GPU_DEVICE}}'
   YUE2_TASK_CUDA_ARCHITECTURES: '{{.CUDA_ARCHITECTURES}}'
   YUE2_TASK_BUILD_JOBS: '{{.BUILD_JOBS}}'
+  YUE2_TASK_GGML_DEPS_IMAGE: '{{.GGML_DEPS_IMAGE}}'
 
 tasks:
   default:
@@ -41,6 +43,12 @@ tasks:
   build:
     desc: Build the CUDA runtime with current UI and persistent compiler caches
     cmds: ['"{{.PYTHON}}" scripts/dev.py build']
+  deps:build:
+    desc: Prebuild reusable GGML libraries for all distribution CUDA targets
+    cmds: ['"{{.PYTHON}}" scripts/dev.py deps-build']
+  deps:plan:
+    desc: Show the dependency fingerprint and selected CI artifact
+    cmds: ['"{{.PYTHON}}" scripts/ggml_deps.py plan']
   start:
     desc: Start or replace this project server with upstream runtime defaults
     cmds: ['"{{.PYTHON}}" scripts/dev.py start']

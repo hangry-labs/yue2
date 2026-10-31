@@ -43,6 +43,9 @@ jobs:
           INPUT_TAG: ${{ inputs.image_tag }}
           INPUT_PUBLISH: ${{ inputs.publish }}
         run: python3 scripts/ci_images.py
+      - name: Select matching GGML dependency artifact
+        id: deps
+        run: python3 scripts/ggml_deps.py plan
       - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4
       - uses: docker/login-action@81c6f93d4bc991e510b342a00b419b3bb4efc5c6 # v4
         if: steps.plan.outputs.publish == 'true'
@@ -59,8 +62,13 @@ jobs:
           tags: ${{ steps.plan.outputs.tags }}
           provenance: mode=max
           sbom: true
-          cache-from: type=gha,scope=yue2-cuda
+          cache-from: |
+            type=gha,scope=yue2-cuda
+            type=gha,scope=yue2-ggml
           cache-to: type=gha,scope=yue2-cuda,mode=max
           build-args: |
             SOURCE_REVISION=${{ github.sha }}
             BUILD_JOBS=2
+            CUDA_BASE=${{ steps.deps.outputs.cuda_base }}
+            CUDA_ARCHITECTURES=${{ steps.deps.outputs.architectures }}
+            GGML_DEPS_IMAGE=${{ steps.deps.outputs.image }}

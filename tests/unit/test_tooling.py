@@ -4,6 +4,7 @@ import json
 from pathlib import Path
 import tempfile
 import unittest
+import sys
 from unittest.mock import patch, Mock
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -17,6 +18,7 @@ def load(name, path):
 
 
 baseline = load('baseline', 'benchmarks/test1.py')
+sys.path.insert(0, str(ROOT / 'scripts'))
 dev = load('dev', 'scripts/dev.py')
 images = load('images', 'scripts/ci_images.py')
 
@@ -58,6 +60,41 @@ class PublicationTests(unittest.TestCase):
 
 
 class LifecycleTests(unittest.TestCase):
+    def test_auto_reuses_distribution_artifact_on_covered_gpu(self):
+        dependency = {'image': 'ggml-deps', 'key': 'current',
+                      'architectures': '86-real;120a-real', 'cuda_base': 'cuda'}
+        with patch.dict(dev.os.environ, {'YUE2_TASK_CUDA_ARCHITECTURES': 'auto',
+                                         'YUE2_TASK_GGML_DEPS_IMAGE': ''}), \
+                patch.object(dev.ggml_deps, 'plan', return_value=dependency), \
+                patch.object(dev, 'local_dependency', return_value='local-artifact'), \
+                patch.object(dev, 'architectures', return_value='120a-real'):
+            _, arch, image = dev.build_dependency()
+            self.assertEqual((arch, image), ('86-real;120a-real', 'local-artifact'))
+
+    def test_auto_keeps_target_outside_distribution_artifact(self):
+        dependency = {'image': 'registry@sha256:abc', 'key': 'current',
+                      'architectures': '86-real;120a-real', 'cuda_base': 'cuda'}
+        with patch.dict(dev.os.environ, {'YUE2_TASK_CUDA_ARCHITECTURES': 'auto',
+                                         'YUE2_TASK_GGML_DEPS_IMAGE': ''}), \
+                patch.object(dev.ggml_deps, 'plan', return_value=dependency), \
+                patch.object(dev, 'local_dependency', return_value=''), \
+                patch.object(dev.ggml_deps, 'fingerprint', return_value='other-gpu'), \
+                patch.object(dev, 'architectures', return_value='121a-real'):
+            _, arch, image = dev.build_dependency()
+            self.assertEqual((arch, image), ('121a-real', ''))
+
+    def test_explicit_gpu_target_does_not_use_different_pinned_artifact(self):
+        dependency = {'image': 'registry@sha256:abc', 'key': 'current',
+                      'architectures': '86-real;120a-real', 'cuda_base': 'cuda'}
+        with patch.dict(dev.os.environ, {'YUE2_TASK_CUDA_ARCHITECTURES': '120a-real',
+                                         'YUE2_TASK_GGML_DEPS_IMAGE': ''}), \
+                patch.object(dev.ggml_deps, 'plan', return_value=dependency), \
+                patch.object(dev, 'local_dependency', return_value=''), \
+                patch.object(dev.ggml_deps, 'fingerprint', return_value='narrow'), \
+                patch.object(dev, 'architectures', return_value='120a-real'):
+            _, arch, image = dev.build_dependency()
+            self.assertEqual((arch, image), ('120a-real', ''))
+
     def test_active_job_prevents_replacement(self):
         logs = Mock(stdout='[Server] Job deadbeef: {}\n', stderr='')
         response = Mock()

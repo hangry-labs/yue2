@@ -1,4 +1,47 @@
 # syntax=docker/dockerfile:1
+ARG CUDA_BASE=nvidia/cuda:12.9.1-devel-ubuntu24.04@sha256:020bc241a628776338f4d4053fed4c38f6f7f3d7eb5919fecb8de313bb8ba47c
+ARG GGML_DEPS_IMAGE=ggml-deps
+
+# These stages depend only on GGML and its toolchain, never app/UI/revision.
+FROM ${CUDA_BASE} AS cuda-toolchain
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ca-certificates cmake ninja-build g++ git ccache python3 \
+    && rm -rf /var/lib/apt/lists/*
+
+FROM cuda-toolchain AS ggml-deps-build
+WORKDIR /dependency
+COPY vendor/ggml/ vendor/ggml/
+COPY cmake/ggml-deps/ cmake/ggml-deps/
+COPY cmake/ggml-abi.cmake cmake/ggml-abi.cmake
+ARG CUDA_ARCHITECTURES="75-virtual;80-virtual;86-real;89-real;120a-real"
+ARG BUILD_JOBS=4
+RUN --mount=type=cache,id=yue2-ggml-ccache,target=/root/.cache/ccache,sharing=locked \
+    cmake -S cmake/ggml-deps -B /ggml-build -G Ninja -DCMAKE_BUILD_TYPE=Release \
+    -DCMAKE_INSTALL_PREFIX=/opt/ggml -DCMAKE_INSTALL_LIBDIR=lib \
+    -DCMAKE_CUDA_ARCHITECTURES="$CUDA_ARCHITECTURES" \
+    -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_CUDA_COMPILER_LAUNCHER=ccache \
+    && cmake --build /ggml-build --parallel "$BUILD_JOBS" \
+    && cmake --install /ggml-build \
+    && rm -rf /ggml-build \
+    && mkdir -p /opt/ggml/licenses \
+    && cp vendor/ggml/LICENSE /opt/ggml/licenses/ggml-MIT.txt
+# Metadata/checker edits can rerun verification without recompiling CUDA.
+COPY Dockerfile /dependency/Dockerfile
+COPY docker/ggml-deps.json /dependency/docker/ggml-deps.json
+COPY vendor/ggml.snapshot.json /dependency/vendor/ggml.snapshot.json
+COPY scripts/ggml_deps.py scripts/check_no_weights.py /dependency/scripts/
+ARG CUDA_BASE
+RUN python3 scripts/ggml_deps.py record --architectures "$CUDA_ARCHITECTURES" --cuda-base "$CUDA_BASE" \
+    && python3 scripts/check_no_weights.py /opt/ggml
+
+# Portable artifact: headers, static libraries, CMake exports, metadata, license.
+# No compiler, build tree, Python, application or model weights in this image.
+FROM scratch AS ggml-deps
+COPY --from=ggml-deps-build /opt/ggml /opt/ggml
+LABEL org.opencontainers.image.source="https://github.com/hangry-labs/yue2" \
+    org.opencontainers.image.title="YuE2 GGML build dependency"
+
+# Application stages: dependency fingerprint ends here.
 FROM node:24-bookworm-slim AS web
 WORKDIR /web
 COPY web/package*.json ./
@@ -35,21 +78,26 @@ RUN --mount=type=cache,id=yue2-native-cpu,target=/build,sharing=locked \
     && cmake --build /build --parallel 4 \
     && python3 /smoke_binaries.py /build
 
-FROM nvidia/cuda:12.9.1-devel-ubuntu24.04 AS build
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    ca-certificates cmake ninja-build g++ git ccache \
-    && rm -rf /var/lib/apt/lists/*
+# A digest-pinned registry artifact can replace the source dependency stage.
+FROM ${GGML_DEPS_IMAGE} AS selected-ggml
+FROM cuda-toolchain AS build
 WORKDIR /src
 COPY --from=source / /src/
 COPY --from=web /web/public/index.html.gz /src/web/public/index.html.gz
+COPY --from=selected-ggml /opt/ggml /opt/ggml
+COPY Dockerfile /src/Dockerfile
+COPY docker/ggml-deps.json /src/docker/ggml-deps.json
+COPY scripts/ggml_deps.py scripts/check_no_weights.py /src/scripts/
 ARG SOURCE_REVISION=unknown
+ARG CUDA_BASE
 ARG CUDA_ARCHITECTURES="75-virtual;80-virtual;86-real;89-real;120a-real"
 ARG BUILD_JOBS=4
-RUN --mount=type=cache,id=yue2-native-cuda,target=/build,sharing=locked \
+RUN --mount=type=cache,id=yue2-native-app,target=/build,sharing=locked \
     --mount=type=cache,id=yue2-ccache,target=/root/.cache/ccache,sharing=locked \
-    cmake -S . -B /build -G Ninja -DCMAKE_BUILD_TYPE=Release \
-    -DCMAKE_CUDA_ARCHITECTURES="$CUDA_ARCHITECTURES" \
-    -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_CUDA_COMPILER_LAUNCHER=ccache \
+    python3 scripts/ggml_deps.py verify --architectures "$CUDA_ARCHITECTURES" --cuda-base "$CUDA_BASE" \
+    && cmake -S . -B /build -G Ninja -DCMAKE_BUILD_TYPE=Release \
+    -DYUE2_GGML_PREFIX=/opt/ggml \
+    -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
     -DBUILD_SHARED_LIBS=OFF -DGGML_NATIVE=OFF -DGGML_CUDA=ON -DGGML_VULKAN=OFF \
     -DYUE2_REVISION="$SOURCE_REVISION" \
     && cmake --build /build --parallel "$BUILD_JOBS" --target \
@@ -62,6 +110,7 @@ RUN --mount=type=cache,id=yue2-native-cuda,target=/build,sharing=locked \
     && cp LICENSE /out/licenses/yue2-MIT.txt \
     && cp THIRD_PARTY_NOTICES.md /out/licenses/ \
     && cp vendor/ggml/LICENSE /out/licenses/ggml-MIT.txt \
+    && cp /opt/ggml/yue2-ggml.json /out/licenses/ \
     && cp vendor/cpp-httplib/LICENSE /out/licenses/cpp-httplib-MIT.txt \
     && cp vendor/yyjson/yyjson.h /out/licenses/yyjson.h \
     && cp vendor/minimp3/minimp3.h /out/licenses/minimp3.h

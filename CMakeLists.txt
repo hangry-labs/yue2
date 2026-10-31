@@ -34,14 +34,7 @@ endif()
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 
-# Tensor names can exceed the default GGML_MAX_NAME of 64
-add_compile_definitions(GGML_MAX_NAME=128)
-
-# Harden: mark fread/fwrite/etc with warn_unused_result on all platforms
-# SYCL excluded: _FORTIFY_SOURCE swaps memcpy for __memcpy_chk, unresolved in device code
-if(NOT MSVC AND NOT GGML_SYCL)
-    add_compile_definitions(_FORTIFY_SOURCE=2)
-endif()
+include(cmake/ggml-abi.cmake)
 
 # CUDA architectures: cover Turing to Blackwell for distributed binaries.
 # Users can override with -DCMAKE_CUDA_ARCHITECTURES=native for local builds.
@@ -61,7 +54,17 @@ if(NOT DEFINED GGML_CUDA_GRAPHS)
     set(GGML_CUDA_GRAPHS_DEFAULT ON)
 endif()
 set(GGML_SOURCE_DIR "${CMAKE_SOURCE_DIR}/vendor/ggml" CACHE PATH "ggml source tree")
-add_subdirectory(${GGML_SOURCE_DIR} ggml)
+set(YUE2_GGML_PREFIX "" CACHE PATH "Prebuilt Yue2 GGML dependency installation")
+if(YUE2_GGML_PREFIX)
+    find_package(Yue2GGML CONFIG REQUIRED PATHS "${YUE2_GGML_PREFIX}/lib/cmake/Yue2GGML" NO_DEFAULT_PATH)
+    foreach(component ggml ggml-base ggml-cpu ggml-cuda)
+        add_library(${component} ALIAS Yue2::${component})
+    endforeach()
+    set(GGML_CUDA ON)
+    message(STATUS "Using prebuilt Yue2 GGML: ${YUE2_GGML_PREFIX}")
+else()
+    add_subdirectory(${GGML_SOURCE_DIR} ggml)
+endif()
 
 # cpp-httplib (HTTP server library, used by yue-server)
 add_subdirectory(vendor/cpp-httplib)

@@ -11,6 +11,8 @@ import sys
 import urllib.error
 import urllib.request
 
+import ggml_deps
+
 ROOT = Path(__file__).resolve().parents[1]
 
 
@@ -53,6 +55,40 @@ def architectures():
     return ';'.join(sorted(set(result))) or None
 
 
+def local_dependency(key, dry=False):
+    name = 'yue2-ggml:' + key[:20]
+    if not dry and subprocess.run(['docker', 'image', 'inspect', name],
+                                  stdout=subprocess.DEVNULL,
+                                  stderr=subprocess.DEVNULL).returncode == 0:
+        return name
+    return ''
+
+
+def build_dependency(dry=False):
+    dependency = ggml_deps.plan()
+    requested = setting('CUDA_ARCHITECTURES', 'auto')
+    selected = setting('GGML_DEPS_IMAGE', '')
+    arch = requested if dry else architectures()
+    # A distribution artifact already covers the local GPU. Prefer reusing it
+    # over recompiling a narrower library when the user left targeting on auto.
+    if requested == 'auto' and not selected:
+        available = {value.split('-')[0] for value in dependency['architectures'].split(';')}
+        detected = {value.split('-')[0] for value in (arch or '').split(';') if value}
+        if dry or not detected or detected <= available:
+            selected = (dependency['image'] if dependency['image'] != 'ggml-deps'
+                        else local_dependency(dependency['key'], dry))
+            if selected:
+                arch = dependency['architectures']
+    if not arch or arch == 'auto':
+        arch = dependency['architectures']
+    if not selected:
+        if arch == dependency['architectures'] and dependency['image'] != 'ggml-deps':
+            selected = dependency['image']
+        else:
+            selected = local_dependency(ggml_deps.fingerprint(architectures=arch), dry)
+    return dependency, arch, selected
+
+
 def active_jobs(container, port):
     """Do not replace a live server while it is computing or has queued work."""
     logs = subprocess.run(['docker', 'logs', container], capture_output=True, text=True, check=True)
@@ -70,7 +106,7 @@ def active_jobs(container, port):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('command', choices=('doctor', 'build', 'start', 'stop', 'status', 'logs',
-                                          'cpu-check', 'web-check', 'web-build', 'verify-vendor'))
+                                          'cpu-check', 'web-check', 'web-build', 'verify-vendor', 'deps-build'))
     parser.add_argument('--dry-run', action='store_true')
     args = parser.parse_args()
     image = setting('IMAGE', 'yue2:dev')
@@ -90,12 +126,22 @@ def main():
             print('Host nvidia-smi unavailable; verify Docker GPU access separately.')
     elif args.command == 'verify-vendor':
         run([sys.executable, 'scripts/verify_vendor.py'], args.dry_run)
+    elif args.command == 'deps-build':
+        dependency = ggml_deps.plan()
+        tag = 'yue2-ggml:' + dependency['key'][:20]
+        run(['docker', 'build', '--platform', 'linux/amd64', '--progress=plain',
+             '--target', 'ggml-deps', '--build-arg', 'CUDA_BASE=' + dependency['cuda_base'],
+             '--build-arg', 'CUDA_ARCHITECTURES=' + dependency['architectures'],
+             '--build-arg', 'BUILD_JOBS=' + setting('BUILD_JOBS', '4'), '-t', tag, '.'], args.dry_run)
+        print(f'Dependency artifact: {tag}; input key: {dependency["key"]}')
     elif args.command in ('build', 'cpu-check'):
         command = ['docker', 'build', '--progress=plain', '--build-arg', 'SOURCE_REVISION=' + revision()]
         if args.command == 'build':
-            arch = setting('CUDA_ARCHITECTURES', 'auto') if args.dry_run else architectures()
-            if arch and arch != 'auto':
-                command += ['--build-arg', 'CUDA_ARCHITECTURES=' + arch]
+            dependency, arch, selected = build_dependency(args.dry_run)
+            command += ['--build-arg', 'CUDA_ARCHITECTURES=' + arch,
+                        '--platform', 'linux/amd64', '--build-arg', 'CUDA_BASE=' + dependency['cuda_base']]
+            if selected and selected != 'ggml-deps':
+                command += ['--build-arg', 'GGML_DEPS_IMAGE=' + selected]
             command += ['--build-arg', 'BUILD_JOBS=' + setting('BUILD_JOBS', '4'), '-t', image]
         else:
             command += ['--target', 'cpu-checks', '-t', 'yue2:cpu-checks']

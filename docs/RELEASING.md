@@ -19,6 +19,12 @@ only for a matching stable version tag or an explicit manual publish selection.
 Actions are pinned to immutable commits. Builds use BuildKit layer caching,
 provenance and SBOM generation.
 
+GGML compilation is isolated from app/UI changes. The workflow reads
+`docker/ggml-deps.json` and consumes its matching digest-pinned dependency image
+when configured, or reuses/builds the independent source layer. A separate manual
+`ggml-deps.yml` workflow prepares the artifact and publishes only on explicit
+selection. See [reusable build dependencies](BUILDING.md).
+
 ## Stable publication
 
 1. Select a release version in VERSION without the -snapshot suffix.
