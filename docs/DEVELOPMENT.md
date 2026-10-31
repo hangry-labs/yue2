@@ -4,6 +4,26 @@ The primary workflow uses Docker for C++/CUDA builds and Node UI checks.
 Host dependencies are Docker/Buildx, NVIDIA GPU support, Python 3.11+ and Task.
 Python helpers use the standard library; Python is not added to the inference image.
 
+## Repository layout
+
+| Directory | Purpose |
+| --- | --- |
+| `src/` | Native inference engine; `src/cli/` contains executable entry points |
+| `web/` | Svelte 5/TypeScript studio and embedded UI asset |
+| `scripts/` | Cross-platform Task helpers and advanced model conversion tools |
+| `cmake/` | Build identity, asset embedding and reusable GGML package helpers |
+| `docker/` | Checksum-pinned compiled dependency configuration |
+| `benchmarks/` | Repeatable generation runner |
+| `tests/unit/` | CPU-only tooling and lifecycle tests |
+| `tests/integration/` | Read-only checks against a running server |
+| `tests/fixtures/` | Baseline prompts |
+| `tests/parity/` | Optional model-dependent upstream numerical harnesses and historical logs |
+| `vendor/` | Third-party source, including the pinned GGML snapshot |
+| `docs/` | Runtime/development guides and the [Docker Hub overview](dockerhub.md) |
+
+Model files and generated `results/` stay outside version control. GGML is
+ordinary vendored source; no recursive clone or nested Git checkout is needed.
+
 ## Task interface
 
 | Command | Behavior |

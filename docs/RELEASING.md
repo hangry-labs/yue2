@@ -7,8 +7,11 @@ The publishing workflow targets one weight-free CUDA runtime image in both regis
 
 The workflow builds a single image with external weights and uses `master`
 as its default branch.
-The first publication occurs after pushing this workflow update; configured
-image names are not proof that their tags have already been uploaded.
+The first application publication completed successfully in
+[run 41218835258](https://github.com/hangry-labs/yue2/actions/runs/41218835258)
+at commit `05ff1f077d85dafe566dd82b6f7fea06e5188aca`. Both `latest` mirrors
+reported the same top-level OCI index when checked. `latest` continues to move;
+this does not represent a stable version release.
 
 ## Tags and triggers
 
@@ -82,3 +85,22 @@ workflow artifact for 30 days, and summarized on GitHub. Do not invent image dig
 page exists just because a Git tag exists. The `ggml-deps-*` release is a build
 dependency, not a product release. There is no full/tiny split or bundled-model
 release. Broader CUDA targets remain unqualified beyond the tested RTX 5070 Ti.
+
+## Docker Hub overview
+
+The registry overview is maintained in [dockerhub.md](dockerhub.md), with absolute
+links and image URLs that work outside GitHub. Copy its Markdown into the
+`hangrylabs/yue2` repository's **Overview** on Docker Hub. The GitHub publishing
+workflow uploads images and verification reports; it does not synchronize this
+description. See [Docker's repository information guide](https://docs.docker.com/docker-hub/repos/manage/information/).
+
+Suggested short description:
+
+```text
+Local YuE2 song generation with a browser studio and HTTP API. CUDA; external models.
+```
+
+Keep the overview aligned with the README's model downloads, runtime commands,
+tag policy and license notes. When product artwork or UI screenshots are added,
+use repository-relative paths in the README and absolute raw GitHub URLs here.
+Do not add gallery, website or translation links before those pages exist.

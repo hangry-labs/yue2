@@ -15,9 +15,11 @@ builds the image; task start preserves upstream inference defaults.
 
 The publication workflow targets `hangrylabs/yue2` on Docker Hub and
 `ghcr.io/hangry-labs/yue2` on GHCR. `master` publishes `latest` to both; stable
-Git tags publish matching `vX.Y.Z` tags. Use the commands below after the first
-successful publication. The GGML dependency release is separate from this
-runnable application image.
+Git tags publish matching `vX.Y.Z` tags. The first `latest` publication succeeded
+on both registries. The GGML dependency release is separate from this runnable
+application image. For model downloads and Bash/PowerShell quick starts, see
+the [README](../README.md#quick-start). The [Docker Hub overview](dockerhub.md)
+is maintained separately for the registry page.
 
 With the two external model files downloaded, PowerShell:
 
@@ -83,9 +85,27 @@ the upstream strict eviction policy. No keep-loaded or reduced-context override
 is applied by task start.
 
 Container arguments replace the default server arguments. Include required
---model and --vae arguments when supplying custom options. --max-seq can reduce
-VRAM but can reject long requests whose prompt plus token budget exceeds it.
---keep-loaded retains models and requires additional VRAM.
+`--model` and `--vae` arguments and the network binding when supplying custom
+options. `--max-seq` can reduce VRAM but can reject long requests whose prompt
+plus token budget exceeds it. `--keep-loaded` retains models and requires
+additional VRAM.
+
+Choose a single GPU with Docker's `--gpus device=0` instead of `--gpus all`.
+The server selects its compute backend automatically; `--device CUDA0` refers
+to the first GPU visible inside the container, after Docker's GPU filtering.
+The `YUE2_*` values in `.env.example` configure host-side Task commands, not
+the server's container environment.
+
+For optional adapters, create a host `adapters/` directory alongside `models/`.
+Use this command when creating the container. PowerShell:
+
+```powershell
+docker run -d --name yue2 --restart unless-stopped --gpus all -p 127.0.0.1:8087:8087 --mount "type=bind,source=$($PWD.Path)\models,target=/models,readonly" --mount "type=bind,source=$($PWD.Path)\adapters,target=/adapters,readonly" hangrylabs/yue2:latest
+```
+
+In Bash use `source=$(pwd)/models` and `source=$(pwd)/adapters` in the respective
+mounts. The default image command already sets `--adapters /adapters`. Adapter
+files remain external to the image.
 
 The runtime uses non-root UID 10001. Host port is bound to localhost by the task.
 For a CLI run, override --entrypoint with yue-synth or another native executable
