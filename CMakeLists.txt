@@ -67,8 +67,8 @@ else()
     add_subdirectory(${GGML_SOURCE_DIR} ggml)
 endif()
 
-# cpp-httplib (HTTP server library, used by yue-server)
-add_subdirectory(vendor/cpp-httplib)
+# HTTP, JSON and MP3 decoding from pinned upstream sources or installed targets.
+include(cmake/app-deps.cmake)
 
 # Shared compile options and ggml linkage
 macro(link_ggml_backends target)
@@ -87,7 +87,7 @@ macro(link_ggml_backends target)
         target_compile_options(${target} PRIVATE -Wall -Wextra -Wshadow -Wconversion
                               -Wno-unused-parameter -Wno-unused-function -Wno-sign-conversion)
     endif()
-    target_link_libraries(${target} PRIVATE ggml Threads::Threads)
+    target_link_libraries(${target} PRIVATE ggml Threads::Threads minimp3)
     if(TARGET ggml-base)
         target_link_libraries(${target} PRIVATE ggml-base)
     endif()
@@ -109,15 +109,6 @@ macro(link_ggml_backends target)
     endif()
     add_dependencies(${target} version)
 endmacro()
-
-# yyjson (MIT, fast JSON parser/writer)
-add_library(yyjson STATIC vendor/yyjson/yyjson.c)
-target_include_directories(yyjson PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/vendor/yyjson)
-if(MSVC)
-    target_compile_options(yyjson PRIVATE /W0)
-else()
-    target_compile_options(yyjson PRIVATE -w)
-endif()
 
 # yue-plan: symbolic planning stage (request -> ABC score)
 add_executable(yue-plan src/cli/yue-plan.cpp src/request.cpp)
@@ -168,7 +159,7 @@ add_executable(neural-codec src/cli/neural-codec.cpp)
 link_ggml_backends(neural-codec)
 
 # mp3-codec: MP3 encoder/decoder (standalone, no ggml needed)
-# The vendor/mp3/ headers are header-only and usable by yue-server too via #include "vendor/mp3/mp3enc.h"
+# The inherited MP3 encoder is project source under src/codecs/mp3/.
 add_executable(mp3-codec src/cli/mp3-codec.cpp)
 target_include_directories(mp3-codec PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/src
@@ -183,7 +174,7 @@ else()
                           -Wno-unused-parameter -Wno-unused-function -Wno-sign-conversion)
     target_link_libraries(mp3-codec PRIVATE m)
 endif()
-target_link_libraries(mp3-codec PRIVATE Threads::Threads)
+target_link_libraries(mp3-codec PRIVATE Threads::Threads minimp3)
 
 # quantize: GGUF requantizer (BF16 -> K-quants)
 add_executable(quantize src/cli/quantize.cpp)

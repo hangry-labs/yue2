@@ -4,6 +4,7 @@ import { emptyRequest } from './fields.js';
 import type { InputMode } from './generation.js';
 import { editablePrompt } from './generation.js';
 import { clearCompositionInputs } from './lyrics.js';
+import { DEFAULT_PLAYBACK_VOLUME, playbackVolume } from './playback.js';
 
 const STORAGE_KEY = 'yue2';
 
@@ -25,7 +26,7 @@ function load(): Saved {
 			return {
 				editorVersion: 2,
 				name: parsed.name || '',
-				volume: parsed.volume ?? 0.5,
+				volume: playbackVolume(parsed.volume),
 				format: OUTPUT_FORMATS.includes(parsed.format) ? parsed.format : 'mp3',
 				logsOpen: parsed.logsOpen ?? true,
 				request: parsed.request
@@ -42,7 +43,7 @@ function load(): Saved {
 	return {
 		editorVersion: 2,
 		name: '',
-		volume: 0.5,
+		volume: DEFAULT_PLAYBACK_VOLUME,
 		format: 'mp3',
 		logsOpen: true,
 		request: emptyRequest(),

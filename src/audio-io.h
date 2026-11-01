@@ -33,7 +33,7 @@
 #        pragma GCC diagnostic ignored "-Wconversion"
 #        pragma GCC diagnostic ignored "-Wsign-conversion"
 #    endif
-#    include "vendor/minimp3/minimp3.h"
+#    include <minimp3.h>
 #    ifdef _MSC_VER
 #        pragma warning(pop)
 #    elif defined(__GNUC__)
@@ -43,7 +43,7 @@
 #endif
 
 // mp3enc: MP3 encoder
-#include "vendor/mp3/mp3enc.h"
+#include "codecs/mp3/mp3enc.h"
 
 // case-insensitive extension check
 static bool audio_io_ends_with(const char * str, const char * suffix) {

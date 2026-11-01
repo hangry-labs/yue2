@@ -96,6 +96,12 @@ header. Switching views preserves the current composition and active generation.
 Examples fill the song content while preserving generation settings. UI assets
 are served locally without a CDN.
 
+Playback volume and mute are at the top of the left rail in Create and Library,
+and stay visible above collapsed generation settings on mobile. New browser
+sessions default to 100%, preserving the original level for a single track;
+saved volume choices are retained. Several simultaneous tracks share mix
+headroom. Listening controls never change generated or downloaded audio.
+
 **Generate song** starts a new composition from the current lyrics and musical
 direction, with random seeds and 8 refinement steps by default. Each setting has
 an info button explaining its effect. Generated scores and replay data stay with
@@ -207,7 +213,7 @@ dependency artifact remains available for rollback. See [build dependencies](doc
 | `task build` | Rebuild the app and UI |
 | `task start` / `task stop` | Start or stop the local development server |
 | `task status` / `task logs` | Inspect the container or follow logs |
-| `task validate` | Check tooling, vendored source, UI and native CPU build |
+| `task validate` | Check tooling, dependency pins, UI and native CPU build |
 | `task test1` | Run the fixed-seed, 8-step GPU generation baseline |
 
 Copy `.env.example` to `.env` for local Task settings. CLI overrides include

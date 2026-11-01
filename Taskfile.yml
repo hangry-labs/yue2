@@ -83,8 +83,10 @@ tasks:
     desc: Download and verify the pinned public GGML release archive
     cmds: ['"{{.PYTHON}}" scripts/ggml_release.py prepare']
   deps:verify:
-    desc: Verify the official GGML source pin and retained license
-    cmds: ['"{{.PYTHON}}" scripts/verify_ggml_source.py']
+    desc: Verify native dependency source pins and retained licenses
+    cmds:
+      - '"{{.PYTHON}}" scripts/verify_ggml_source.py'
+      - '"{{.PYTHON}}" scripts/verify_app_deps.py'
   deps:export:
     desc: Export the local GGML artifact and checksum for a GitHub Release upload
     cmds: ['"{{.PYTHON}}" scripts/ggml_release.py export']
@@ -101,7 +103,7 @@ tasks:
     desc: Follow this project server logs
     cmds: ['"{{.PYTHON}}" scripts/dev.py logs']
   test:
-    desc: Run CPU-only tooling tests and verify the GGML source pin
+    desc: Run CPU-only tooling tests and verify native dependency pins
     cmds:
       - '"{{.PYTHON}}" -m unittest discover -s tests/unit -v'
       - task: deps:verify

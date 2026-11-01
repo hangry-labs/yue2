@@ -17,6 +17,7 @@
 	import { updateLyrics, clearCompositionInputs } from '../lib/lyrics.js';
 	import { generationRequest, inputRequest } from '../lib/generation.js';
 	import SettingHelp from './SettingHelp.svelte';
+	import PlaybackControls from './PlaybackControls.svelte';
 	import { COT_FULL, COT_MELODY, COT_OFF } from '../lib/config.js';
 	import type { Yue2Request, Song } from '../lib/types.js';
 	import type { PendingJob } from '../lib/db.js';
@@ -353,18 +354,28 @@
 		onchange={onFileSelected}
 		hidden
 	/>
-	<aside class="settings-rail" hidden={library} aria-label="Generation settings">
-		<h2 class="section-heading rail-heading">Generation setup</h2>
+	<aside
+		class="settings-rail"
+		aria-label={library ? 'Playback controls' : 'Playback and generation settings'}
+	>
+		<PlaybackControls />
+		<h2 class="section-heading rail-heading" hidden={library}>Generation setup</h2>
 		<button
 			type="button"
 			class="settings-toggle"
+			hidden={library}
 			aria-expanded={mobileSettingsOpen}
 			aria-controls="generation-settings"
 			onclick={() => (mobileSettingsOpen = !mobileSettingsOpen)}
 			>Generation setup <span>{mobileSettingsOpen ? 'Hide settings −' : 'Show settings +'}</span
 			></button
 		>
-		<div id="generation-settings" class="rail-content" class:mobile-collapsed={!mobileSettingsOpen}>
+		<div
+			id="generation-settings"
+			class="rail-content"
+			hidden={library}
+			class:mobile-collapsed={!mobileSettingsOpen}
+		>
 			<div class="model-info">
 				<strong>{app.props?.model.split(/[/\\]/).pop() || 'Connecting to local service…'}</strong
 				><span>CUDA · 48 kHz stereo</span><span>Blank values use the server defaults.</span>
@@ -1118,9 +1129,6 @@
 		grid-column: 2;
 		min-width: 0;
 		padding: 0 clamp(18px, 3vw, 40px) 30px;
-	}
-	.request-form.library {
-		display: block;
 	}
 	.library .result-area {
 		max-width: 1250px;

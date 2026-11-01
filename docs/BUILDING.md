@@ -125,7 +125,30 @@ tracked files cannot assess the downloaded GGML implementation. A build-based
 security analysis must include that fetched source; CPU analysis also does not
 qualify unused GPU backends. Existing CodeQL alerts need separate triage/rescanning.
 
-## Roll back to the previous dependency
+## Other native dependencies
+
+`docker/app-deps.json` pins cpp-httplib 0.64.0, yyjson 0.13.0 and minimp3 commit
+`ea99364f61c14656440e8d77e9c233ccf3124633`. Every package has an exact upstream
+archive checksum and retained license notice. `cmake/app-deps.cmake` uses upstream
+CMake projects for HTTP/JSON and an interface target for the decoder header.
+No third-party source is kept in `vendor/`; that folder holds license notices.
+The inherited project MP3 encoder lives under `src/codecs/mp3/`.
+
+The Docker `app-deps` stage downloads and compiles these small libraries once per
+lock/configuration/toolchain change. Application and UI edits reuse that layer.
+The application imports the installation with `YUE2_APP_DEPS_PREFIX`; its lock is
+checked before linking. CPU/native source builds fetch the same pinned archives
+under their build directory. Native builds need Python 3 for upstream httplib's
+header splitting. HTTPS/compression extras remain disabled as before.
+
+These small libraries do not need a separate binary release. Their updates leave
+the GGML dependency fingerprint and its existing published artifact unchanged.
+`task deps:verify` checks all native pins and retained notices. Dependency updates
+still require HTTP/API, decoder and generation testing; fetching newer sources
+alone is not a security audit. Build-based security scanning must include these
+downloaded sources too; scanning tracked files alone cannot assess them.
+
+## Roll back to the previous GGML dependency
 
 The previous fork artifact remains published and is never overwritten or deleted:
 [previous dependency release](https://github.com/hangry-labs/yue2/releases/tag/ggml-deps-486cfbc9cab44f7eb35f).

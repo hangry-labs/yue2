@@ -26,8 +26,10 @@ jobs:
         run: python -m unittest discover -s tests/unit -v
       - name: Verify public gallery recipes and audio
         run: python scripts/verify_gallery.py
-      - name: Verify official GGML pin and license
-        run: python scripts/verify_ggml_source.py
+      - name: Verify native dependency pins and licenses
+        run: |
+          python scripts/verify_ggml_source.py
+          python scripts/verify_app_deps.py
   website:
     name: Build and check documentation website
     runs-on: ubuntu-latest

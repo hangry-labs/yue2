@@ -39,6 +39,17 @@ LABEL org.opencontainers.image.source="https://github.com/hangry-labs/yue2" \
     org.opencontainers.image.title="YuE2 GGML build dependency"
 
 # Application stages: dependency fingerprint ends here.
+FROM cuda-toolchain AS app-deps
+WORKDIR /dependency
+COPY cmake/app-deps.cmake cmake/app-deps.cmake
+COPY cmake/app-deps/ cmake/app-deps/
+COPY docker/app-deps.json docker/app-deps.json
+RUN cmake -S cmake/app-deps -B /app-deps-build -G Ninja -DCMAKE_BUILD_TYPE=Release \
+    -DCMAKE_INSTALL_PREFIX=/opt/yue-deps -DCMAKE_INSTALL_LIBDIR=lib \
+    && cmake --build /app-deps-build --parallel 4 \
+    && cmake --install /app-deps-build \
+    && rm -rf /app-deps-build
+
 FROM node:24-bookworm-slim AS web
 WORKDIR /web
 COPY web/package*.json ./
@@ -58,6 +69,7 @@ FROM scratch AS source
 COPY CMakeLists.txt VERSION LICENSE THIRD_PARTY_NOTICES.md /
 COPY cmake/ /cmake/
 COPY docker/ggml-source.json /docker/ggml-source.json
+COPY docker/app-deps.json /docker/app-deps.json
 COPY src/ /src/
 COPY vendor/ /vendor/
 COPY tests/ /tests/
@@ -84,6 +96,7 @@ WORKDIR /src
 COPY --from=source / /src/
 COPY --from=web /web/public/index.html.gz /src/web/public/index.html.gz
 COPY --from=selected-ggml /opt/ggml /opt/ggml
+COPY --from=app-deps /opt/yue-deps /opt/yue-deps
 COPY Dockerfile /src/Dockerfile
 COPY docker/ggml-deps.json /src/docker/ggml-deps.json
 COPY scripts/ggml_deps.py scripts/check_no_weights.py /src/scripts/
@@ -96,6 +109,7 @@ RUN --mount=type=cache,id=yue2-native-app,target=/build,sharing=locked \
     python3 scripts/ggml_deps.py verify --architectures "$CUDA_ARCHITECTURES" --cuda-base "$CUDA_BASE" \
     && cmake -S . -B /build -G Ninja -DCMAKE_BUILD_TYPE=Release \
     -DYUE2_GGML_PREFIX=/opt/ggml \
+    -DYUE2_APP_DEPS_PREFIX=/opt/yue-deps \
     -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
     -DBUILD_SHARED_LIBS=OFF -DGGML_NATIVE=OFF -DGGML_CUDA=ON -DGGML_VULKAN=OFF \
     -DYUE2_REVISION="$SOURCE_REVISION" \
@@ -110,9 +124,8 @@ RUN --mount=type=cache,id=yue2-native-app,target=/build,sharing=locked \
     && cp THIRD_PARTY_NOTICES.md /out/licenses/ \
     && cp /opt/ggml/licenses/ggml-MIT.txt /out/licenses/ggml-MIT.txt \
     && cp /opt/ggml/yue2-ggml.json /out/licenses/ \
-    && cp vendor/cpp-httplib/LICENSE /out/licenses/cpp-httplib-MIT.txt \
-    && cp vendor/yyjson/yyjson.h /out/licenses/yyjson.h \
-    && cp vendor/minimp3/minimp3.h /out/licenses/minimp3.h
+    && cp /opt/yue-deps/licenses/* /out/licenses/ \
+    && cp /opt/yue-deps/share/yue2-app-deps/app-deps.json /out/licenses/
 
 FROM nvidia/cuda:12.9.1-runtime-ubuntu24.04 AS runtime-unchecked
 RUN apt-get update && apt-get install -y --no-install-recommends \

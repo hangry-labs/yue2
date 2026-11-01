@@ -18,14 +18,15 @@ Python helpers use the standard library; Python is not added to the inference im
 | `tests/integration/` | Read-only checks against a running server |
 | `tests/fixtures/` | Baseline prompts |
 | `tests/parity/` | Optional model-dependent upstream numerical harnesses and historical logs |
-| `vendor/` | Small third-party sources and retained license notices |
+| `vendor/` | Retained upstream license notices |
 | `docs/` | [Documentation index](README.md), user/developer guides and the Docker Hub overview |
 | `assets/` | [Artwork conversion notes](../assets/README.md) and documentation screenshots |
 | `site/` | Independent Pages builder and shared Apache-2.0 documentation theme |
 | `examples/` | Public song gallery, generated recordings, original prompts and provenance |
 
-Model files and generated `data/results/` stay outside version control. GGML is
-ordinary vendored source; no recursive clone or nested Git checkout is needed.
+Model files and generated `data/results/` stay outside version control. Native
+dependencies are fetched from checksum-pinned upstream archives or imported from
+verified build artifacts; no recursive clone or nested Git checkout is needed.
 
 `src/` contains application code. `cmake/` and `docker/` describe how that code
 is built and packaged, so they stay beside it. The root `CMakeLists.txt`,
@@ -164,13 +165,21 @@ Run `task deps:verify` after pin changes. `task vendor:verify` remains a compati
 alias. Dependency upgrades require CPU/CUDA validation and test1 generation;
 the source URL never follows a moving branch or latest-release endpoint.
 
+## Other native dependencies
+
+HTTP (cpp-httplib), JSON (yyjson) and MP3 decoding (minimp3) use the pinned upstream
+sources in `docker/app-deps.json`. CMake fetches them into build storage; Docker
+caches their installation in the `app-deps` stage. No external library sources
+remain checked in. The inherited encoder remains project code in `src/codecs/mp3/`.
+See [dependency configuration and caching](BUILDING.md#other-native-dependencies).
+
 ## Native builds (advanced)
 
 The Docker runtime is the supported development baseline. The original engine
 also contains native CPU, CUDA, Vulkan, Metal and SYCL paths. They are not all
 qualified as product distributions.
 
-For CPU development with CMake 3.19+, Ninja and a C++17 toolchain:
+For CPU development with CMake 3.19+, Python 3, Ninja and a C++17 toolchain:
 
 ```text
 cmake -S . -B build/native-cpu -G Ninja -DCMAKE_BUILD_TYPE=Release -DGGML_CUDA=OFF -DGGML_VULKAN=OFF

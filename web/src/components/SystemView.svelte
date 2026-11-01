@@ -1,9 +1,8 @@
 <script lang="ts">
-	import { Settings2, Boxes, ShieldCheck, Volume2, Check, Minus } from '@lucide/svelte';
+	import { Settings2, Boxes, ShieldCheck, Check, Minus } from '@lucide/svelte';
 	import { app } from '../lib/state.svelte.js';
 	import GpuMonitor from './GpuMonitor.svelte';
 	import LogCard from './LogCard.svelte';
-	import SettingHelp from './SettingHelp.svelte';
 	let { active }: { active: boolean } = $props();
 	const filename = (path?: string) => path?.split(/[/\\]/).pop() || 'Unavailable';
 </script>
@@ -11,7 +10,7 @@
 <div class="system-view">
 	<div class="page-heading">
 		<h2 class="section-heading"><Settings2 size={20} /> System</h2>
-		<p>Local runtime, models and browser preferences.</p>
+		<p>Local runtime, models and GPU activity.</p>
 	</div>
 	<div class="system-grid">
 		<div class="system-controls">
@@ -62,26 +61,6 @@
 						>
 					</li>
 				</ul>
-			</section>
-			<section class="surface">
-				<h3>Browser preferences</h3>
-				<div class="preference-row">
-					<span
-						><label for="playback-volume"><Volume2 size={15} /> Playback volume</label><SettingHelp
-							title="Playback volume"
-							text="Listening volume in this browser. It does not change the generated song, its loudness normalization, or downloaded files."
-						/></span
-					><input
-						id="playback-volume"
-						type="range"
-						aria-label="Playback volume"
-						min="0"
-						max="1"
-						step="0.01"
-						bind:value={app.volume}
-					/>
-				</div>
-				<p class="field-help">These preferences are saved in this browser.</p>
 			</section>
 			<section class="surface">
 				<h3 class="section-heading"><ShieldCheck size={17} /> Your machine, your music</h3>
@@ -171,22 +150,6 @@
 		margin-left: 22px;
 		font-size: 0.65rem;
 		color: var(--fg-dim);
-	}
-	.preference-row {
-		display: flex;
-		align-items: center;
-		justify-content: space-between;
-		gap: 12px;
-		margin-top: 19px;
-		font-size: 0.74rem;
-	}
-	.preference-row > span {
-		display: flex;
-		align-items: center;
-		gap: 7px;
-	}
-	.preference-row input {
-		width: 110px;
 	}
 	.system-telemetry > :global(.card) {
 		margin-top: 20px;

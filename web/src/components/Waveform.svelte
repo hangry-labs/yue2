@@ -3,6 +3,7 @@
 	import { untrack } from 'svelte';
 	import { WAVEFORM_HEIGHT, WAVEFORM_BINS } from '../lib/config.js';
 	import { app } from '../lib/state.svelte.js';
+	import { trackGain } from '../lib/playback.js';
 	import { putSong } from '../lib/db.js';
 	import type { Song } from '../lib/types.js';
 	import {
@@ -59,7 +60,7 @@
 
 		actx = getContext();
 		gain = actx.createGain();
-		gain.gain.value = untrack(() => app.volume);
+		gain.gain.value = untrack(() => trackGain(app.volume, playingCount()));
 		gain.connect(actx.destination);
 
 		// peaks cache hit: skip decode entirely, draw from cached array
@@ -256,7 +257,7 @@
 	// waveform, restart at rangeStart
 	function tick() {
 		if (!source) return;
-		if (gain) gain.gain.value = app.volume / Math.sqrt(playingCount());
+		if (gain) gain.gain.value = trackGain(app.volume, playingCount());
 		const t = currentTime();
 		if (t >= dur) {
 			stopPlayback();

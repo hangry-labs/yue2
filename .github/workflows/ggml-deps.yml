@@ -30,8 +30,10 @@ jobs:
           persist-credentials: false
       - name: Test build tools
         run: python3 -m unittest discover -s tests/unit -v
-      - name: Verify official GGML pin and license
-        run: python3 scripts/verify_ggml_source.py
+      - name: Verify native dependency pins and licenses
+        run: |
+          python3 scripts/verify_ggml_source.py
+          python3 scripts/verify_app_deps.py
       - name: Calculate GGML build fingerprint
         id: deps
         run: python3 scripts/ggml_deps.py plan
