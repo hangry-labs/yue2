@@ -18,7 +18,14 @@
 	import { generationRequest, inputRequest } from '../lib/generation.js';
 	import SettingHelp from './SettingHelp.svelte';
 	import PlaybackControls from './PlaybackControls.svelte';
-	import { COT_FULL, COT_MELODY, COT_OFF } from '../lib/config.js';
+	import {
+		COT_FULL,
+		COT_MELODY,
+		COT_OFF,
+		INPUT_AUDIO_FORMATS,
+		OUTPUT_FORMATS,
+		audioMime
+	} from '../lib/config.js';
 	import type { Yue2Request, Song } from '../lib/types.js';
 	import type { PendingJob } from '../lib/db.js';
 	import Dialog from './Dialog.svelte';
@@ -34,6 +41,9 @@
 	let saveFormatOpen = $state(false);
 
 	let d = $derived(app.props?.defaults);
+	let outputFormats = $derived(
+		app.props?.output_formats?.map((format) => format.name) ?? OUTPUT_FORMATS
+	);
 
 	// The adapter directory of the server. The stacked list grows one menu at
 	// a time: an adapter picked in the trailing menu opens another, Disabled
@@ -149,7 +159,7 @@
 
 		// MP3 or WAV: a song card with the audio alone, transcribed from the
 		// card into a score
-		if (ext === 'mp3' || ext === 'wav') {
+		if (INPUT_AUDIO_FORMATS.includes(ext)) {
 			openAudio(file, ext);
 			return;
 		}
@@ -195,9 +205,9 @@
 	// use Transcribe on the card to read its score.
 	async function openAudio(file: File, ext: string) {
 		const blob = new Blob([await file.arrayBuffer()], {
-			type: ext === 'wav' ? 'audio/wav' : 'audio/mpeg'
+			type: audioMime(ext)
 		});
-		const name = file.name.replace(/\.(mp3|wav)$/i, '') || 'Imported';
+		const name = file.name.slice(0, -(ext.length + 1)) || 'Imported';
 		const song: Song = {
 			name,
 			format: ext,
@@ -349,7 +359,7 @@
 <div class="request-form" class:library>
 	<input
 		type="file"
-		accept=".json,.yml,.yaml,.mp3,.wav,.vae"
+		accept=".json,.yml,.yaml,.mp3,.wav,.opus,.ogg,.flac,.aac,.m4a,.mp4,.webm,.vae"
 		bind:this={fileInput}
 		onchange={onFileSelected}
 		hidden
@@ -889,7 +899,7 @@
 							<div class="setting-label">
 								<label for="setting-26">MP3 bitrate</label><SettingHelp
 									title="MP3 bitrate"
-									text="MP3 encoding quality in kilobits per second. Higher values usually preserve more detail and produce larger files. This has no effect on WAV output or the composition."
+									text="MP3 encoding quality in kilobits per second. Higher values usually preserve more detail and produce larger files. This only affects MP3 output, not the composition."
 								/>
 							</div>
 							<input
@@ -903,7 +913,7 @@
 							<div class="setting-label">
 								<label for="setting-27">Format</label><SettingHelp
 									title="Format"
-									text="MP3 makes smaller, compressed files. WAV16 and WAV24 store uncompressed audio, with WAV24 providing more precision for editing. WAV32 stores raw floating-point audio without normalization."
+									text="Opus, MP3, Ogg Vorbis and AAC/M4A make smaller, lossy files. Opus uses 96 kb/s VBR; AAC/M4A use 192 kb/s. FLAC stores lossless 24-bit audio. WAV16 and WAV24 are uncompressed; WAV32 preserves raw floating-point audio without normalization. All formats retain 48 kHz stereo."
 								/>
 							</div>
 							<select
@@ -911,10 +921,11 @@
 								bind:value={app.format}
 								title="Output audio format. WAV32 outputs raw IEEE float without normalization."
 							>
-								<option value="mp3">MP3</option>
-								<option value="wav16">WAV16</option>
-								<option value="wav24">WAV24</option>
-								<option value="wav32">WAV32</option>
+								{#each outputFormats as format}
+									<option value={format}
+										>{format === 'ogg' ? 'OGG / Vorbis' : format.toUpperCase()}</option
+									>
+								{/each}
 							</select>
 						</div>
 					</div>

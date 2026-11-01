@@ -3,7 +3,7 @@
 // Plans a score, writes the semantic token stream, solves the acoustic flow
 // matching from the AR prefix cache, and decodes the latents to 48 kHz stereo.
 
-#include "audio-io.h"
+#include "audio-formats.h"
 #include "backend.h"
 #include "pipeline.h"
 #include "version.h"
@@ -144,13 +144,13 @@ int main(int argc, char ** argv) {
 
     request_resolve_seed(&r);
 
-    bool      is_mp3  = false;
-    WavFormat wav_fmt = WAV_S16;
-    if (!audio_parse_format(r.output_format.c_str(), is_mp3, wav_fmt)) {
+    auto * format = audio_output_format(r.output_format);
+    if (!format) {
         fprintf(stderr, "[Synth] FATAL: unknown output format %s\n", r.output_format.c_str());
         return 1;
     }
-    std::string target = out_path ? out_path : ("song." + std::string(is_mp3 ? "mp3" : "wav"));
+    if (format->codec && !yue_ffmpeg::available()) return 1;
+    std::string target = out_path ? out_path : ("song." + std::string(format->extension));
 
     // Model loads go through the store in STRICT policy: at most one half of
     // the backbone resident at a time, the cache staying between them
@@ -199,8 +199,8 @@ int main(int argc, char ** argv) {
             return 1;
         }
 
-        if (!audio_write(path.c_str(), song.audio.data(), song.T_audio, YUE2_SAMPLE_RATE, is_mp3, wav_fmt,
-                         r.mp3_bitrate, r.peak_clip)) {
+        auto encoded = audio_render(*format, song.audio, song.T_audio, YUE2_SAMPLE_RATE, r.mp3_bitrate, r.peak_clip);
+        if (encoded.empty() || !write_file(path, encoded.data(), encoded.size())) {
             return 1;
         }
 

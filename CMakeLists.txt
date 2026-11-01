@@ -186,3 +186,12 @@ add_executable(quantize src/cli/quantize.cpp)
 link_ggml_backends(quantize)
 
 add_subdirectory(tests)
+
+# Model-free codec integration checks run in the CPU CI image, never the runtime.
+add_executable(audio-formats-check tests/audio/formats.cpp)
+target_include_directories(audio-formats-check PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
+target_link_libraries(audio-formats-check PRIVATE minimp3 Threads::Threads)
+if(NOT MSVC)
+    target_link_libraries(audio-formats-check PRIVATE m)
+    target_compile_options(audio-formats-check PRIVATE -Wall -Wextra -Wconversion -Wno-unused-function)
+endif()

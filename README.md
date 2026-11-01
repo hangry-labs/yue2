@@ -11,7 +11,7 @@
 Development version **v0.1.0-snapshot**. See the [version history](#version-history).
 
 Local song generation from style tags and lyrics in a Docker container, with a
-browser studio, HTTP API and stereo 48 kHz MP3 or WAV output.
+browser studio, HTTP API and stereo 48 kHz audio in Opus, MP3, FLAC, WAV and more.
 
 Write your lyrics, describe the music and generate a song on your own GPU.
 Keep the audio, edit the ABC score or reuse the generated semantic tokens and
@@ -65,7 +65,7 @@ Model terms are separate from the application's MIT license; see [License](#lice
 ## What You Get
 
 - Style-and-lyrics song generation with full score, melody-only and no-score modes.
-- Stereo 48 kHz MP3 or WAV, browser playback and track downloads.
+- Stereo 48 kHz audio, browser playback and [nine output formats](docs/AUDIO.md).
 - Editable ABC scores, semantic-token replay and continuation from source tokens.
 - A browser library with search, favorites and prompt reuse.
 - Local LoRA adapters and VAE audio/latent encoding and decoding.

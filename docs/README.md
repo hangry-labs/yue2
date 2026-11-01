@@ -15,6 +15,7 @@ container with external models.
 | [Song examples](../examples/README.md) | Listening gallery, original prompts, recipes and generation provenance |
 | [Docker runtime](DOCKER.md) | Registry images, mounts, GPU selection, defaults and weight-free packaging |
 | [Models](MODELS.md) | Pinned downloads, optional components, provenance and conversion |
+| [Audio formats](AUDIO.md) | FFmpeg uploads, Opus/MP3/FLAC/AAC exports and native WAV |
 | [LoRA adapters](ADAPTERS.md) | Supported adapter files, placement and loading |
 | [API and engine reference](ARCHITECTURE.md) | Request fields, job responses, CLI tools and engine internals |
 

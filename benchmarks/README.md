@@ -1,5 +1,8 @@
 # Generation, memory and lyric benchmarks
 
+The [performance investigation](PERFORMANCE.md) breaks down score planning,
+music generation, output handling and the available batching/concurrency paths.
+
 The suite follows Faster Qwen3-TTS Studio's separation of speed, GPU memory and
 ASR transcript fidelity. It starts a dedicated CUDA Docker worker with external
 read-only weights, keeps models resident, and generates original 30-second songs.

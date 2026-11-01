@@ -1,6 +1,7 @@
 #pragma once
-// audio-io.h: unified audio read/write for WAV and MP3.
-// Reads any WAV (PCM16/float32, mono/stereo, any rate) or MP3.
+// audio-io.h: native WAV/MP3 helpers and FFmpeg upload decoding.
+// Reads WAV natively (PCM16/24/float32, mono/stereo, any rate), with FFmpeg
+// for other WAV encodings, MP3, Opus/Ogg, FLAC, AAC/M4A and WebM uploads.
 // Normalizes by percentile peak clip, encodes WAV (16/24-bit PCM, float32)
 // in memory or to file, and MP3 via mp3enc.
 // All functions use planar stereo float: [L: T samples][R: T samples].
@@ -21,6 +22,7 @@
 
 // audio-resample.h: sample rate conversion
 #include "audio-resample.h"
+#include "ffmpeg.h"
 
 // minimp3 (CC0): MP3 decoder. Guard against double-implementation.
 #ifndef AUDIO_IO_MP3DEC_IMPL
@@ -220,22 +222,48 @@ static float * audio_io_read_wav(const char * path, int * T_out, int * sr_out) {
     return result;
 }
 
-// Decode WAV or MP3 from a memory buffer, the RIFF magic telling them apart.
+// WAV keeps its native decoder. Other supported containers use FFmpeg, mixed
+// to stereo 48 kHz PCM. Only audio containers and local files/pipes are allowed.
 // Returns planar stereo float [L: T][R: T]. Caller frees.
 static float * audio_read_buf(const uint8_t * data, size_t size, int * T_out, int * sr_out) {
     if (size >= 4 && memcmp(data, "RIFF", 4) == 0) {
-        return audio_io_read_wav_buf(data, size, T_out, sr_out);
+        float * native = audio_io_read_wav_buf(data, size, T_out, sr_out);
+        if (native) return native;
     }
-    return audio_io_read_mp3_buf(data, size, T_out, sr_out);
+    if (!data || size == 0 || size >= yue_ffmpeg::MAX_BYTES) return nullptr;
+    yue_ffmpeg::Files files;
+    if (files.directory.empty() || !yue_ffmpeg::write(files.path("input"), data, size)) return nullptr;
+    std::vector<std::string> args{"-hide_banner", "-v", "error", "-nostdin", "-y", "-threads", "2",
+        "-protocol_whitelist", "file,pipe", "-format_whitelist", "mp3,flac,ogg,mov,aac,matroska,webm,wav",
+        "-i", files.path("input"), "-map", "0:a:0", "-vn", "-sn", "-dn", "-ar", "48000", "-ac", "2",
+        "-threads", "2", "-fs", std::to_string(yue_ffmpeg::MAX_BYTES), "-f", "f32le", files.path("output")};
+    if (!yue_ffmpeg::run(args, files.path("stderr"))) return nullptr;
+    auto bytes = yue_ffmpeg::read(files.path("output"));
+    if (bytes.empty() || bytes.size() % (2 * sizeof(float)) != 0) return nullptr;
+    size_t frames = bytes.size() / (2 * sizeof(float));
+    float * planar = (float *) malloc(bytes.size());
+    if (!planar) return nullptr;
+    for (size_t i = 0; i < frames; ++i) {
+        uint32_t bits[2]{};
+        for (size_t channel = 0; channel < 2; ++channel) {
+            for (size_t b = 0; b < 4; ++b) bits[channel] |= (uint32_t) (uint8_t) bytes[i * 8 + channel * 4 + b] << (b * 8);
+            memcpy(planar + channel * frames + i, &bits[channel], sizeof(float));
+        }
+    }
+    *T_out = (int) frames;
+    *sr_out = 48000;
+    return planar;
 }
 
-// Read WAV or MP3 (auto-detect from extension).
+// Read an audio file by content rather than its extension.
 // Returns planar stereo float [L: T][R: T]. Caller frees.
 static float * audio_read(const char * path, int * T_out, int * sr_out) {
-    if (audio_io_ends_with(path, ".mp3")) {
-        return audio_io_read_mp3(path, T_out, sr_out);
-    }
-    return audio_io_read_wav(path, T_out, sr_out);
+    size_t size = 0;
+    uint8_t * bytes = audio_io_load_file(path, &size);
+    if (!bytes) return nullptr;
+    float * audio = audio_read_buf(bytes, size, T_out, sr_out);
+    free(bytes);
+    return audio;
 }
 
 // maximize perceived loudness via percentile normalization.

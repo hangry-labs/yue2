@@ -11,6 +11,7 @@ yue2.cpp authors. Preserve the root LICENSE when redistributing the source.
 | yyjson 0.13.0 | MIT | [Upstream](https://github.com/ibireme/yyjson/tree/0.13.0), [notice](vendor/licenses/yyjson.txt) |
 | minimp3 | CC0 | [Pinned upstream](https://github.com/lieff/minimp3/tree/ea99364f61c14656440e8d77e9c233ccf3124633), [notice](vendor/licenses/minimp3.txt) |
 | Inherited MP3 encoder | MIT, with CC0 table sources | src/codecs/mp3 headers and root LICENSE; table provenance is retained in tabs_data.h |
+| FFmpeg and packaged codecs | Upstream and Ubuntu package terms, including GPL/LGPL components | [FFmpeg](https://ffmpeg.org/), runtime `/usr/share/doc/ffmpeg/copyright` and `/opt/yue/licenses/ffmpeg.txt` |
 | Svelte, Vite, TypeScript, Lucide and UI tooling | Their respective upstream licenses | web/package-lock.json pins dependencies; package notices remain in installed packages |
 
 The official GGML archive is pinned by commit and SHA-256 in

@@ -178,6 +178,10 @@ the source URL never follows a moving branch or latest-release endpoint.
 
 ## Other native dependencies
 
+FFmpeg is installed as a runtime executable in Docker, with no linking into the
+inference engine or changes to the GGML artifact. Native users need FFmpeg on PATH.
+See [audio integration and codec checks](AUDIO.md).
+
 HTTP (cpp-httplib), JSON (yyjson) and MP3 decoding (minimp3) use the pinned upstream
 sources in `docker/app-deps.json`. CMake fetches them into build storage; Docker
 caches their installation in the `app-deps` stage. No external library sources

@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { audioExtension } from '../lib/config.js';
 	import {
 		Play,
 		Square,
@@ -94,7 +95,7 @@
 		const a = document.createElement('a');
 		a.href = url;
 		const safe = song.name.replace(/[\\/:*?"<>|\x00-\x1f]/g, '') || 'song';
-		const ext = song.format === 'mp3' ? 'mp3' : 'wav';
+		const ext = audioExtension(song.format);
 		a.download = `${safe}.${ext}`;
 		a.click();
 		URL.revokeObjectURL(url);

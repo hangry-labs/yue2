@@ -114,6 +114,10 @@ be writable by the container user; the baseline runner selects the host UID.
 
 ## Request defaults and lyrics
 
+FFmpeg is included for compressed exports and broader upload support. The studio,
+`/synth` and VAE decode support nine [audio output formats](AUDIO.md), while WAV
+retains its native encoder. Optional transcription/tokenization models stay disabled.
+
 Requests use full score mode, a 360-second duration ceiling, **8 flow-matching
 steps**, one song and one variation, random seeds, and MP3 at 128 kbps. The
 8-step default is a deliberate Hangry Labs choice; upstream uses 32. Other

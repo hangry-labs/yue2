@@ -82,7 +82,7 @@
 			<dt><code>GET /health</code></dt>
 			<dd>Service liveness</dd>
 			<dt><code>GET /props</code></dt>
-			<dd>Configured models, capabilities and request defaults</dd>
+			<dd>Configured models, capabilities, output formats and request defaults</dd>
 			<dt><code>GET /logs</code></dt>
 			<dd>Live server logs via server-sent events</dd>
 			<dt><code>GET /system/gpu</code></dt>

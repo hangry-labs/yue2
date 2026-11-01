@@ -77,7 +77,7 @@ COPY web/public/ /web/public/
 
 FROM ubuntu:24.04 AS cpu-checks
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    cmake ninja-build g++ git python3 && rm -rf /var/lib/apt/lists/*
+    cmake ninja-build g++ git python3 ffmpeg && rm -rf /var/lib/apt/lists/*
 WORKDIR /src
 COPY --from=source / /src/
 COPY scripts/smoke_binaries.py /smoke_binaries.py
@@ -87,7 +87,8 @@ RUN --mount=type=cache,id=yue2-native-cpu,target=/build,sharing=locked \
     -DGGML_CUDA=OFF -DGGML_VULKAN=OFF -DGGML_NATIVE=OFF \
     -DBUILD_SHARED_LIBS=OFF -DYUE2_REVISION="$SOURCE_REVISION" \
     && cmake --build /build --parallel 4 \
-    && python3 /smoke_binaries.py /build
+    && python3 /smoke_binaries.py /build \
+    && python3 tests/audio/check_formats.py /build/audio-formats-check
 
 # A digest-pinned registry artifact can replace the source dependency stage.
 FROM ${GGML_DEPS_IMAGE} AS selected-ggml
@@ -129,11 +130,14 @@ RUN --mount=type=cache,id=yue2-native-app,target=/build,sharing=locked \
 
 FROM nvidia/cuda:12.9.1-runtime-ubuntu24.04 AS runtime-unchecked
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    libgomp1 libstdc++6 curl \
+    libgomp1 libstdc++6 curl ffmpeg \
     && rm -rf /var/lib/apt/lists/* \
     && useradd --uid 10001 --create-home yue \
     && mkdir -p /models /output /adapters \
-    && chown yue:yue /output /adapters
+    && chown yue:yue /output /adapters \
+    && mkdir -p /opt/yue/licenses \
+    && cp /usr/share/doc/ffmpeg/copyright /opt/yue/licenses/ffmpeg.txt \
+    && ffmpeg -v error -version
 COPY --from=build /out/ /opt/yue/
 COPY --from=web /web-licenses/ /opt/yue/licenses/web/
 ARG SOURCE_REVISION=unknown

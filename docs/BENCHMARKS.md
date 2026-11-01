@@ -1,5 +1,8 @@
 # Generation benchmarks
 
+See the [stage timing investigation](../benchmarks/PERFORMANCE.md) for the
+short/long-song comparison and controlled duration/concurrency probes.
+
 The [resident-model suite](../benchmarks/README.md) measures warm speed, sampled
 VRAM and ASR lyric fidelity separately, using 30-second songs in four languages.
 Run `task benchmark-plan`, `task benchmark-smoke` or `task benchmark-baseline`.

@@ -9,7 +9,7 @@
 // The binary orchestrates only: generation, cancellation and encoding all
 // live in src/.
 
-#include "audio-io.h"
+#include "audio-formats.h"
 #include "backend.h"
 #include "httplib.h"
 #include "index.html.gz.hpp"
@@ -474,6 +474,14 @@ static void handle_props(const httplib::Request &, httplib::Response & res) {
     yyjson_mut_obj_add_bool(doc, capabilities, "tokenize", !g_tokenizer_path.empty());
     yyjson_mut_obj_add_bool(doc, capabilities, "vae", true);
     yyjson_mut_obj_add_val(doc, root, "capabilities", capabilities);
+    auto * formats = yyjson_mut_arr(doc);
+    for (const auto & format : AUDIO_OUTPUT_FORMATS) {
+        auto * item = yyjson_mut_arr_add_obj(doc, formats);
+        yyjson_mut_obj_add_str(doc, item, "name", format.name);
+        yyjson_mut_obj_add_str(doc, item, "extension", format.extension);
+        yyjson_mut_obj_add_str(doc, item, "mime", format.mime);
+    }
+    yyjson_mut_obj_add_val(doc, root, "output_formats", formats);
 
     // The adapter directory, each entry with the halves it changes
     yyjson_mut_val * adapters = yyjson_mut_arr(doc);
@@ -516,9 +524,7 @@ static bool validate(const std::string & json, httplib::Response & res, Yue2Requ
         res.set_content(json_string("error", "cot must be full, melody or off"), "application/json");
         return false;
     }
-    bool      is_mp3  = false;
-    WavFormat wav_fmt = WAV_S16;
-    if (!audio_parse_format(r->output_format.c_str(), is_mp3, wav_fmt)) {
+    if (!audio_output_format(r->output_format)) {
         res.status = 400;
         res.set_content(json_string("error", "unknown output format"), "application/json");
         return false;
@@ -600,15 +606,11 @@ static void run_tokenize(std::shared_ptr<Job> job, std::vector<float> audio) {
 
 // The audio part of a track: peak normalized except WAV32, then encoded in
 // the output format of the request
-static std::string encode_audio(const Yue2Request & request, std::vector<float> & audio, int T_audio) {
-    bool      is_mp3  = false;
-    WavFormat wav_fmt = WAV_S16;
-    audio_parse_format(request.output_format.c_str(), is_mp3, wav_fmt);
-    if (is_mp3 || wav_fmt != WAV_F32) {
-        audio_normalize(audio.data(), T_audio * 2, request.peak_clip);
-    }
-    return is_mp3 ? audio_encode_mp3(audio.data(), T_audio, YUE2_SAMPLE_RATE, request.mp3_bitrate) :
-                    audio_encode_wav(audio.data(), T_audio, YUE2_SAMPLE_RATE, wav_fmt);
+static std::string encode_audio(const Yue2Request & request, std::vector<float> & audio, int T_audio,
+                                std::atomic<bool> * cancel_flag) {
+    auto * format = audio_output_format(request.output_format);
+    return format ? audio_render(*format, audio, T_audio, YUE2_SAMPLE_RATE, request.mp3_bitrate,
+                                  request.peak_clip, server_cancel_job, cancel_flag) : std::string{};
 }
 
 // VAE worker, encode: the uploaded recording becomes its latents, raw f32
@@ -644,7 +646,7 @@ static void run_vae_decode(std::shared_ptr<Job> job, Yue2Request request, std::v
         ok = pipeline_decode(&g_pipeline, vae, latents.data(), T_lat, &audio, &T_audio, server_cancel_job,
                              (void *) &job->cancel);
         if (ok) {
-            audio_part = encode_audio(request, audio, T_audio);
+            audio_part = encode_audio(request, audio, T_audio, &job->cancel);
             ok         = !audio_part.empty();
         }
     }
@@ -653,11 +655,8 @@ static void run_vae_decode(std::shared_ptr<Job> job, Yue2Request request, std::v
         job->status.store(job->cancel.load() ? JobStatus::CANCELLED : JobStatus::FAILED);
         return;
     }
-    bool      is_mp3  = false;
-    WavFormat wav_fmt = WAV_S16;
-    audio_parse_format(request.output_format.c_str(), is_mp3, wav_fmt);
     job->result_body = std::move(audio_part);
-    job->result_mime = is_mp3 ? "audio/mpeg" : "audio/wav";
+    job->result_mime = audio_output_format(request.output_format)->mime;
     job->status.store(JobStatus::DONE);
 }
 
@@ -678,10 +677,6 @@ static void run_job(std::shared_ptr<Job> job, Yue2Request request) {
         return;
     }
 
-    bool      is_mp3  = false;
-    WavFormat wav_fmt = WAV_S16;
-    audio_parse_format(request.output_format.c_str(), is_mp3, wav_fmt);
-
     // One part triple per track, song-major. The replay request of a track
     // carries its semantic stream, its score and the seeds it consumed, so a
     // resubmit reproduces it without the autoregression.
@@ -691,10 +686,10 @@ static void run_job(std::shared_ptr<Job> job, Yue2Request request) {
     std::vector<std::vector<float>> latents;
     for (size_t t = 0; t < songs.size(); t++) {
         Yue2Song & song = songs[t];
-        audio_parts.push_back(encode_audio(request, song.audio, song.T_audio));
+        audio_parts.push_back(encode_audio(request, song.audio, song.T_audio, &job->cancel));
         if (audio_parts.back().empty()) {
             active_job_set(nullptr);
-            job->status.store(JobStatus::FAILED);
+            job->status.store(job->cancel.load() ? JobStatus::CANCELLED : JobStatus::FAILED);
             return;
         }
         Yue2Request replay = request_replay(request, song.score.empty() ? request.abc : song.score,
@@ -704,7 +699,7 @@ static void run_job(std::shared_ptr<Job> job, Yue2Request request) {
     }
 
     active_job_set(nullptr);
-    job->result_body = multipart_build_tracks(request_parts, audio_parts, is_mp3 ? "audio/mpeg" : "audio/wav", latents);
+    job->result_body = multipart_build_tracks(request_parts, audio_parts, audio_output_format(request.output_format)->mime, latents);
     job->result_mime = MULTIPART_MIME;
     // The compute worker owns ModelStore. Publish an immutable snapshot before
     // DONE so HTTP threads never inspect resident models while they are changing.
@@ -830,6 +825,10 @@ int main(int argc, char ** argv) {
     }
 
     LogCapture log_capture;
+    if (!yue_ffmpeg::available()) {
+        fprintf(stderr, "[Server] FATAL: install FFmpeg before starting yue-server.\n");
+        return 1;
+    }
 
     // Model loads go through the store: STRICT by default (one half of the
     // backbone resident at a time, the cache staying between them), NEVER
@@ -886,7 +885,7 @@ int main(int argc, char ** argv) {
         res.set_content(json_string("id", job->id), "application/json");
     });
 
-    // POST /transcribe, multipart/form-data: an "audio" part (WAV or MP3)
+    // POST /transcribe, multipart/form-data: a supported "audio" file part
     // and an optional "melody_only" field that drops the chord symbols. The
     // route is served when a transcriber is given.
     if (!g_transcriber_path.empty()) {
@@ -912,7 +911,7 @@ int main(int argc, char ** argv) {
         });
     }
 
-    // POST /tokenize, multipart/form-data: an "audio" part (WAV or MP3). The
+    // POST /tokenize, multipart/form-data: an "audio" file part. The
     // route is served when an audio tokenizer is given.
     if (!g_tokenizer_path.empty()) {
         svr.Post("/tokenize", [](const httplib::Request & req, httplib::Response & res) {
@@ -936,8 +935,8 @@ int main(int argc, char ** argv) {
         });
     }
 
-    // POST /vae, multipart/form-data: exactly one of an "audio" part (WAV or
-    // MP3, encode: raw latents out) or a "src_latents" part (raw f32 [T, 64]
+    // POST /vae, multipart/form-data: exactly one of an "audio" file part
+    // (encode: raw latents out) or a "src_latents" part (raw f32 [T, 64]
     // time major, decode: audio out), and an optional "request" part whose
     // output format, peak clip and bitrate drive the decode. The result
     // carries the other side alone, the client holds the one it sent.
@@ -976,10 +975,8 @@ int main(int argc, char ** argv) {
             const std::string & file    = req.form.get_file("src_latents").content;
             const size_t        frame   = (size_t) YUE2_LATENT_DIM * sizeof(float);
             int                 T_lat   = (int) (file.size() / frame);
-            bool                is_mp3  = false;
-            WavFormat           wav_fmt = WAV_S16;
             if (file.empty() || file.size() % frame != 0 || T_lat > YUE2_CONTEXT ||
-                !audio_parse_format(request.output_format.c_str(), is_mp3, wav_fmt)) {
+                !audio_output_format(request.output_format)) {
                 res.status = 400;
                 res.set_content(json_string("error",
                                             "src_latents must be [T, 64] f32 within the context, "

@@ -11,7 +11,7 @@
 [Documentation](https://hangry-labs.github.io/yue2/docs/)
 
 Local song generation from style tags and lyrics, with a browser studio,
-asynchronous HTTP API and stereo 48 kHz MP3 or WAV output in one CUDA container.
+asynchronous HTTP API and stereo 48 kHz audio in Opus, MP3, FLAC, WAV and more.
 
 Write lyrics, describe the music and generate on your own GPU. Keep the audio,
 edit the ABC score or reuse the semantic tokens and acoustic latents.
@@ -58,7 +58,7 @@ and models are available.
 ## What You Get
 
 - Style-and-lyrics generation with full score, melody-only and no-score modes.
-- Stereo 48 kHz audio, browser playback and MP3/WAV downloads.
+- Stereo 48 kHz audio, browser playback and nine output formats through FFmpeg/native WAV.
 - Editable ABC scores, semantic replay and continuation from source tokens.
 - Searchable browser library, favorites and reusable prompts.
 - Local LoRA adapters and VAE audio/latent conversion.

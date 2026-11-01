@@ -517,9 +517,9 @@ The pipeline outputs planar stereo float `[L: T][R: T]` at 48000 Hz, full
 range. Normalization and encoding belong to the output stage (server worker
 or CLI): percentile peak normalization targeting the `1 - peak_clip / 1e6`
 percentile (`peak_clip = 0` is plain peak normalization; WAV32 skips
-normalization entirely and writes raw IEEE float), then MP3 at
-`mp3_bitrate`, or WAV 16/24/32 encoding in memory. `src/audio-io.h` is the
-same file as in the other ports, so the post-processing is identical.
+normalization entirely and writes raw IEEE float). `src/audio-formats.h` encodes
+compressed formats once from PCM through FFmpeg; WAV16/24/32 retain the native
+writer in `src/audio-io.h`. See [audio formats](AUDIO.md).
 
 ## Request JSON reference
 
@@ -624,10 +624,11 @@ Output normalization percentile control: the normalization peak is the
 the true peak with no clipping. Ignored by `wav32`.
 
 **`output_format`** (string, default `"mp3"`)
-Audio encoder: `"mp3"`, `"wav16"`, `"wav24"`, `"wav32"`.
+Server/yue-synth encoder: `"mp3"`, `"opus"`, `"ogg"`, `"flac"`, `"aac"`,
+`"m4a"`, `"wav16"`, `"wav24"`, `"wav32"`. See [profiles and MIME types](AUDIO.md).
 
 **`mp3_bitrate`** (int, default `128`)
-MP3 encoder bitrate in kbps. WAV outputs ignore it.
+MP3 encoder bitrate in kbps. Other output formats ignore it.
 
 **`adapters`** (array, default empty)
 LoRA adapters stacked on the backbone, `[{"name": "x.safetensors",
@@ -767,20 +768,20 @@ POST /synth                     Submit a generation job, returns job ID
   and source_tokens
 
 POST /transcribe                Submit a transcription job, returns job ID
-  body: multipart/form-data, an "audio" part (WAV or MP3) and an optional
+  body: multipart/form-data, a supported "audio" file part and an optional
   "melody_only" field that omits the chord symbols
   response: {"id":"1a2b..."}
   400 without an audio part or on audio that does not decode
   the route is served when the server runs with --transcriber
 
 POST /tokenize                  Submit a tokenization job, returns job ID
-  body: multipart/form-data, an "audio" part (WAV or MP3)
+  body: multipart/form-data, a supported "audio" file part
   response: {"id":"1a2b..."}
   400 without an audio part or on audio that does not decode
   the route is served when the server runs with --tokenizer
 
 POST /vae                       Submit a VAE job, returns job ID
-  body: multipart/form-data, exactly one of an "audio" part (WAV or MP3,
+  body: multipart/form-data, exactly one of an "audio" file part (
   encode) or a "src_latents" part (raw f32 [T, 64] time major, the .vae
   layout, decode), and an optional "request" part (JSON) whose
   output_format, peak_clip and mp3_bitrate drive a decode
@@ -795,7 +796,7 @@ GET  /job?id=N&result=1         Fetch job result
   multipart/mixed, boundary yue2-batch-boundary: per track, song-major,
   one application/json replay request part (the request carrying the
   semantic stream, the score and the seeds of that track), one
-  audio/mpeg or audio/wav part and one application/octet-stream part with
+  audio part with the selected format's MIME type and one application/octet-stream part with
   the latents the audio was decoded from (raw f32 [T, 64], the .vae
   layout); for a VAE job, application/octet-stream latents from an encode
   or the audio of a decode; for a transcription job, application/json,
@@ -838,6 +839,10 @@ sampled device memory, actual audio validation and an external ASR judge.
 adapter directory with the halves each entry changes, and the full default
 request, which is the source of truth for the WebUI placeholders:
 
+It also returns `output_formats`: `{name, extension, mime}` entries for every
+supported export format. Upload containers and conversion limits are documented
+in [audio formats](AUDIO.md).
+
 ```json
 {
   "version": "...",
@@ -860,8 +865,8 @@ evicted FIFO past 32 entries, so a disconnected client can still fetch its
 result after reconnecting. A running job is never evicted.
 
 Each job carries a cancel flag polled between autoregressive steps,
-between ODE steps and between VAE tiles, and passed down to the MP3
-encoder. Shutdown (SIGINT/SIGTERM) cancels the active job through the same
+between ODE steps and between VAE tiles, and passed down to FFmpeg output
+encoding. Shutdown (SIGINT/SIGTERM) cancels the active job through the same
 flag, so Ctrl+C lands within one poll instead of waiting out a generation.
 
 Server stderr is captured at startup: the real descriptor is duplicated, a
