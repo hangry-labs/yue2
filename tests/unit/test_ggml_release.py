@@ -16,6 +16,24 @@ import ggml_release as release
 
 
 class ReleaseArchiveTests(unittest.TestCase):
+    def test_small_exported_recipe_reproduces_the_dependency_fingerprint(self):
+        with tempfile.TemporaryDirectory() as directory:
+            key = release.ggml_deps.fingerprint()
+            path = release.export_recipe(Path(directory), key)
+            extracted = Path(directory) / 'recipe'
+            with tarfile.open(path) as packed:
+                names = packed.getnames()
+                self.assertTrue(all(not name.startswith(('data/', '.ai/', 'vendor/ggml/')) for name in names))
+                packed.extractall(extracted, filter='data')
+            settings = json.loads((extracted / 'docker/ggml-deps.json').read_text())
+            self.assertIsNone(settings['archive'])
+            self.assertIsNone(settings['image'])
+            self.assertIsNone(settings['input_key'])
+            self.assertEqual(release.ggml_deps.fingerprint(extracted), key)
+            first = path.read_bytes()
+            release.export_recipe(Path(directory), key)
+            self.assertEqual(path.read_bytes(), first)
+
     def fixture(self, directory, changed=False, metadata_key='current'):
         payload = b'// tested GGML header\n'
         metadata = {'input_key': metadata_key,

@@ -196,9 +196,11 @@ task start
 ```
 
 `task init` downloads/verifies the two external GGUFs and builds `yue2:dev`.
-Normal Task/CI builds reuse a checksum-pinned **99 MB GGML/CUDA dependency archive**
+Normal Task/CI builds reuse a checksum-pinned **GGML 0.28.0/CUDA dependency archive**
 to skip expensive kernel compilation. It contains libraries and headers, with
-no model weights. See [build dependencies](docs/BUILDING.md).
+no model weights. Source builds fetch the exact official GGML archive into their
+build directory; the full source is not kept in this repository. The previous
+dependency artifact remains available for rollback. See [build dependencies](docs/BUILDING.md).
 
 | Task | Purpose |
 | --- | --- |

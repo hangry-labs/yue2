@@ -82,6 +82,9 @@ tasks:
   deps:prepare:
     desc: Download and verify the pinned public GGML release archive
     cmds: ['"{{.PYTHON}}" scripts/ggml_release.py prepare']
+  deps:verify:
+    desc: Verify the official GGML source pin and retained license
+    cmds: ['"{{.PYTHON}}" scripts/verify_ggml_source.py']
   deps:export:
     desc: Export the local GGML artifact and checksum for a GitHub Release upload
     cmds: ['"{{.PYTHON}}" scripts/ggml_release.py export']
@@ -98,10 +101,10 @@ tasks:
     desc: Follow this project server logs
     cmds: ['"{{.PYTHON}}" scripts/dev.py logs']
   test:
-    desc: Run CPU-only tooling tests and verify the vendored dependency
+    desc: Run CPU-only tooling tests and verify the GGML source pin
     cmds:
       - '"{{.PYTHON}}" -m unittest discover -s tests/unit -v'
-      - task: vendor:verify
+      - task: deps:verify
   test1:
     desc: Run the fixed-seed 8-step music baseline in Docker
     cmds: ['"{{.PYTHON}}" tests/benchmarks/test1.py --image "{{.IMAGE}}" --lm-seed "{{.LM_SEED}}" --seed "{{.SEED}}"']
@@ -117,8 +120,8 @@ tasks:
     desc: Build all native targets and check executable startup inside Docker
     cmds: ['"{{.PYTHON}}" scripts/dev.py cpu-check']
   vendor:verify:
-    desc: Verify the exact vendored GGML file digests
-    cmds: ['"{{.PYTHON}}" scripts/dev.py verify-vendor']
+    desc: Compatibility alias for deps:verify
+    cmds: [{task: 'deps:verify'}]
   web:check:
     desc: Check Svelte, TypeScript and formatting in a Node container
     cmds: ['"{{.PYTHON}}" scripts/dev.py web-check']
@@ -129,7 +132,7 @@ tasks:
     desc: Rebuild the embedded UI asset in a Node container
     cmds: ['"{{.PYTHON}}" scripts/dev.py web-build']
   validate:
-    desc: Run tooling tests, vendor verification, UI checks and native CPU checks
+    desc: Run tooling tests, dependency pin verification, UI checks and native CPU checks
     cmds:
       - task: test
       - task: web:check

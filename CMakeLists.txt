@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.14...3.28)
+cmake_minimum_required(VERSION 3.19...3.28)
 project(yue2-ggml LANGUAGES C CXX)
 
 set(CMAKE_CXX_STANDARD 17)
@@ -47,13 +47,12 @@ if(NOT DEFINED CMAKE_CUDA_ARCHITECTURES)
     endif()
 endif()
 
-# ggml from GGML_SOURCE_DIR (the vendored snapshot by default), inherits GGML_CUDA, GGML_METAL, etc. from cmake flags
+# Source builds fetch the pinned official release; prebuilt builds need no source.
 # CUDA graphs default on: standalone ggml ships them off. Overridable with
 # -DGGML_CUDA_GRAPHS=OFF or at runtime with GGML_CUDA_DISABLE_GRAPHS=1.
 if(NOT DEFINED GGML_CUDA_GRAPHS)
     set(GGML_CUDA_GRAPHS_DEFAULT ON)
 endif()
-set(GGML_SOURCE_DIR "${CMAKE_SOURCE_DIR}/vendor/ggml" CACHE PATH "ggml source tree")
 set(YUE2_GGML_PREFIX "" CACHE PATH "Prebuilt Yue2 GGML dependency installation")
 if(YUE2_GGML_PREFIX)
     find_package(Yue2GGML CONFIG REQUIRED PATHS "${YUE2_GGML_PREFIX}/lib/cmake/Yue2GGML" NO_DEFAULT_PATH)
@@ -63,6 +62,8 @@ if(YUE2_GGML_PREFIX)
     set(GGML_CUDA ON)
     message(STATUS "Using prebuilt Yue2 GGML: ${YUE2_GGML_PREFIX}")
 else()
+    include(cmake/ggml-source.cmake)
+    yue2_fetch_ggml(GGML_SOURCE_DIR)
     add_subdirectory(${GGML_SOURCE_DIR} ggml)
 endif()
 
@@ -76,9 +77,10 @@ macro(link_ggml_backends target)
         ${CMAKE_SOURCE_DIR}
         ${CMAKE_BINARY_DIR}
     )
-    target_include_directories(${target} SYSTEM PRIVATE
-        ${GGML_SOURCE_DIR}/include
-    )
+    # Imported GGML targets propagate their installed include directory.
+    if(NOT YUE2_GGML_PREFIX)
+        target_include_directories(${target} SYSTEM PRIVATE ${GGML_SOURCE_DIR}/include)
+    endif()
     if(MSVC)
         target_compile_options(${target} PRIVATE /W4 /wd4100 /wd4505)
     else()

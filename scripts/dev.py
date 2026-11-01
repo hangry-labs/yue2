@@ -131,7 +131,7 @@ def main():
         else:
             print('Host nvidia-smi unavailable; verify Docker GPU access separately.')
     elif args.command == 'verify-vendor':
-        run([sys.executable, 'scripts/verify_vendor.py'], args.dry_run)
+        run([sys.executable, 'scripts/verify_ggml_source.py'], args.dry_run)
     elif args.command == 'deps-build':
         dependency = ggml_deps.plan()
         tag = 'yue2-ggml:' + dependency['key'][:20]

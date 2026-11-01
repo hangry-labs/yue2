@@ -54,7 +54,7 @@ before retrying, especially for an immutable stable tag.
 
 ## Validation and build dependencies
 
-`ci.yml` runs tooling tests, source snapshot verification, UI type/behavior/format/build
+`ci.yml` runs tooling tests, source-pin verification, UI type/behavior/format/build
 checks and CPU native compilation/startup checks. No model weights are needed.
 The CUDA publishing workflow repeats tooling/vendor checks and uses Docker's
 mandatory weight-free packaging guard. All actions retain immutable commit pins.

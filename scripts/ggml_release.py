@@ -4,6 +4,7 @@ import argparse
 import copy
 import gzip
 import hashlib
+import io
 import json
 import os
 from pathlib import Path, PurePosixPath
@@ -167,6 +168,46 @@ def prepare(dependency, cache_dir=None, dry=False):
     return context
 
 
+def export_recipe(output_dir, key):
+    """Publish the exact small build recipe, never the fetched GGML source."""
+    files = ['Dockerfile', 'LICENSE', 'THIRD_PARTY_NOTICES.md',
+             'docker/ggml-deps.json', 'docker/ggml-source.json',
+             'cmake/ggml-abi.cmake', 'cmake/ggml-source.cmake',
+             'cmake/ggml-deps/CMakeLists.txt', 'cmake/ggml-deps/Yue2GGMLConfig.cmake.in',
+             'scripts/ggml_deps.py', 'scripts/check_no_weights.py',
+             'scripts/verify_ggml_source.py', 'vendor/licenses/ggml-MIT.txt']
+    target = output_dir / ('yue2-ggml-build-recipe-' + key[:20] + '.tar.gz')
+    with tempfile.NamedTemporaryFile(dir=output_dir, suffix='.partial', delete=False) as stream:
+        partial = Path(stream.name)
+        try:
+            with gzip.GzipFile(filename='', mode='wb', fileobj=stream, mtime=0) as compressed:
+                with tarfile.open(fileobj=compressed, mode='w|') as packed:
+                    for name in sorted(files):
+                        path = ROOT / name
+                        if path.is_symlink() or not path.resolve().is_relative_to(ROOT.resolve()):
+                            raise ValueError('Build recipe inputs must stay inside the checkout')
+                        # Our source/config is normalized for cross-platform keys.
+                        data = path.read_bytes().replace(b'\r\n', b'\n')
+                        if name == 'docker/ggml-deps.json':
+                            # A rebuild recipe always selects source. Publishing
+                            # the resulting binary must not change its recipe.
+                            settings = json.loads(data)
+                            settings.update(archive=None, image=None, input_key=None)
+                            data = (json.dumps(settings, indent=2) + '\n').encode('utf-8')
+                        info = tarfile.TarInfo(name)
+                        info.size = len(data)
+                        info.mode = 0o644
+                        packed.addfile(info, io.BytesIO(data))
+            stream.close()
+            partial.replace(target)
+        finally:
+            stream.close()
+            partial.unlink(missing_ok=True)
+    digest = sha256(target)
+    (output_dir / (target.name + '.sha256')).write_text(digest + '  ' + target.name + '\n', encoding='utf-8', newline='\n')
+    return target
+
+
 def export(output_dir=None, image=None):
     # Source identity stays independent of transport: a new archive does not
     # invalidate the compiled library merely because the downloader changes.
@@ -214,8 +255,10 @@ def export(output_dir=None, image=None):
     digest = sha256(archive)
     checksum = output_dir / (name + '.sha256')
     checksum.write_text(digest + '  ' + name + '\n', encoding='utf-8', newline='\n')
+    recipe = export_recipe(output_dir, key)
     print(json.dumps({'archive': str(archive), 'checksum': str(checksum),
-                      'size': archive.stat().st_size, 'sha256': digest, 'input_key': key}, indent=2))
+                      'recipe': str(recipe), 'size': archive.stat().st_size,
+                      'sha256': digest, 'input_key': key}, indent=2))
 
 
 def main():

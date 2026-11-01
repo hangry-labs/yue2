@@ -1,0 +1,9 @@
+{
+  "schema": 1,
+  "repository": "https://github.com/ggml-org/ggml",
+  "version": "0.28.0",
+  "commit": "facdc44a67da17df4433adcc468b424f48e9ded2",
+  "url": "https://codeload.github.com/ggml-org/ggml/tar.gz/facdc44a67da17df4433adcc468b424f48e9ded2",
+  "sha256": "fe81fbbfdfe89a7e11c7dd646acbbf586825e9f5cdc434ac2f9703ed3f48f10c",
+  "license_sha256": "94f29bbed6a22c35b992c5c6ebf0e7c92f13b836b90f36f461c9cf2f0f1d010d"
+}

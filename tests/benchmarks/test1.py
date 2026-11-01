@@ -37,6 +37,14 @@ def model_info(path):
     return {'bytes': path.stat().st_size, 'sha256': digest}
 
 
+def validate_steps(replay, log_text):
+    # Sparse replay JSON omits values equal to the CLI defaults (8).
+    # Check executed steps too, rather than trusting metadata alone.
+    steps = re.findall(r'\[NAR\] Step (\d+)/(\d+),', log_text)
+    if replay.get('steps', 8) != 8 or steps != [(str(i), '8') for i in range(1, 9)]:
+        raise ValueError('Unexpected flow-matching step count')
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--image', default='yue2:dev')
@@ -142,8 +150,7 @@ def main():
                 raise ValueError('Missing generated audio or pipeline completion')
             if not replay.get('abc') or not replay.get('semantic_tokens'):
                 raise ValueError('Missing score or semantic replay data')
-            if replay.get('steps') != 8:
-                raise ValueError('Unexpected flow-matching step count')
+            validate_steps(replay, log_text)
             metadata['semantic_frames'] = len(replay['semantic_tokens'].split(','))
             metadata['duration_cap_reached'] = 'tokens (truncated)' in log_text
             metadata['status'] = 'passed'

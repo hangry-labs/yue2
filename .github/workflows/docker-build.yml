@@ -43,8 +43,8 @@ jobs:
           persist-credentials: false
       - name: Test build tools
         run: python3 -m unittest discover -s tests/unit -v
-      - name: Verify GGML source snapshot
-        run: python3 scripts/verify_vendor.py
+      - name: Verify official GGML pin and license
+        run: python3 scripts/verify_ggml_source.py
       - name: Choose image tag and publishing settings
         id: plan
         env:

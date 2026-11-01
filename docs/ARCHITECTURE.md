@@ -17,8 +17,10 @@ not a separate library pin.
 ## Build
 
 The Docker/Task workflow and native CMake commands are documented in
-[DEVELOPMENT.md](DEVELOPMENT.md). GGML is now a pinned source snapshot in
-vendor/ggml; no submodule initialization is required.
+[DEVELOPMENT.md](DEVELOPMENT.md). GGML is an official release pinned by archive
+checksum in `docker/ggml-source.json`; no source copy or submodule is kept here.
+Source builds fetch it into the build directory. Normal CUDA builds import the
+precompiled dependency described in [BUILDING.md](BUILDING.md).
 
 Eight native tools are built: yue-server, yue-synth, yue-plan, yue-transcribe,
 yue-tokenize, neural-codec, mp3-codec and quantize. Backend capabilities below

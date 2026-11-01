@@ -40,6 +40,27 @@ class PromptTests(unittest.TestCase):
                 baseline.parse_prompt(prompt)
 
 
+class BaselineValidationTests(unittest.TestCase):
+    log = ''.join(f'[NAR] Step {i}/8, 2000 ms\n' for i in range(1, 9))
+
+    def test_sparse_and_explicit_eight_step_replays_are_valid(self):
+        for replay in ({}, {'steps': 8}):
+            with self.subTest(replay=replay):
+                baseline.validate_steps(replay, self.log)
+
+    def test_metadata_cannot_override_a_different_executed_step_count(self):
+        for replay, log in (({'steps': 32}, self.log), ({'steps': 8}, self.log.replace('/8,', '/32,'))):
+            with self.subTest(replay=replay):
+                with self.assertRaisesRegex(ValueError, 'step count'):
+                    baseline.validate_steps(replay, log)
+
+    def test_missing_execution_steps_cannot_pass_with_default_metadata(self):
+        for log in ('', self.log.split('[NAR] Step 8/8')[0]):
+            with self.subTest(log=log):
+                with self.assertRaisesRegex(ValueError, 'step count'):
+                    baseline.validate_steps({}, log)
+
+
 class PublicationTests(unittest.TestCase):
     def test_master_publishes_latest_to_both_registries(self):
         result = images.plan('0.1.0-snapshot', 'push', 'refs/heads/master')

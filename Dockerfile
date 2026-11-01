@@ -10,9 +10,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 FROM cuda-toolchain AS ggml-deps-build
 WORKDIR /dependency
-COPY vendor/ggml/ vendor/ggml/
 COPY cmake/ggml-deps/ cmake/ggml-deps/
-COPY cmake/ggml-abi.cmake cmake/ggml-abi.cmake
+COPY cmake/ggml-abi.cmake cmake/ggml-source.cmake cmake/
+COPY docker/ggml-source.json docker/ggml-source.json
 ARG CUDA_ARCHITECTURES="75-virtual;80-virtual;86-real;89-real;120a-real"
 ARG BUILD_JOBS=4
 RUN --mount=type=cache,id=yue2-ggml-ccache,target=/root/.cache/ccache,sharing=locked \
@@ -22,13 +22,10 @@ RUN --mount=type=cache,id=yue2-ggml-ccache,target=/root/.cache/ccache,sharing=lo
     -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_CUDA_COMPILER_LAUNCHER=ccache \
     && cmake --build /ggml-build --parallel "$BUILD_JOBS" \
     && cmake --install /ggml-build \
-    && rm -rf /ggml-build \
-    && mkdir -p /opt/ggml/licenses \
-    && cp vendor/ggml/LICENSE /opt/ggml/licenses/ggml-MIT.txt
+    && rm -rf /ggml-build
 # Metadata/checker edits can rerun verification without recompiling CUDA.
 COPY Dockerfile /dependency/Dockerfile
 COPY docker/ggml-deps.json /dependency/docker/ggml-deps.json
-COPY vendor/ggml.snapshot.json /dependency/vendor/ggml.snapshot.json
 COPY scripts/ggml_deps.py scripts/check_no_weights.py /dependency/scripts/
 ARG CUDA_BASE
 RUN python3 scripts/ggml_deps.py record --architectures "$CUDA_ARCHITECTURES" --cuda-base "$CUDA_BASE" \
@@ -60,6 +57,7 @@ RUN export YUE2_VERSION="$(cat /VERSION) ($SOURCE_REVISION)" \
 FROM scratch AS source
 COPY CMakeLists.txt VERSION LICENSE THIRD_PARTY_NOTICES.md /
 COPY cmake/ /cmake/
+COPY docker/ggml-source.json /docker/ggml-source.json
 COPY src/ /src/
 COPY vendor/ /vendor/
 COPY tests/ /tests/
@@ -110,7 +108,7 @@ RUN --mount=type=cache,id=yue2-native-app,target=/build,sharing=locked \
     /build/mp3-codec /build/quantize /out/bin/ \
     && cp LICENSE /out/licenses/yue2-MIT.txt \
     && cp THIRD_PARTY_NOTICES.md /out/licenses/ \
-    && cp vendor/ggml/LICENSE /out/licenses/ggml-MIT.txt \
+    && cp /opt/ggml/licenses/ggml-MIT.txt /out/licenses/ggml-MIT.txt \
     && cp /opt/ggml/yue2-ggml.json /out/licenses/ \
     && cp vendor/cpp-httplib/LICENSE /out/licenses/cpp-httplib-MIT.txt \
     && cp vendor/yyjson/yyjson.h /out/licenses/yyjson.h \

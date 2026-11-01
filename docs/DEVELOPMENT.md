@@ -18,7 +18,7 @@ Python helpers use the standard library; Python is not added to the inference im
 | `tests/integration/` | Read-only checks against a running server |
 | `tests/fixtures/` | Baseline prompts |
 | `tests/parity/` | Optional model-dependent upstream numerical harnesses and historical logs |
-| `vendor/` | Third-party source, including the pinned GGML snapshot |
+| `vendor/` | Small third-party sources and retained license notices |
 | `docs/` | [Documentation index](README.md), user/developer guides and the Docker Hub overview |
 | `assets/` | [Artwork conversion notes](../assets/README.md) and documentation screenshots |
 | `site/` | Independent Pages builder and shared Apache-2.0 documentation theme |
@@ -98,7 +98,7 @@ the in-container paths and server defaults have not changed.
 | task deps:export | Export a local dependency archive and checksum for release upload |
 | task start | Start the default server or replace an older project image |
 | task stop / status / logs | Operate this project's container |
-| task test | Tooling tests and GGML snapshot verification |
+| task test | Tooling tests and GGML source-pin verification |
 | task test:api | Read-only capabilities and GPU telemetry checks against the running server |
 | task check:cpu | Compile all native targets and check executable loading in Docker |
 | task web:check | Check UI types, request behavior and formatting in Node Docker |
@@ -147,20 +147,22 @@ CI injects the validated commit. The same version/revision is embedded in UI and
 native binaries. Direct Docker builds without a SOURCE_REVISION argument show
 an unknown revision, but retain the application version.
 
-## Vendored dependencies
+## GGML dependency
 
-vendor/ggml is a source snapshot of ServeurpersoCom/ggml at
-cc5df49a6b878db2b68b9a7b45976e279594627d. It replaces the former root submodule.
-The runtime source is unchanged. It retains custom SNAKE/COL2IM_1D VAE support.
+`docker/ggml-source.json` pins official GGML 0.28.0 by exact commit and archive
+SHA-256. `cmake/ggml-source.cmake` uses CMake FetchContent to verify and unpack
+that archive inside the build directory. The repository contains no GGML source
+tree or submodule. No runtime source patch is currently necessary; local settings
+are in `cmake/ggml-abi.cmake` and `cmake/ggml-deps/`.
 
-The snapshot excludes upstream CI/agent tooling and an empty .gitmodules file.
-One example ignore file has packaging exceptions so its existing tracked source
-is not lost when vendored. See vendor/ggml/UPSTREAM.md and the SHA-256 manifest
-vendor/ggml.snapshot.json. Root .gitattributes preserves exact snapshot bytes.
+Normal CUDA builds use installed headers and libraries from the precompiled
+artifact and do not download the source archive. See [build dependencies](BUILDING.md)
+for publication, caching and rollback. The MIT notice remains in
+`vendor/licenses/ggml-MIT.txt` and the runtime image.
 
-Run task vendor:verify after updates. A dependency update is a reviewed source
-change with refreshed provenance/hashes, CPU/CUDA validation and test1 generation;
-there is no git-pull update task. Preserve all upstream notices.
+Run `task deps:verify` after pin changes. `task vendor:verify` remains a compatibility
+alias. Dependency upgrades require CPU/CUDA validation and test1 generation;
+the source URL never follows a moving branch or latest-release endpoint.
 
 ## Native builds (advanced)
 
@@ -168,7 +170,7 @@ The Docker runtime is the supported development baseline. The original engine
 also contains native CPU, CUDA, Vulkan, Metal and SYCL paths. They are not all
 qualified as product distributions.
 
-For CPU development with CMake/Ninja and a C++17 toolchain:
+For CPU development with CMake 3.19+, Ninja and a C++17 toolchain:
 
 ```text
 cmake -S . -B build/native-cpu -G Ninja -DCMAKE_BUILD_TYPE=Release -DGGML_CUDA=OFF -DGGML_VULKAN=OFF
@@ -179,7 +181,8 @@ python scripts/smoke_binaries.py build/native-cpu
 Use a Visual Studio x64 developer environment on Windows. For native CUDA, use
 a separate build/native-cuda directory with -DGGML_CUDA=ON and a suitable CUDA
 architecture. For Vulkan, install its SDK, glslc and SPIRV-Headers.
--DGGML_SOURCE_DIR can select an intentionally reviewed alternative GGML tree.
+The first source configure requires HTTPS access to the pinned archive; subsequent
+configures reuse the downloaded source in that build directory.
 No build task recursively deletes build/.
 
 ## Reference parity checks

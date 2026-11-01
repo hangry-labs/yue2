@@ -28,22 +28,20 @@ def fingerprint(root=ROOT, architectures=None, cuda_base=None):
     }
     digest.update(json.dumps(inputs, sort_keys=True).encode())
     # Only dependency stages are relevant. App/UI/version edits must not change
-    # the key. Include actual source bytes, not just a claimed upstream revision.
+    # the key. The source lock pins exact archive bytes verified by CMake.
     dockerfile = (root / 'Dockerfile').read_text().split(MARKER)
     if len(dockerfile) != 2:
         raise ValueError('Dockerfile dependency boundary is missing or duplicated')
     digest.update(dockerfile[0].encode())
     files = [root / 'scripts/ggml_deps.py', root / 'scripts/check_no_weights.py',
-             root / 'cmake/ggml-abi.cmake', root / 'vendor/ggml.snapshot.json']
-    for directory in ('cmake/ggml-deps', 'vendor/ggml'):
+             root / 'cmake/ggml-abi.cmake', root / 'cmake/ggml-source.cmake',
+             root / 'docker/ggml-source.json']
+    for directory in ('cmake/ggml-deps',):
         files.extend(p for p in (root / directory).rglob('*') if p.is_file())
     for path in sorted(files, key=lambda value: value.relative_to(root).as_posix()):
         digest.update(path.relative_to(root).as_posix().encode() + b'\0')
-        # Source snapshot bytes are preserved by .gitattributes. Our text files
-        # may be checked out as CRLF; normalize those for Linux/Windows key parity.
-        data = path.read_bytes()
-        if 'vendor/ggml/' not in path.relative_to(root).as_posix():
-            data = data.replace(b'\r\n', b'\n')
+        # Normalize our configuration for Linux/Windows checkout parity.
+        data = path.read_bytes().replace(b'\r\n', b'\n')
         digest.update(hashlib.sha256(data).digest())
     return digest.hexdigest()
 
@@ -95,7 +93,8 @@ def main():
     metadata_path = args.prefix / 'yue2-ggml.json'
     if args.command == 'record':
         metadata = {'schema': 1, 'input_key': key, 'toolchain': toolchain(),
-                    'ggml_commit': json.loads((ROOT / 'vendor/ggml.snapshot.json').read_text())['commit'],
+                    'ggml_commit': json.loads((ROOT / 'docker/ggml-source.json').read_text())['commit'],
+                    'ggml_source': json.loads((ROOT / 'docker/ggml-source.json').read_text()),
                     'architectures': args.architectures or config()['architectures'],
                     'cuda_base': args.cuda_base or config()['cuda_base'],
                     'files': artifact_hashes(args.prefix)}
