@@ -25,6 +25,11 @@
 		2
 	);
 	const musicCommand = `curl '${location.origin}/v1/audio/music' -H 'Content-Type: application/json' --data '${music}' --output song.opus`;
+	const mcpConfig = JSON.stringify(
+		{ mcpServers: { yue2: { type: 'http', url: `${location.origin}/mcp` } } },
+		null,
+		2
+	);
 	const python = [
 		'from openai import OpenAI',
 		'',
@@ -103,11 +108,68 @@
 			latents and batch output.
 		</p>
 		<p class="field-help">
-			Set YUE2_API_KEY to require a local Bearer key on /v1 routes. Add an Authorization header to
-			curl or replace local in the Python example with that key. Studio/native routes retain their
-			existing local access policy.
+			Set YUE2_API_KEY to require a local Bearer key on /v1 and /mcp routes. Add an Authorization
+			header to curl or replace local in the Python example with that key. Studio/native routes
+			retain their existing local access policy.
 		</p>
 	</section>
+	<div class="api-grid">
+		<section class="surface">
+			<h3>Music tools for agents</h3>
+			<p class="field-help">
+				Connect an MCP client over Streamable HTTP. Retrieve skill first, write or prepare a full
+				song, then generate and poll for a download link. The same serial queue serves agents and
+				Studio.
+			</p>
+			<div class="code-heading">
+				<span>MCP connection</span><button
+					class="secondary-button"
+					type="button"
+					onclick={() => copy(mcpConfig)}><Copy size={14} /> Copy</button
+				>
+			</div>
+			<pre><code>{mcpConfig}</code></pre>
+			<p class="field-help">
+				Client configuration varies. If a local API key is configured, add its Bearer Authorization
+				header to the connection.
+			</p>
+		</section>
+		<section class="surface">
+			<h3>Read, create, collect</h3>
+			<ol>
+				<li>
+					<code>skill</code><span>Read the guide and keep its guide token.</span>
+				</li>
+				<li>
+					<code>generate_song</code><span
+						>Supply full-song lyrics and musical style; optionally duration, BPM hint and Opus or
+						FLAC. Defaults to 150 seconds.</span
+					>
+				</li>
+				<li>
+					<code>get_song</code><span
+						>Poll every two seconds. Download or share the completed HTTP link.</span
+					>
+				</li>
+				<li>
+					<code>cancel_song</code><span>Cancel a queued or generating song using its handle.</span>
+				</li>
+			</ol>
+			<p class="field-help">
+				Links expire one hour after completion. Audio stays 48 kHz stereo and is never embedded in
+				tool responses. Agents have no runtime settings or quality controls.
+			</p>
+			<p class="field-help">
+				<a href="/skills/songwriting/SKILL.md" target="_blank" rel="noreferrer">Read the skill</a>
+				·
+				<a
+					href="https://github.com/hangry-labs/yue2/blob/master/docs/MCP.md"
+					target="_blank"
+					rel="noreferrer">MCP reference</a
+				>
+			</p>
+		</section>
+	</div>
 	<div class="api-grid">
 		<section class="surface">
 			<h3>Generate a song</h3>
@@ -199,6 +261,9 @@
 	}
 	.api-grid .surface {
 		margin: 0;
+	}
+	.routes {
+		margin-bottom: 20px;
 	}
 	.code-heading {
 		display: flex;

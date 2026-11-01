@@ -23,3 +23,14 @@ class ApiEnvironmentTests(unittest.TestCase):
         for value in ('new-secret', ''):
             with self.subTest(value=value), patch.dict(os.environ, {'YUE2_API_KEY': value}, clear=True):
                 self.assertEqual(api_environment(previous)['YUE2_API_KEY'], value)
+
+    def test_mcp_operator_configuration_survives_image_updates(self):
+        previous = {'Config': {'Env': ['YUE2_MCP_PUBLIC_URL=https://music.example.org',
+                                      'YUE2_MCP_OUTPUT_DIR=/output/agent-artifacts']}}
+        with patch.dict(os.environ, {}, clear=True):
+            environment = api_environment(previous)
+        self.assertEqual(environment['YUE2_MCP_PUBLIC_URL'], 'https://music.example.org')
+        self.assertEqual(environment['YUE2_MCP_OUTPUT_DIR'], '/output/agent-artifacts')
+        flags = api_env_flags(environment)
+        self.assertNotIn('https://music.example.org', flags)
+        self.assertEqual(flags, ['--env', 'YUE2_MCP_PUBLIC_URL', '--env', 'YUE2_MCP_OUTPUT_DIR'])

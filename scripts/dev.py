@@ -16,7 +16,7 @@ import ggml_release
 import storage
 
 ROOT = Path(__file__).resolve().parents[1]
-API_ENV_KEYS = ('YUE2_API_KEY', 'YUE2_API_TIMEOUT_SECONDS')
+API_ENV_KEYS = ('YUE2_API_KEY', 'YUE2_API_TIMEOUT_SECONDS', 'YUE2_MCP_PUBLIC_URL', 'YUE2_MCP_OUTPUT_DIR')
 
 
 def api_environment(existing=None):
@@ -186,19 +186,25 @@ def main():
         run(command, args.dry_run)
     elif args.command == 'start':
         server_env = api_environment()
+        if not server_env.get('YUE2_MCP_PUBLIC_URL'):
+            server_env['YUE2_MCP_PUBLIC_URL'] = f'http://localhost:{port}'
         models = storage.MODELS
         adapters = storage.ADAPTERS
+        output = storage.RESULTS / 'studio'
         for filename in ('YuE2-3B-Q8_0.gguf', 'YuE2-Vae-F32.gguf'):
             if not (models / filename).is_file() and not args.dry_run:
                 raise RuntimeError('Models missing in data/models/. Run task data:migrate for an old checkout, or task models to download.')
         if not args.dry_run:
             storage.require_migrated()
             adapters.mkdir(parents=True, exist_ok=True)
+            output.mkdir(parents=True, exist_ok=True)
             image_info = json.loads(subprocess.check_output(['docker', 'image', 'inspect', image], text=True))[0]
             existing = subprocess.run(['docker', 'inspect', container], capture_output=True, text=True)
             if existing.returncode == 0:
                 info = json.loads(existing.stdout)[0]
                 server_env = api_environment(info)
+                if not server_env.get('YUE2_MCP_PUBLIC_URL'):
+                    server_env['YUE2_MCP_PUBLIC_URL'] = f'http://localhost:{port}'
                 labels = info['Config'].get('Labels') or {}
                 if labels.get('org.opencontainers.image.source') != 'https://github.com/hangry-labs/yue2':
                     raise RuntimeError('Container name belongs to another project; choose CONTAINER explicitly')
@@ -208,14 +214,15 @@ def main():
                 binding = {'HostIp': setting('BIND_ADDRESS', '127.0.0.1'), 'HostPort': str(port)}
                 mounted = {m['Destination']: os.path.normcase(m['Source']) for m in info.get('Mounts', [])}
                 correct_mounts = all(mounted.get(target) == os.path.normcase(str(source))
-                                     for target, source in (('/models', models), ('/adapters', adapters)))
+                                     for target, source in (('/models', models), ('/adapters', adapters), ('/output', output)))
                 requests = info['HostConfig'].get('DeviceRequests') or []
                 selected = setting('GPU_DEVICE', 'all')
                 correct_gpu = any((r.get('Count') == -1 if selected == 'all'
                                    else r.get('DeviceIDs') == selected.split(',')) for r in requests)
                 configured = dict(item.split('=', 1) for item in info['Config'].get('Env', []) if '=' in item)
                 correct_api = all(configured.get(key, default) == server_env.get(key, default)
-                                  for key, default in (('YUE2_API_KEY', ''), ('YUE2_API_TIMEOUT_SECONDS', '600')))
+                                  for key, default in (('YUE2_API_KEY', ''), ('YUE2_API_TIMEOUT_SECONDS', '600'),
+                                                       ('YUE2_MCP_PUBLIC_URL', ''), ('YUE2_MCP_OUTPUT_DIR', '')))
                 if (info['Image'] == image_info['Id'] and info['State']['Running']
                         and info['Config']['Cmd'] == image_info['Config']['Cmd']
                         and bindings == [binding] and correct_mounts and correct_gpu and correct_api):
@@ -229,7 +236,8 @@ def main():
              '--label', 'io.hangrylabs.project=yue2',
              '-p', setting('BIND_ADDRESS', '127.0.0.1') + f':{port}:8087',
              '--mount', f'type=bind,source={models},target=/models,readonly',
-             '--mount', f'type=bind,source={adapters},target=/adapters,readonly', *api_env_flags(server_env), image], args.dry_run, env=server_env)
+             '--mount', f'type=bind,source={adapters},target=/adapters,readonly',
+             '--mount', f'type=bind,source={output},target=/output', *api_env_flags(server_env), image], args.dry_run, env=server_env)
         print(f'UI: http://localhost:{port}')
     elif args.command == 'stop':
         if not args.dry_run:

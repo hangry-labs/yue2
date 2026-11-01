@@ -155,9 +155,18 @@ add_custom_command(OUTPUT "${OPENAPI_OUTPUT}"
             -P "${CMAKE_SOURCE_DIR}/cmake/xxd.cmake"
     DEPENDS "${CMAKE_SOURCE_DIR}/src/api/openapi.json" "${CMAKE_SOURCE_DIR}/cmake/xxd.cmake")
 set_source_files_properties(${OPENAPI_OUTPUT} PROPERTIES GENERATED TRUE)
-add_executable(yue-server src/cli/yue-server.cpp src/request.cpp src/model-store.cpp src/system-gpu.cpp ${WEBUI_OUTPUT} ${OPENAPI_OUTPUT})
+set(SKILL_OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/songwriting-skill.hpp")
+add_custom_command(OUTPUT "${SKILL_OUTPUT}"
+    COMMAND "${CMAKE_COMMAND}" "-DINPUT=${CMAKE_SOURCE_DIR}/src/agent/skills/songwriting/SKILL.md" "-DOUTPUT=${SKILL_OUTPUT}"
+            -P "${CMAKE_SOURCE_DIR}/cmake/xxd.cmake"
+    DEPENDS "${CMAKE_SOURCE_DIR}/src/agent/skills/songwriting/SKILL.md" "${CMAKE_SOURCE_DIR}/cmake/xxd.cmake")
+set_source_files_properties(${SKILL_OUTPUT} PROPERTIES GENERATED TRUE)
+add_executable(yue-server src/cli/yue-server.cpp src/request.cpp src/model-store.cpp src/system-gpu.cpp ${WEBUI_OUTPUT} ${OPENAPI_OUTPUT} ${SKILL_OUTPUT})
 target_include_directories(yue-server PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
 target_link_libraries(yue-server PRIVATE yyjson httplib ${CMAKE_DL_LIBS})
+if(WIN32)
+    target_link_libraries(yue-server PRIVATE bcrypt)
+endif()
 if(GGML_CUDA AND CMAKE_SYSTEM_NAME STREQUAL "Linux")
     find_package(CUDAToolkit REQUIRED)
     target_include_directories(yue-server PRIVATE ${CUDAToolkit_INCLUDE_DIRS})
@@ -196,6 +205,13 @@ add_subdirectory(tests)
 add_executable(music-api-check tests/api/translate.cpp src/request.cpp)
 target_include_directories(music-api-check PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
 target_link_libraries(music-api-check PRIVATE yyjson)
+
+add_executable(mcp-check tests/mcp/server.cpp src/request.cpp ${SKILL_OUTPUT})
+target_include_directories(mcp-check PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src ${CMAKE_CURRENT_BINARY_DIR})
+target_link_libraries(mcp-check PRIVATE yyjson httplib Threads::Threads)
+if(WIN32)
+    target_link_libraries(mcp-check PRIVATE bcrypt)
+endif()
 
 # Model-free codec integration checks run in the CPU CI image, never the runtime.
 add_executable(audio-formats-check tests/audio/formats.cpp)

@@ -8,6 +8,10 @@ Open [the local API guide](http://localhost:8087/docs) or download
 `http://localhost:8087/openapi.json` for the OpenAPI 3.1 contract. The guide is
 packaged in the image and works without a CDN.
 
+For agents, connect to [`/mcp`](MCP.md). Its four tools require reading the
+songwriting guide first, expose basic musical controls and return HTTP
+download links valid for one hour after completion.
+
 ## Generate music
 
 `POST /v1/audio/music` is our music extension. It returns one complete audio file:
@@ -123,7 +127,7 @@ The existing [native API reference](ARCHITECTURE.md#endpoints) remains available
 ## Authentication, errors and cancellation
 
 Set `YUE2_API_KEY` to require `Authorization: Bearer YOUR_LOCAL_KEY` on `/v1`
-routes. SDK examples use a dummy `local` key because the SDK requires a key
+and `/mcp` routes. SDK examples use a dummy `local` key because the SDK requires a key
 argument; replace it with your configured key when authentication is enabled.
 The key is local configuration, not an OpenAI account key.
 
@@ -132,7 +136,7 @@ Task commands also forward it from their environment/ignored `.env` without
 printing its value, and preserve existing access settings across image updates.
 An explicitly empty host value clears a previously configured key.
 
-This authentication covers `/v1` only. Studio, native jobs, logs and System keep
+This authentication covers `/v1` and `/mcp`. Studio, native jobs, logs and System keep
 their existing local access policy. The normal Docker binding remains localhost;
 whole-service remote access requires its own access configuration.
 

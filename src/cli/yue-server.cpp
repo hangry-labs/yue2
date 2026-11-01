@@ -15,6 +15,8 @@
 #include "index.html.gz.hpp"
 #include "openapi.json.hpp"
 #include "music-api.h"
+#include "agent/mcp.h"
+#include "songwriting-skill.hpp"
 #include "pipeline.h"
 #include "system-gpu.h"
 #include "version.h"
@@ -490,6 +492,9 @@ static void handle_props(const httplib::Request &, httplib::Response & res) {
     auto * api = yyjson_mut_obj(doc);
     yyjson_mut_obj_add_str(doc, api, "music", "/v1/audio/music");
     yyjson_mut_obj_add_str(doc, api, "speech", "/v1/audio/speech");
+    yyjson_mut_obj_add_str(doc, api, "mcp", "/mcp");
+    yyjson_mut_obj_add_str(doc, api, "songwriting_skill", yue_agent::SKILL_PATH);
+    yyjson_mut_obj_add_int(doc, api, "download_ttl_seconds", yue_agent::LINK_TTL);
     yyjson_mut_obj_add_bool(doc, api, "authentication_required", !g_api_key.empty());
     yyjson_mut_obj_add_int(doc, api, "timeout_seconds", g_api_timeout);
     yyjson_mut_obj_add_val(doc, root, "api", api);
@@ -748,6 +753,97 @@ static void run_job(std::shared_ptr<Job> job, Yue2Request request, bool direct =
     job->status.store(JobStatus::DONE);
 }
 
+enum class AgentState { QUEUED, GENERATING, COMPLETE, FAILED, CANCELLED };
+struct AgentJob {
+    std::shared_ptr<Job> native;
+    std::atomic<AgentState> state{AgentState::QUEUED};
+    std::atomic<int64_t> expires{0};
+};
+static std::unique_ptr<yue_agent::Artifacts> g_agent_artifacts;
+static std::string g_agent_public_url;
+static std::mutex mtx_agent_jobs;
+static std::map<std::string, std::shared_ptr<AgentJob>> g_agent_jobs;
+
+static void agent_cleanup() {
+    g_agent_artifacts->cleanup();
+    std::lock_guard<std::mutex> lock(mtx_agent_jobs);
+    for (auto it = g_agent_jobs.begin(); it != g_agent_jobs.end();) {
+        auto expires = it->second->expires.load();
+        if (expires && expires <= yue_agent::now_seconds()) it = g_agent_jobs.erase(it); else ++it;
+    }
+}
+
+static std::string agent_submit(const Yue2Request & request) {
+    agent_cleanup();
+    auto handle = yue_agent::token();
+    auto agent = std::make_shared<AgentJob>();
+    {
+        std::lock_guard<std::mutex> lock(mtx_agent_jobs);
+        size_t pending = 0;
+        for (const auto & entry : g_agent_jobs) {
+            auto state = entry.second->state.load();
+            if (state == AgentState::QUEUED || state == AgentState::GENERATING) ++pending;
+        }
+        if (pending >= 8 || g_agent_jobs.size() >= 128)
+            throw std::runtime_error("Agent song queue is full; wait for current songs or expired handles");
+        agent->native = job_create();
+        g_agent_jobs.emplace(handle, agent);
+    }
+    // Retain native status for the existing idle/restart guards, including
+    // queued jobs. The opaque MCP handle never reveals that native job id.
+    fprintf(stderr, "[Server] Job %s: queued MCP song\n", agent->native->id.c_str());
+    work_push([agent, request, handle] {
+        agent->state.store(AgentState::GENERATING);
+        try {
+            run_job(agent->native, request, true);
+            auto status = agent->native->status.load();
+            if (status == JobStatus::DONE) {
+                auto metrics = yue_agent::parse(agent->native->metrics_json);
+                double duration = metrics ? yyjson_get_num(yyjson_obj_get(yyjson_doc_get_root(metrics.get()), "audio_seconds")) : 0;
+                auto artifact = g_agent_artifacts->save(handle, request.output_format, agent->native->result_body, duration);
+                agent->expires.store(artifact.expires);
+                agent->state.store(AgentState::COMPLETE);
+                // Native history keeps its existing bounded result cache. Do
+                // not retain extra audio copies through hour-long MCP handles.
+                { std::lock_guard<std::mutex> lock(mtx_agent_jobs); agent->native.reset(); }
+                return;
+            }
+            agent->state.store(status == JobStatus::CANCELLED ? AgentState::CANCELLED : AgentState::FAILED);
+        } catch (const std::exception & e) {
+            fprintf(stderr, "[Server] MCP song failed during generation or export: %s\n", e.what());
+            active_job_set(nullptr);
+            if (agent->native->status.load() == JobStatus::RUNNING) agent->native->status.store(JobStatus::FAILED);
+            agent->state.store(AgentState::FAILED);
+        }
+        agent->expires.store(yue_agent::now_seconds() + yue_agent::LINK_TTL);
+    });
+    yue_agent::Json j; j.text("job_id", handle); j.text("status", "queued"); j.integer("poll_after_seconds", 2);
+    return j.dump();
+}
+
+static std::string agent_status(const std::string & handle, bool cancel) {
+    std::lock_guard<std::mutex> lock(mtx_agent_jobs);
+    auto it = g_agent_jobs.find(handle);
+    if (it == g_agent_jobs.end() || (it->second->expires.load() && it->second->expires.load() <= yue_agent::now_seconds()))
+        throw std::invalid_argument("Song handle not found or expired");
+    auto agent = it->second;
+    auto state = agent->state.load();
+    if (state == AgentState::COMPLETE) {
+        // Publication can complete between the transport's lookup and this
+        // state load. Recheck before reporting an unavailable file.
+        yue_agent::Artifact artifact;
+        if (g_agent_artifacts->find(handle, artifact)) return artifact.metadata(g_agent_public_url);
+        throw std::invalid_argument("Song download has expired or is unavailable");
+    }
+    if (cancel && (state == AgentState::QUEUED || state == AgentState::GENERATING)) agent->native->cancel.store(true);
+    yue_agent::Json j; j.text("job_id", handle); j.integer("poll_after_seconds", 2);
+    j.text("status", state == AgentState::QUEUED ? "queued" : state == AgentState::GENERATING ? "generating" :
+                     state == AgentState::CANCELLED ? "cancelled" : "failed");
+    j.boolean("cancel_requested", agent->native->cancel.load());
+    if (state == AgentState::FAILED) j.text("message", "Song generation or export failed. Check server logs before retrying.");
+    return j.dump();
+}
+
 static void api_error(httplib::Response & res, int status, const MusicApiError & error,
                        const char * type = "invalid_request_error") {
     res.status = status;
@@ -951,10 +1047,36 @@ int main(int argc, char ** argv) {
         return 1;
     }
 
-    std::thread worker(worker_main);
-
     httplib::Server svr;
     g_svr = &svr;
+    std::unique_ptr<yue_agent::Mcp> mcp;
+    try {
+        const char * output = std::getenv("YUE2_MCP_OUTPUT_DIR");
+        g_agent_artifacts = std::make_unique<yue_agent::Artifacts>(output && *output ? output : "agent-artifacts");
+        const char * public_url = std::getenv("YUE2_MCP_PUBLIC_URL");
+        g_agent_public_url = public_url && *public_url ? public_url : "http://localhost:" + std::to_string(port);
+        if (g_agent_public_url.ends_with('/')) g_agent_public_url.pop_back();
+        mcp = std::make_unique<yue_agent::Mcp>(*g_agent_artifacts,
+            g_agent_public_url, port,
+            std::string((const char *) SKILL_md, SKILL_md_len), YUE2_VERSION, agent_submit, agent_status);
+        mcp->attach(svr, api_authorized);
+    } catch (const std::exception & e) {
+        fprintf(stderr, "[Server] FATAL: MCP initialization: %s\n", e.what());
+        pipeline_free(&g_pipeline); store_free(g_pipeline.store); return 1;
+    }
+    std::thread worker(worker_main);
+    // File expiry and handle cleanup only. This thread never touches models,
+    // the pipeline, or the GPU worker's native result fields.
+    std::mutex maintenance_mutex;
+    std::condition_variable maintenance_cv;
+    bool maintenance_stop = false;
+    std::thread maintenance([&] {
+        std::unique_lock<std::mutex> lock(maintenance_mutex);
+        while (!maintenance_cv.wait_for(lock, std::chrono::seconds(30), [&] { return maintenance_stop; })) {
+            try { agent_cleanup(); }
+            catch (const std::exception &) { fprintf(stderr, "[Server] Temporary export cleanup failed\n"); }
+        }
+    });
     svr.Get("/openapi.json", [](const httplib::Request &, httplib::Response & res) {
         res.set_content(std::string((const char *) openapi_json, openapi_json_len), "application/json");
     });
@@ -1192,6 +1314,8 @@ int main(int argc, char ** argv) {
     }
     cv_work.notify_all();
     worker.join();
+    { std::lock_guard<std::mutex> lock(maintenance_mutex); maintenance_stop = true; }
+    maintenance_cv.notify_all(); maintenance.join();
     pipeline_free(&g_pipeline);
     store_free(g_pipeline.store);
     fprintf(stderr, "[Server] Done\n");

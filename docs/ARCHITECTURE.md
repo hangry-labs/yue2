@@ -762,6 +762,11 @@ The [music and OpenAI-compatible API guide](API.md) documents `/v1/audio/music`,
 worker. `/openapi.json` describes native and compatibility routes; `/docs` opens
 the packaged API view. These additions preserve the native job contract below.
 
+The [MCP interface](MCP.md) at `/mcp` exposes four restricted song tools and the
+bundled songwriting resource. It reuses the FIFO worker and exports only the
+selected Opus/FLAC file, served through an expiring HTTP capability link. Its
+argument allowlist cannot change runtime or advanced inference settings.
+
 ```
 POST /synth                     Submit a generation job, returns job ID
   body: application/json Yue2Request

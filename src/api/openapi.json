@@ -3,10 +3,44 @@
   "info": {
     "title": "Hangry Labs YuE2 music API",
     "version": "0.1.0",
-    "description": "Local music generation on one serial FIFO compute worker. /v1/audio/music is a YuE2 extension; /v1/audio/speech provides OpenAI client transport compatibility and generates songs. Ordinary audio stays 48 kHz stereo. Explicit pcm export is 24 kHz mono signed PCM16LE. Complete songs are generated before delivery. Optional Bearer authentication covers /v1 only; native and Studio routes retain their existing local access policy."
+    "description": "Local music generation on one serial FIFO compute worker. /v1/audio/music is a YuE2 extension; /v1/audio/speech provides OpenAI client transport compatibility and generates songs. /mcp exposes restricted agent tools with guide-first generation and one-hour HTTP downloads. Ordinary audio stays 48 kHz stereo. Explicit pcm export is 24 kHz mono signed PCM16LE. Optional Bearer authentication covers /v1 and /mcp; native and Studio routes retain their existing local access policy."
   },
   "servers": [{"url": "/"}],
   "paths": {
+    "/mcp": {
+      "post": {
+        "operationId": "mcpRequest",
+        "summary": "Agent music tools over Streamable HTTP JSON-RPC",
+        "description": "Tools: skill, generate_song, get_song, cancel_song. Generation requires a retrieved guide token and only accepts lyrics, direction, duration_seconds, tempo_bpm and format. Modern 2026-07-28 and legacy 2025-11-25/2025-06-18. Set Accept to application/json, text/event-stream; modern requests require MCP metadata and matching headers. No inline audio, runtime settings, sessions or SSE stream. See docs/MCP.md.",
+        "security": [{"BearerAuth": []}, {}],
+        "requestBody": {"required": true, "content": {"application/json": {"schema": {"type": "object", "required": ["jsonrpc", "method"], "properties": {"jsonrpc": {"const": "2.0"}, "id": {"type": ["integer", "string"]}, "method": {"type": "string"}, "params": {"type": "object"}}}}}},
+        "responses": {
+          "200": {"description": "JSON-RPC response. Tool results include text and structuredContent; failures use isError or JSON-RPC error.", "content": {"application/json": {"schema": {"type": "object"}}}},
+          "202": {"description": "Accepted legacy notification, no body"},
+          "400": {"description": "Malformed request, invalid metadata or mismatched MCP headers"},
+          "401": {"description": "Local Bearer key required"},
+          "403": {"description": "Untrusted Host or Origin"},
+          "404": {"description": "Unknown modern RPC method"},
+          "406": {"description": "Accept must include application/json and text/event-stream"},
+          "413": {"description": "RPC body exceeds 128 KiB"},
+          "415": {"description": "Content-Type must be application/json"},
+          "500": {"description": "Internal protocol failure"}
+        }
+      },
+      "get": {"operationId": "mcpNoEventStream", "summary": "No standalone SSE stream", "responses": {"405": {"description": "Use POST"}}},
+      "delete": {"operationId": "mcpNoSession", "summary": "Stateless transport has no session to delete", "responses": {"405": {"description": "Use POST"}}}
+    },
+    "/skills/songwriting/SKILL.md": {
+      "get": {"operationId": "getMusicSkill", "summary": "Read the bundled music skill", "description": "Public reference copy. The MCP skill tool additionally issues the guide token required by generation.", "responses": {"200": {"description": "Markdown skill", "content": {"text/markdown": {"schema": {"type": "string"}}}}}}
+    },
+    "/artifacts/{token}/song.{format}": {
+      "parameters": [
+        {"name": "token", "in": "path", "required": true, "schema": {"type": "string", "pattern": "^[0-9a-f]{64}$"}},
+        {"name": "format", "in": "path", "required": true, "schema": {"type": "string", "enum": ["opus", "flac"]}}
+      ],
+      "get": {"operationId": "downloadAgentSong", "summary": "Download a completed song using its one-hour capability URL", "description": "No Bearer header required; the opaque URL grants access. Expiry is checked per request. Supports byte ranges; no-store. Only the requested export exists.", "responses": {"200": {"description": "48 kHz stereo audio", "content": {"audio/ogg": {"schema": {"type": "string", "format": "binary"}}, "audio/flac": {"schema": {"type": "string", "format": "binary"}}}}, "206": {"description": "Requested byte range"}, "404": {"description": "Missing, invalid or expired capability"}, "416": {"description": "Unsatisfiable byte range"}}},
+      "head": {"operationId": "inspectAgentSong", "summary": "Check a live song capability without downloading", "responses": {"200": {"description": "Audio metadata headers"}, "404": {"description": "Missing, invalid or expired capability"}}}
+    },
     "/v1/audio/music": {
       "post": {
         "operationId": "createMusic",

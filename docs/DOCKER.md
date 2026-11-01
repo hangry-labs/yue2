@@ -11,6 +11,15 @@ task status
 Open http://localhost:8087. task init downloads/verifies external models and
 builds the image; task start preserves upstream inference defaults.
 
+The [MCP music tools](MCP.md) share port 8087 at `/mcp`. They return temporary
+HTTP audio links rather than embedding audio in tool results. `task start`
+persists those exports in `data/results/studio/`, mounted at `/output`.
+For registry containers, add a named output volume such as
+`--mount type=volume,source=yue2-output,target=/output`. Completed links retain
+their original one-hour expiry across restarts; running jobs do not survive.
+Set `YUE2_API_KEY` for Bearer protection on `/v1` and `/mcp`; the MCP guide
+documents public link origins and the existing native/Studio access boundary.
+
 ## Registry images
 
 The publication workflow targets `hangrylabs/yue2` on Docker Hub and

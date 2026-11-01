@@ -1,0 +1,63 @@
+[
+  {
+    "id": "cinematic-from-brief",
+    "prompt": "Write original English lyrics and prepare a complete song of about two and a half minutes about a lighthouse keeper exchanging messages with someone across the bay. Use cinematic synth-rock and melodic electronic pop, expressive female lead, analog synths, shimmering electric guitars, deep bass and punchy electronic drums. Develop two verses, a pre-chorus, a recurring chorus, a bridge and a final chorus. Let the lyric sections carry the song structure. No fixed word count. Make the song.",
+    "kind": "original",
+    "duration_seconds": 150,
+    "required_sections": ["Verse 1", "Verse 2", "Chorus", "Bridge", "Final Chorus"],
+    "required_style_terms": ["synth", "rock", "female", "guitar"],
+    "theme_keywords": ["light", "bay", "sea", "shore", "signal", "message"]
+  },
+  {
+    "id": "flute-from-brief",
+    "prompt": "Write and make a complete three-minute English song about a traveller finding a forest village at dusk. Blend cinematic folk and electronic textures. Feature a flute prominently alongside bowed strings and hand percussion. Choose a fitting vocal character without changing that instrument palette. Use two verses, a chorus that returns, a contrasting bridge or interlude and an ending. Express the structure in the lyrics; the musical style should describe the sound. Focus on singable pacing and natural rhymes.",
+    "kind": "original",
+    "duration_seconds": 180,
+    "required_sections": ["Verse 1", "Verse 2", "Chorus"],
+    "required_style_terms": ["flute", "folk"],
+    "theme_keywords": ["forest", "village", "dusk", "trees", "path", "home"]
+  },
+  {
+    "id": "supplied-lyrics",
+    "prompt": "Make a complete song of about two and a half minutes using the lyrics below. Keep every sung word and ad-lib in this order, and add suitable section labels, including numbered verses, pre-choruses, choruses, a bridge and a final chorus. Use exactly this musical style: country pop, cyberpunk pop, futuristic, upbeat, male vocals, harmonies, acoustic guitar strumming, electric guitar twang, pedal steel, synth leads, punchy drums, sidechained bass, glossy modern production, neon atmosphere\n\nNeon on the handlebars\nWe ride beneath electric stars\nBoots are dusty, wheels are bright\nWe bring the country to the night\n\nHear the city call our names\nWatch the sparks become a flame\n\nRide on, ride on! (hey!)\nWe will find another way\nSing it loud and carry on\nWe keep rolling till the dawn\n\nSteel strings ring above the street\nOld-time hearts and future beats\nEvery corner, every bend\nBrings us closer to a friend\n\nHear the city call our names\nWatch the sparks become a flame\n\nRide on, ride on! (hey!)\nWe will find another way\nSing it loud and carry on\nWe keep rolling till the dawn\n\nWhen the towers fade to gold\nWe have stories to be told\nTake the long road, take my hand\nThere is room for us to land\n\nRide on, ride on! (hey!)\nWe will find another way\nSing it loud and carry on\nWe keep rolling till the dawn",
+    "kind": "supplied",
+    "duration_seconds": 150,
+    "exact_style": "country pop, cyberpunk pop, futuristic, upbeat, male vocals, harmonies, acoustic guitar strumming, electric guitar twang, pedal steel, synth leads, punchy drums, sidechained bass, glossy modern production, neon atmosphere",
+    "required_sections": ["Verse 1", "Verse 2", "Chorus", "Bridge", "Final Chorus"],
+    "supplied_lyrics": "Neon on the handlebars\nWe ride beneath electric stars\nBoots are dusty, wheels are bright\nWe bring the country to the night\nHear the city call our names\nWatch the sparks become a flame\nRide on, ride on! (hey!)\nWe will find another way\nSing it loud and carry on\nWe keep rolling till the dawn\nSteel strings ring above the street\nOld-time hearts and future beats\nEvery corner, every bend\nBrings us closer to a friend\nHear the city call our names\nWatch the sparks become a flame\nRide on, ride on! (hey!)\nWe will find another way\nSing it loud and carry on\nWe keep rolling till the dawn\nWhen the towers fade to gold\nWe have stories to be told\nTake the long road, take my hand\nThere is room for us to land\nRide on, ride on! (hey!)\nWe will find another way\nSing it loud and carry on\nWe keep rolling till the dawn"
+  },
+  {
+    "id": "anime-from-brief",
+    "prompt": "Write and make a complete English song of about two and a half minutes about saying goodbye at the last train. Use an anime ending theme and J-pop rock ballad-anthem style, live instruments, warm drums, clean guitars, melodic bass, sweet expressive female vocals, a big singalong chorus and minimal electronic elements. Write two verses, recurring chorus, bridge and final chorus with lyrics that pace naturally. Choose whether an intro suits the song and express that choice through section labels.",
+    "kind": "original",
+    "duration_seconds": 150,
+    "required_sections": ["Verse 1", "Verse 2", "Chorus", "Bridge", "Final Chorus"],
+    "required_style_terms": ["anime", "guitar", "female"],
+    "theme_keywords": ["train", "goodbye", "station", "platform", "night"]
+  },
+  {
+    "id": "halloween-from-brief",
+    "prompt": "Write and make a complete two-and-a-half-minute playful Halloween song about friends racing cardboard ghosts through a supermarket. Anime pop-rock, spooky horror-comedy, a chantable meme chorus, bright energetic vocals, crunchy electric guitars, punchy drums, subtle creepy synth arps, gang vocals on the chorus, 140 BPM, major key with minor accents, clean modern mix. Use two verses, pre-chorus, repeated chorus, bridge and final chorus. Sung ad-libs like (hey!) and call-and-response are welcome. Keep it playful, with natural rhymes and singable phrasing.",
+    "kind": "original",
+    "duration_seconds": 150,
+    "tempo_bpm": 140,
+    "required_sections": ["Verse 1", "Verse 2", "Chorus", "Bridge", "Final Chorus"],
+    "required_style_terms": ["rock", "guitar", "gang"],
+    "theme_keywords": ["ghost", "ghosts", "aisle", "cart", "carts", "cardboard"]
+  },
+  {
+    "id": "lyrics-only",
+    "prompt": "Write only the original English lyrics for a complete two-to-four-minute song about a night-shift nurse cycling home at sunrise. Develop two verses, a chorus that returns, a bridge and final chorus. Choose an appropriate lyrical pacing and rhyme approach. Do not generate audio or give me a download link yet.",
+    "kind": "lyrics_only",
+    "required_sections": ["Verse 1", "Verse 2", "Chorus", "Bridge", "Final Chorus"],
+    "theme_keywords": ["nurse", "bike", "sunrise", "morning", "home", "shift", "dawn"]
+  },
+  {
+    "id": "instrumental-techno",
+    "prompt": "Make a complete instrumental techno track of about two and a half minutes for a night train travelling through a neon city. Steady pulsing synth bass, crisp electronic drums, about 128 BPM, evolving electronic textures. No singing, spoken words or vocal samples.",
+    "kind": "instrumental",
+    "duration_seconds": 150,
+    "tempo_bpm": 128,
+    "required_style_terms": ["techno"]
+  }
+]

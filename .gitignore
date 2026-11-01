@@ -11,6 +11,8 @@ tests/parity/*.log
 
 # User models, adapters, original checkpoints and generated artifacts.
 /data/
+# Default temporary MCP exports when running the native server from this root.
+/agent-artifacts/
 # Legacy paths stay ignored until existing checkouts migrate.
 /checkpoints/
 /models/

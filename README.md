@@ -141,10 +141,12 @@ and prepared [Docker Hub overview](docs/dockerhub.md).
 | Browser IndexedDB | Saved song cards, audio and latent artifacts |
 | Browser localStorage | Form settings and pending-job state |
 | Server memory | Jobs and results; cleared on restart |
+| Optional persistent `/output` mount | MCP audio links and metadata; expire one hour after completion |
 
 Export songs you want to keep. The model mount does not back up browser storage;
 using a different browser or service address opens a separate browser library.
-The server does not automatically save generated songs into a host output folder.
+MCP exports are saved temporarily; ordinary Studio/native requests retain their
+existing storage behavior. See [agent tools and persistence](docs/MCP.md).
 
 ### Runtime Settings
 
@@ -160,6 +162,10 @@ the model paths and network binding. See [runtime settings](docs/DOCKER.md#runti
 for context, GPU selection, adapters and persistence.
 
 ## API Examples
+
+Agents can connect to **`http://localhost:8087/mcp`**: read the songwriting skill,
+submit lyrics and direction, then retrieve an HTTP audio link valid for one hour.
+Only basic musical controls are exposed. See the [MCP guide](docs/MCP.md).
 
 Use `/v1/audio/music` for direct music files or `/v1/audio/speech` with OpenAI
 clients. Both share the existing serial queue. See [music/SDK examples](docs/API.md),

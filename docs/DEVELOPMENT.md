@@ -61,7 +61,7 @@ in `examples/`. See the [format and generation guide](../examples/README.md).
 | `data/models/` | Required and optional GGUF files | `/models`, read-only |
 | `data/adapters/` | Optional LoRA adapters | `/adapters`, read-only |
 | `data/checkpoints/` | Original checkpoints for advanced conversion/reference checks | Not mounted by normal startup |
-| `data/results/` | Benchmark evidence and exported build-dependency archives | Per-run `/output` mount when needed |
+| `data/results/` | Benchmark evidence, build-dependency exports and temporary MCP audio in `studio/` | Studio `/output` bind and per-run output mounts |
 
 Tasks create these directories when needed. The tracked download manifest is
 [`docker/models.json`](../docker/models.json); model files are never tracked or
@@ -102,6 +102,7 @@ the in-container paths and server defaults have not changed.
 | task stop / status / logs | Operate this project's container |
 | task test | Tooling/benchmark tests and native dependency pin verification |
 | task test:api | Read-only capabilities and GPU telemetry checks against the running server |
+| task test:mcp-agent -- --model-url URL | Inspect full-song MCP calls without generation; see tests/agents/README.md |
 | task check:cpu | Compile all native targets and check executable loading in Docker |
 | task web:check | Check UI types, request behavior and formatting in Node Docker |
 | task web:build | Regenerate the embedded UI asset in Node Docker |

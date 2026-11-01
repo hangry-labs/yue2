@@ -157,6 +157,9 @@ tasks:
     env:
       YUE2_TEST_URL: 'http://127.0.0.1:{{.PORT}}'
     cmds: ['"{{.PYTHON}}" -m unittest discover -s tests/integration -v']
+  test:mcp-agent:
+    desc: Inspect a language model's MCP music calls without generating audio
+    cmds: ['"{{.PYTHON}}" tests/agents/songwriting.py {{.CLI_ARGS}}']
   test1:prepare:
     desc: Prepare the baseline request without using Docker or a GPU
     cmds: ['"{{.PYTHON}}" tests/benchmarks/test1.py --prepare-only --lm-seed "{{.LM_SEED}}" --seed "{{.SEED}}"']

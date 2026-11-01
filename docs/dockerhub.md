@@ -141,6 +141,13 @@ localhost; keep access restricted to trusted clients.
 
 ## API Example
 
+Agents can connect over Streamable HTTP at `http://localhost:8087/mcp`.
+Four tools guide songwriting, generate fresh music, check progress and cancel
+a song. They expose lyrics, musical direction and a few basic controls, and
+return HTTP audio links valid for one hour after completion. See the
+[MCP guide](https://github.com/hangry-labs/yue2/blob/master/docs/MCP.md) for
+connection, authentication and persistent `/output` storage.
+
 For direct audio files use `/v1/audio/music`, or `/v1/audio/speech` with an
 OpenAI client. These share the same serial queue. See the
 [music/SDK API guide](https://github.com/hangry-labs/yue2/blob/master/docs/API.md),
