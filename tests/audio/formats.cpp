@@ -25,6 +25,16 @@ int main(int argc, char ** argv) {
                 if (encoded != audio_encode_wav(expected.data(), frames, 48000, wav)) return 1;
             }
         }
+        for (double speed : {.25, 4.0}) {
+            auto audio = original;
+            auto encoded = audio_render(*audio_output_format("opus"), audio, frames, 48000, 128, 10,
+                                        nullptr, nullptr, speed);
+            auto path = (std::filesystem::path(argv[2]) / (speed < 1 ? "slow.opus" : "fast.opus")).string();
+            if (encoded.empty() || !yue_ffmpeg::write(path, encoded.data(), encoded.size())) return 1;
+        }
+        auto audio = original;
+        auto pcm = audio_render(*audio_output_format("wav16"), audio, frames, 48000, 128, 10, nullptr, nullptr, 1, true);
+        if (pcm.size() != 24000 * 2 * 2 || !yue_ffmpeg::write((std::filesystem::path(argv[2]) / "compat.pcm").string(), pcm.data(), pcm.size())) return 1;
         return 0;
     }
     if (mode == "decode" && argc == 4) {

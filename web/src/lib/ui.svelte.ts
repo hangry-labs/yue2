@@ -7,9 +7,11 @@ try {
 	/* Storage is optional. */
 }
 export const ui = $state({
-	view: (['create', 'library', 'api', 'system'].includes(restored?.view ?? '')
-		? restored.view
-		: 'create') as View,
+	view: (location.pathname === '/docs'
+		? 'api'
+		: ['create', 'library', 'api', 'system'].includes(restored?.view ?? '')
+			? restored.view
+			: 'create') as View,
 	collapsed: restored?.collapsed === true,
 	examplesOpen: false
 });

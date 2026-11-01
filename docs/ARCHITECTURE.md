@@ -757,6 +757,11 @@ unless `--keep-loaded` keeps everything resident.
 
 ### Endpoints
 
+The [music and OpenAI-compatible API guide](API.md) documents `/v1/audio/music`,
+`/v1/audio/speech` and `/v1/models`. Both generation routes share this same FIFO
+worker. `/openapi.json` describes native and compatibility routes; `/docs` opens
+the packaged API view. These additions preserve the native job contract below.
+
 ```
 POST /synth                     Submit a generation job, returns job ID
   body: application/json Yue2Request

@@ -50,6 +50,10 @@ excluded from upload decoding. Generated-output conversion observes job cancella
 
 ## Discovery and development
 
+The [music and SDK adapters](API.md) also accept `wav` as WAV16 and explicit
+`pcm` as raw 24 kHz mono PCM16LE. This compatibility conversion applies only to
+that selected format; ordinary music exports retain 48 kHz stereo.
+
 `GET /props` exposes `output_formats`, an array of `{name, extension, mime}`.
 Generation results retain the native multipart contract: replay JSON, the selected
 audio MIME type, then raw latents for each track. VAE decode returns the selected

@@ -13,6 +13,8 @@
 #include "backend.h"
 #include "httplib.h"
 #include "index.html.gz.hpp"
+#include "openapi.json.hpp"
+#include "music-api.h"
 #include "pipeline.h"
 #include "system-gpu.h"
 #include "version.h"
@@ -20,6 +22,7 @@
 
 #include <atomic>
 #include <chrono>
+#include <cctype>
 #include <condition_variable>
 #include <csignal>
 #include <cstdio>
@@ -98,6 +101,8 @@ static void fd_close(int fd) {
 #endif
 
 static httplib::Server * g_svr = nullptr;
+static std::string g_api_key;
+static int g_api_timeout = 600;
 
 // Build a multipart/mixed body with, per rendered track, its JSON replay
 // request part, its audio part and its latent part (raw f32 [T, 64] time
@@ -482,6 +487,12 @@ static void handle_props(const httplib::Request &, httplib::Response & res) {
         yyjson_mut_obj_add_str(doc, item, "mime", format.mime);
     }
     yyjson_mut_obj_add_val(doc, root, "output_formats", formats);
+    auto * api = yyjson_mut_obj(doc);
+    yyjson_mut_obj_add_str(doc, api, "music", "/v1/audio/music");
+    yyjson_mut_obj_add_str(doc, api, "speech", "/v1/audio/speech");
+    yyjson_mut_obj_add_bool(doc, api, "authentication_required", !g_api_key.empty());
+    yyjson_mut_obj_add_int(doc, api, "timeout_seconds", g_api_timeout);
+    yyjson_mut_obj_add_val(doc, root, "api", api);
 
     // The adapter directory, each entry with the halves it changes
     yyjson_mut_val * adapters = yyjson_mut_arr(doc);
@@ -607,10 +618,10 @@ static void run_tokenize(std::shared_ptr<Job> job, std::vector<float> audio) {
 // The audio part of a track: peak normalized except WAV32, then encoded in
 // the output format of the request
 static std::string encode_audio(const Yue2Request & request, std::vector<float> & audio, int T_audio,
-                                std::atomic<bool> * cancel_flag) {
+                                std::atomic<bool> * cancel_flag, double speed = 1, bool pcm = false) {
     auto * format = audio_output_format(request.output_format);
     return format ? audio_render(*format, audio, T_audio, YUE2_SAMPLE_RATE, request.mp3_bitrate,
-                                  request.peak_clip, server_cancel_job, cancel_flag) : std::string{};
+                                  request.peak_clip, server_cancel_job, cancel_flag, speed, pcm) : std::string{};
 }
 
 // VAE worker, encode: the uploaded recording becomes its latents, raw f32
@@ -660,7 +671,8 @@ static void run_vae_decode(std::shared_ptr<Job> job, Yue2Request request, std::v
     job->status.store(JobStatus::DONE);
 }
 
-static void run_job(std::shared_ptr<Job> job, Yue2Request request) {
+static void run_job(std::shared_ptr<Job> job, Yue2Request request, bool direct = false, double speed = 1, bool pcm = false) {
+    if (job->cancel.load()) { job->status.store(JobStatus::CANCELLED); return; }
     Timer worker_timer;
     double queue_seconds = std::chrono::duration<double>(worker_timer.t - job->submitted).count();
     size_t loads_before = store_load_count(g_pipeline.store);
@@ -686,12 +698,13 @@ static void run_job(std::shared_ptr<Job> job, Yue2Request request) {
     std::vector<std::vector<float>> latents;
     for (size_t t = 0; t < songs.size(); t++) {
         Yue2Song & song = songs[t];
-        audio_parts.push_back(encode_audio(request, song.audio, song.T_audio, &job->cancel));
+        audio_parts.push_back(encode_audio(request, song.audio, song.T_audio, &job->cancel, speed, pcm));
         if (audio_parts.back().empty()) {
             active_job_set(nullptr);
             job->status.store(job->cancel.load() ? JobStatus::CANCELLED : JobStatus::FAILED);
             return;
         }
+        if (direct) continue;
         Yue2Request replay = request_replay(request, song.score.empty() ? request.abc : song.score,
                                             pipeline_format_tokens(song.tokens), (int) t / M, (int) t % M);
         request_parts.push_back(request_to_json(&replay));
@@ -699,8 +712,9 @@ static void run_job(std::shared_ptr<Job> job, Yue2Request request) {
     }
 
     active_job_set(nullptr);
-    job->result_body = multipart_build_tracks(request_parts, audio_parts, audio_output_format(request.output_format)->mime, latents);
-    job->result_mime = MULTIPART_MIME;
+    job->result_body = direct ? std::move(audio_parts.front()) :
+        multipart_build_tracks(request_parts, audio_parts, audio_output_format(request.output_format)->mime, latents);
+    job->result_mime = direct ? (pcm ? "audio/pcm" : audio_output_format(request.output_format)->mime) : MULTIPART_MIME;
     // The compute worker owns ModelStore. Publish an immutable snapshot before
     // DONE so HTTP threads never inspect resident models while they are changing.
     double worker_seconds = worker_timer.ms() / 1000.0;
@@ -732,6 +746,92 @@ static void run_job(std::shared_ptr<Job> job, Yue2Request request) {
     }
     yyjson_mut_doc_free(metrics_doc);
     job->status.store(JobStatus::DONE);
+}
+
+static void api_error(httplib::Response & res, int status, const MusicApiError & error,
+                       const char * type = "invalid_request_error") {
+    res.status = status;
+    res.set_header("Cache-Control", "no-store");
+    res.set_content(music_api_error(error, type), "application/json");
+}
+
+static bool api_authorized(const httplib::Request & req, httplib::Response & res) {
+    if (g_api_key.empty()) return true;
+    const std::string expected = g_api_key;
+    std::string supplied = req.get_header_value("Authorization");
+    std::string scheme = supplied.substr(0, 7);
+    for (auto & ch : scheme) ch = (char) std::tolower((unsigned char) ch);
+    supplied = scheme == "bearer " ? supplied.substr(7) : std::string{};
+    size_t difference = expected.size() ^ supplied.size();
+    for (size_t i = 0; i < expected.size(); ++i)
+        difference |= (unsigned char) expected[i] ^ (i < supplied.size() ? (unsigned char) supplied[i] : 0);
+    if (!difference) return true;
+    res.set_header("WWW-Authenticate", "Bearer");
+    api_error(res, 401, {"A valid local Bearer API key is required.", "", "invalid_api_key"}, "authentication_error");
+    return false;
+}
+
+static void handle_music_api(const httplib::Request & req, httplib::Response & res) {
+    if (!api_authorized(req, res)) return;
+    MusicApiRequest parsed;
+    MusicApiError error;
+    if (!music_api_parse(req.body, parsed, error)) {
+        api_error(res, error.code == "model_not_found" ? 404 : 400, error);
+        return;
+    }
+    if (!audio_output_format(parsed.native.output_format)) {
+        api_error(res, 400, {"Unknown audio format. See /openapi.json for supported formats.", "response_format", "unsupported_value"});
+        return;
+    }
+    httplib::Response validation;
+    Yue2Request request;
+    if (!validate(request_to_json(&parsed.native, false), validation, &request)) {
+        std::string message = "Invalid music settings.";
+        if (auto * doc = yyjson_read(validation.body.data(), validation.body.size(), 0)) {
+            auto * value = yyjson_obj_get(yyjson_doc_get_root(doc), "error");
+            if (yyjson_is_str(value)) message = yyjson_get_str(value);
+            yyjson_doc_free(doc);
+        }
+        api_error(res, 400, {message, "", "invalid_value"});
+        return;
+    }
+    auto job = job_create();
+    res.set_header("X-Request-ID", job->id);
+    res.set_header("X-YuE2-Job-ID", job->id);
+    work_push([job, request, speed = parsed.speed, pcm = parsed.pcm] { run_job(job, request, true, speed, pcm); });
+    const auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(g_api_timeout);
+    while (job->status.load() == JobStatus::RUNNING) {
+        if (req.is_connection_closed() || !g_svr->is_running()) {
+            job->cancel.store(true);
+            fprintf(stderr, "[API] Disconnected request cancelled job %s\n", job->id.c_str());
+            return;
+        }
+        if (std::chrono::steady_clock::now() >= deadline) {
+            job->cancel.store(true);
+            fprintf(stderr, "[API] Request deadline cancelled job %s\n", job->id.c_str());
+            api_error(res, 504, {"Generation exceeded the local API timeout. Use /synth for asynchronous jobs.", "", "generation_timeout"}, "timeout_error");
+            return;
+        }
+        std::this_thread::sleep_for(std::chrono::milliseconds(25));
+    }
+    if (job->status.load() != JobStatus::DONE) {
+        api_error(res, job->status.load() == JobStatus::CANCELLED ? 409 : 500,
+                  {job->status.load() == JobStatus::CANCELLED ? "Generation was cancelled." : "Generation failed. Inspect the local server logs for details.", "", "generation_failed"}, "server_error");
+        return;
+    }
+    res.set_header("Cache-Control", "no-store");
+    res.set_header("X-Audio-Sample-Rate", parsed.pcm ? "24000" : "48000");
+    res.set_header("X-Audio-Channels", parsed.pcm ? "1" : "2");
+    const char * extension = parsed.pcm ? "pcm" : audio_output_format(request.output_format)->extension;
+    res.set_header("Content-Disposition", std::string("attachment; filename=\"song.") + extension + "\"");
+    res.set_content_provider(job->result_body.size(), job->result_mime,
+        [job](size_t offset, size_t length, httplib::DataSink & sink) {
+            return sink.write(job->result_body.data() + offset, length);
+        });
+}
+
+static std::string api_model_json() {
+    return R"({"id":"yue2","object":"model","created":0,"owned_by":"hangry-labs","capabilities":{"music_generation":true,"live_generation_streaming":false,"parallel_inference":false,"sample_rate":48000,"channels":2},"aliases":["yue2-3b","tts-1","tts-1-hd","gpt-4o-mini-tts"]})";
 }
 
 static void print_usage(const char * prog) {
@@ -825,6 +925,16 @@ int main(int argc, char ** argv) {
     }
 
     LogCapture log_capture;
+    if (auto * key = std::getenv("YUE2_API_KEY")) g_api_key = key;
+    if (auto * timeout = std::getenv("YUE2_API_TIMEOUT_SECONDS")) {
+        char * end = nullptr;
+        long seconds = strtol(timeout, &end, 10);
+        if (!end || *end || seconds < 1 || seconds > 86400) {
+            fprintf(stderr, "[Server] FATAL: YUE2_API_TIMEOUT_SECONDS must be between 1 and 86400.\n");
+            return 1;
+        }
+        g_api_timeout = (int) seconds;
+    }
     if (!yue_ffmpeg::available()) {
         fprintf(stderr, "[Server] FATAL: install FFmpeg before starting yue-server.\n");
         return 1;
@@ -845,6 +955,27 @@ int main(int argc, char ** argv) {
 
     httplib::Server svr;
     g_svr = &svr;
+    svr.Get("/openapi.json", [](const httplib::Request &, httplib::Response & res) {
+        res.set_content(std::string((const char *) openapi_json, openapi_json_len), "application/json");
+    });
+    svr.Get("/v1/models", [](const httplib::Request & req, httplib::Response & res) {
+        if (!api_authorized(req, res)) return;
+        res.set_content(std::string("{\"object\":\"list\",\"data\":[") + api_model_json() + "]}", "application/json");
+    });
+    svr.Get(R"(/v1/models/(.+))", [](const httplib::Request & req, httplib::Response & res) {
+        if (!api_authorized(req, res)) return;
+        if (!music_api_model(req.matches[1].str())) {
+            api_error(res, 404, {"Unknown model. Use yue2 or discover /v1/models.", "model", "model_not_found"});
+            return;
+        }
+        res.set_content(api_model_json(), "application/json");
+    });
+    svr.Post("/v1/audio/music", handle_music_api);
+    svr.Post("/v1/audio/speech", handle_music_api);
+    svr.set_error_handler([](const httplib::Request & req, httplib::Response & res) {
+        if (req.path.rfind("/v1/", 0) == 0 && res.body.empty())
+            api_error(res, res.status, {"The requested API route is unavailable.", "", "not_found"});
+    });
 
     // SO_REUSEADDR lets us rebind a port still in TIME_WAIT after a restart.
     // SO_REUSEPORT is deliberately not set: a second instance on the same port
@@ -1032,7 +1163,7 @@ int main(int argc, char ** argv) {
         res.set_content(json_string("status", job_status_str(job->status.load())), "application/json");
     });
 
-    svr.Get("/", [](const httplib::Request & req, httplib::Response & res) {
+    auto serve_ui = [](const httplib::Request & req, httplib::Response & res) {
         if (req.get_header_value("Accept-Encoding").find("gzip") == std::string::npos) {
             res.status = 406;
             res.set_content("gzip required", "text/plain");
@@ -1040,7 +1171,10 @@ int main(int argc, char ** argv) {
         }
         res.set_header("Content-Encoding", "gzip");
         res.set_content(std::string((const char *) index_html_gz, index_html_gz_len), "text/html");
-    });
+    };
+    svr.Get("/", serve_ui);
+    svr.Get("/docs", serve_ui);
+    svr.Get("/docs/", [](const httplib::Request &, httplib::Response & res) { res.set_redirect("/docs"); });
 
     fprintf(stderr, "[Server] yue-server %s\n", YUE2_VERSION);
     fprintf(stderr, "[Server] Listening on %s:%d\n", host, port);

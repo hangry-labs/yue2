@@ -88,7 +88,8 @@ RUN --mount=type=cache,id=yue2-native-cpu,target=/build,sharing=locked \
     -DBUILD_SHARED_LIBS=OFF -DYUE2_REVISION="$SOURCE_REVISION" \
     && cmake --build /build --parallel 4 \
     && python3 /smoke_binaries.py /build \
-    && python3 tests/audio/check_formats.py /build/audio-formats-check
+    && python3 tests/audio/check_formats.py /build/audio-formats-check \
+    && python3 tests/api/check_requests.py /build/music-api-check
 
 # A digest-pinned registry artifact can replace the source dependency stage.
 FROM ${GGML_DEPS_IMAGE} AS selected-ggml

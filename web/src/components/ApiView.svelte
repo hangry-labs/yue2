@@ -12,9 +12,36 @@
 		2
 	);
 	const command = `curl -X POST '${location.origin}/synth' \\\n  -H 'Content-Type: application/json' \\\n  --data '${request}'`;
-	async function copy() {
+	const music = JSON.stringify(
+		{
+			model: 'yue2',
+			lyrics: '[Verse]\nA little light comes through the window',
+			style: 'English, warm piano pop, expressive female voice',
+			duration: 30,
+			steps: 8,
+			response_format: 'opus'
+		},
+		null,
+		2
+	);
+	const musicCommand = `curl '${location.origin}/v1/audio/music' -H 'Content-Type: application/json' --data '${music}' --output song.opus`;
+	const python = [
+		'from openai import OpenAI',
+		'',
+		`client = OpenAI(base_url="${location.origin}/v1", api_key="local")`,
+		'with client.audio.speech.with_streaming_response.create(',
+		'    model="yue2",',
+		'    input="A little light comes through the window",',
+		'    instructions="English piano pop, expressive female singing",',
+		'    voice="auto",',
+		'    response_format="flac",',
+		'    extra_body={"duration": 30, "steps": 8},',
+		') as response:',
+		'    response.stream_to_file("song.flac")'
+	].join('\n');
+	async function copy(text = command) {
 		try {
-			await navigator.clipboard.writeText(command);
+			await navigator.clipboard.writeText(text);
 			toast('Request copied', 2500, true);
 		} catch {
 			toast('Clipboard unavailable. Select and copy the request below.');
@@ -37,14 +64,62 @@
 	</div>
 	<div class="api-grid">
 		<section class="surface">
+			<h3>Music generation</h3>
+			<p class="field-help">
+				POST /v1/audio/music returns one audio file directly. Music stays at 48 kHz stereo. Requests
+				share the same serial queue as the studio.
+			</p>
+			<div class="code-heading">
+				<span>Bash / curl</span><button
+					class="secondary-button"
+					type="button"
+					onclick={() => copy(musicCommand)}><Copy size={14} /> Copy</button
+				>
+			</div>
+			<pre><code>{musicCommand}</code></pre>
+			<p class="field-help">
+				Use FLAC or WAV for lossless exports. MP3 remains the default when a format is omitted.
+			</p>
+		</section>
+		<section class="surface">
+			<h3>OpenAI-compatible clients</h3>
+			<p class="field-help">
+				POST /v1/audio/speech uses the same music engine. Input is lyrics; instructions describes
+				the music. Voice aliases are approximate vocal hints.
+			</p>
+			<pre><code>{python}</code></pre>
+			<p class="field-help">
+				The complete song is generated before delivery. The streaming-response helper downloads the
+				result; live generation and speech SSE events are unavailable. Explicit PCM export uses 24
+				kHz mono PCM16LE.
+			</p>
+		</section>
+	</div>
+	<section class="surface routes">
+		<h3>API discovery and access</h3>
+		<p class="field-help">
+			<a href="/openapi.json" target="_blank" rel="noreferrer">Download OpenAPI schema</a>. GET
+			/v1/models lists YuE2. The native asynchronous routes below retain scores, replay data,
+			latents and batch output.
+		</p>
+		<p class="field-help">
+			Set YUE2_API_KEY to require a local Bearer key on /v1 routes. Add an Authorization header to
+			curl or replace local in the Python example with that key. Studio/native routes retain their
+			existing local access policy.
+		</p>
+	</section>
+	<div class="api-grid">
+		<section class="surface">
 			<h3>Generate a song</h3>
 			<p class="field-help">
 				Submit a request, poll its job, then download the result. Generation stays on the machine
 				running this container.
 			</p>
 			<div class="code-heading">
-				<span>Bash / curl</span><button class="secondary-button" type="button" onclick={copy}
-					><Copy size={14} /> Copy</button
+				<span>Bash / curl</span><button
+					class="secondary-button"
+					type="button"
+					onclick={() => copy()}><Copy size={14} /> Copy</button
 				>
 			</div>
 			<pre><code>{command}</code></pre>

@@ -24,6 +24,17 @@ def main():
         folder = Path(temporary) / 'audio with spaces; literal $name'
         folder.mkdir()
         run(binary, 'render', str(folder))
+        assert (folder / 'compat.pcm').stat().st_size == 24000 * 2 * 2
+        for filename, seconds in [('slow.opus', 8), ('fast.opus', .5)]:
+            data = run('ffmpeg', '-v', 'error', '-i', str(folder / filename), '-f', 'f32le', 'pipe:1')
+            values = array.array('f', data)
+            if sys.byteorder != 'little': values.byteswap()
+            assert abs(len(values) / (48000 * 2) - seconds) < .25, filename
+            samples = values[0::2]
+            samples = samples[len(samples)//4:len(samples)*3//4]
+            frequency = sum(a <= 0 < b for a, b in zip(samples, samples[1:])) * 48000 / len(samples)
+            assert abs(frequency - 440) < 20, (filename, frequency)
+        print('PASS explicit PCM24k/mono and pitch-preserving speed boundaries .25/4.0')
         for name, codec in expected.items():
             path = folder / (name + ('.wav' if name.startswith('wav') else '.' + name))
             info = probe(path)

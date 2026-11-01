@@ -30,11 +30,13 @@ static const AudioOutputFormat * audio_output_format(const std::string & name) {
 // Compressed output is encoded once from normalized float PCM, never from MP3.
 static std::string audio_render(const AudioOutputFormat & format, std::vector<float> & audio,
                                 int frames, int rate, int mp3_bitrate, int peak_clip,
-                                yue_ffmpeg::Cancel cancel = nullptr, void * opaque = nullptr) {
+                                yue_ffmpeg::Cancel cancel = nullptr, void * opaque = nullptr,
+                                double speed = 1, bool compatibility_pcm = false) {
     if (frames <= 0 || rate <= 0 || audio.size() != (size_t) frames * 2) return {};
     if (cancel && cancel(opaque)) return {};
-    if (std::string(format.name) != "wav32") audio_normalize(audio.data(), frames * 2, peak_clip);
-    if (!format.codec) {
+    if (!std::isfinite(speed) || speed < .25 || speed > 4) return {};
+    if (std::string(format.name) != "wav32" || compatibility_pcm) audio_normalize(audio.data(), frames * 2, peak_clip);
+    if (!format.codec && speed == 1 && !compatibility_pcm) {
         WavFormat wav = std::string(format.name) == "wav24" ? WAV_S24 :
                         std::string(format.name) == "wav32" ? WAV_F32 : WAV_S16;
         return audio_encode_wav(audio.data(), frames, rate, wav);
@@ -47,15 +49,30 @@ static std::string audio_render(const AudioOutputFormat & format, std::vector<fl
     pcm.clear();
     std::vector<std::string> args{"-hide_banner", "-v", "error", "-nostdin", "-y", "-threads", "2",
         "-protocol_whitelist", "file,pipe", "-i", files.path("input.wav"), "-map", "0:a:0", "-vn", "-sn", "-dn",
-        "-map_metadata", "-1", "-ar", std::to_string(rate), "-ac", "2", "-c:a", format.codec};
+        "-map_metadata", "-1", "-ar", std::to_string(compatibility_pcm ? 24000 : rate), "-ac", compatibility_pcm ? "1" : "2"};
     std::string name = format.name;
+    const char * codec = compatibility_pcm ? "pcm_s16le" : format.codec;
+    const char * muxer = compatibility_pcm ? "s16le" : format.muxer;
+    if (!codec) {
+        codec = name == "wav32" ? "pcm_f32le" : name == "wav24" ? "pcm_s24le" : "pcm_s16le";
+        muxer = "wav";
+    }
+    args.insert(args.end(), {"-c:a", codec});
+    if (speed != 1) {
+        std::string filters;
+        double factor = speed;
+        if (factor > 2) { filters = "atempo=2,"; factor /= 2; }
+        else if (factor < .5) { filters = "atempo=0.5,"; factor /= .5; }
+        filters += "atempo=" + std::to_string(factor);
+        args.insert(args.end(), {"-af", filters});
+    }
     if (name == "opus") args.insert(args.end(), {"-b:a", "96000", "-vbr", "on", "-application", "audio", "-compression_level", "10"});
     else if (name == "mp3") args.insert(args.end(), {"-b:a", std::to_string(mp3_bitrate) + "k"});
     else if (name == "ogg") args.insert(args.end(), {"-q:a", "5"});
     else if (name == "flac") args.insert(args.end(), {"-sample_fmt", "s32", "-bits_per_raw_sample", "24"});
-    else args.insert(args.end(), {"-b:a", "192k"});
+    else if (name == "aac" || name == "m4a") args.insert(args.end(), {"-b:a", "192k"});
     if (name == "m4a") args.insert(args.end(), {"-movflags", "+faststart"});
-    args.insert(args.end(), {"-threads", "2", "-f", format.muxer, files.path("output")});
+    args.insert(args.end(), {"-threads", "2", "-f", muxer, files.path("output")});
     if (!yue_ffmpeg::run(args, files.path("stderr"), cancel, opaque)) return {};
     return yue_ffmpeg::read(files.path("output"));
 }

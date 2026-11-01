@@ -149,7 +149,13 @@ add_custom_command(
 set_source_files_properties(${WEBUI_OUTPUT} PROPERTIES GENERATED TRUE)
 
 # yue-server: HTTP server (single slot job queue + embedded webui)
-add_executable(yue-server src/cli/yue-server.cpp src/request.cpp src/model-store.cpp src/system-gpu.cpp ${WEBUI_OUTPUT})
+set(OPENAPI_OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/openapi.json.hpp")
+add_custom_command(OUTPUT "${OPENAPI_OUTPUT}"
+    COMMAND "${CMAKE_COMMAND}" "-DINPUT=${CMAKE_SOURCE_DIR}/src/api/openapi.json" "-DOUTPUT=${OPENAPI_OUTPUT}"
+            -P "${CMAKE_SOURCE_DIR}/cmake/xxd.cmake"
+    DEPENDS "${CMAKE_SOURCE_DIR}/src/api/openapi.json" "${CMAKE_SOURCE_DIR}/cmake/xxd.cmake")
+set_source_files_properties(${OPENAPI_OUTPUT} PROPERTIES GENERATED TRUE)
+add_executable(yue-server src/cli/yue-server.cpp src/request.cpp src/model-store.cpp src/system-gpu.cpp ${WEBUI_OUTPUT} ${OPENAPI_OUTPUT})
 target_include_directories(yue-server PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
 target_link_libraries(yue-server PRIVATE yyjson httplib ${CMAKE_DL_LIBS})
 if(GGML_CUDA AND CMAKE_SYSTEM_NAME STREQUAL "Linux")
@@ -186,6 +192,10 @@ add_executable(quantize src/cli/quantize.cpp)
 link_ggml_backends(quantize)
 
 add_subdirectory(tests)
+
+add_executable(music-api-check tests/api/translate.cpp src/request.cpp)
+target_include_directories(music-api-check PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
+target_link_libraries(music-api-check PRIVATE yyjson)
 
 # Model-free codec integration checks run in the CPU CI image, never the runtime.
 add_executable(audio-formats-check tests/audio/formats.cpp)

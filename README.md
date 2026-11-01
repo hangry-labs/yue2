@@ -161,6 +161,10 @@ for context, GPU selection, adapters and persistence.
 
 ## API Examples
 
+Use `/v1/audio/music` for direct music files or `/v1/audio/speech` with OpenAI
+clients. Both share the existing serial queue. See [music/SDK examples](docs/API.md),
+the local guide at `http://localhost:8087/docs`, and `/openapi.json`.
+
 The studio and native HTTP API share port **8087**. Submit a request, poll its
 job ID and fetch the result when the status is `done`. The API uses the native
 music protocol rather than an OpenAI speech contract.

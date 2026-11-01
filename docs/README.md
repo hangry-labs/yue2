@@ -16,6 +16,7 @@ container with external models.
 | [Docker runtime](DOCKER.md) | Registry images, mounts, GPU selection, defaults and weight-free packaging |
 | [Models](MODELS.md) | Pinned downloads, optional components, provenance and conversion |
 | [Audio formats](AUDIO.md) | FFmpeg uploads, Opus/MP3/FLAC/AAC exports and native WAV |
+| [Music and SDK APIs](API.md) | Music endpoint, OpenAI-compatible clients, schema, quality and access |
 | [LoRA adapters](ADAPTERS.md) | Supported adapter files, placement and loading |
 | [API and engine reference](ARCHITECTURE.md) | Request fields, job responses, CLI tools and engine internals |
 

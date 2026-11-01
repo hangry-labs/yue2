@@ -1,0 +1,176 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Hangry Labs YuE2 music API",
+    "version": "0.1.0",
+    "description": "Local music generation on one serial FIFO compute worker. /v1/audio/music is a YuE2 extension; /v1/audio/speech provides OpenAI client transport compatibility and generates songs. Ordinary audio stays 48 kHz stereo. Explicit pcm export is 24 kHz mono signed PCM16LE. Complete songs are generated before delivery. Optional Bearer authentication covers /v1 only; native and Studio routes retain their existing local access policy."
+  },
+  "servers": [{"url": "/"}],
+  "paths": {
+    "/v1/audio/music": {
+      "post": {
+        "operationId": "createMusic",
+        "summary": "Generate one song and return its audio",
+        "description": "YuE2 extension. lyrics/input are equivalent; conflicting values fail. instructions supplements style. voice aliases provide approximate vocal direction, not fixed singer identities. Duration limits generation before optional speed adjustment. Native settings, including explicit score/replay conditioning, are accepted. Use /synth for asynchronous jobs or batches.",
+        "security": [{"BearerAuth": []}, {}],
+        "requestBody": {"required": true, "content": {"application/json": {"schema": {"$ref": "#/components/schemas/MusicRequest"}}}},
+        "responses": {
+          "200": {"$ref": "#/components/responses/Audio"},
+          "400": {"$ref": "#/components/responses/Error"},
+          "401": {"$ref": "#/components/responses/Error"},
+          "404": {"$ref": "#/components/responses/Error"},
+          "409": {"$ref": "#/components/responses/Error"},
+          "500": {"$ref": "#/components/responses/Error"},
+          "504": {"$ref": "#/components/responses/Error"}
+        }
+      }
+    },
+    "/v1/audio/speech": {
+      "post": {
+        "operationId": "createSpeech",
+        "summary": "Generate music through an OpenAI-compatible audio request",
+        "description": "Uses the same music implementation and serial queue as /v1/audio/music. input is lyrics and instructions is musical direction. This endpoint returns music, not spoken narration. Binary audio delivery is supported; live generation and speech SSE events are unavailable.",
+        "security": [{"BearerAuth": []}, {}],
+        "requestBody": {"required": true, "content": {"application/json": {"schema": {"$ref": "#/components/schemas/MusicRequest"}}}},
+        "responses": {
+          "200": {"$ref": "#/components/responses/Audio"},
+          "400": {"$ref": "#/components/responses/Error"},
+          "401": {"$ref": "#/components/responses/Error"},
+          "404": {"$ref": "#/components/responses/Error"},
+          "409": {"$ref": "#/components/responses/Error"},
+          "500": {"$ref": "#/components/responses/Error"},
+          "504": {"$ref": "#/components/responses/Error"}
+        }
+      }
+    },
+    "/v1/models": {"get": {
+      "operationId": "listModels", "summary": "Discover the local music model",
+      "security": [{"BearerAuth": []}, {}],
+      "responses": {"200": {"description": "OpenAI-shaped model list", "content": {"application/json": {"schema": {
+        "type": "object", "required": ["object", "data"], "properties": {
+          "object": {"const": "list"}, "data": {"type": "array", "items": {"$ref": "#/components/schemas/Model"}}
+        }
+      }}}}, "401": {"$ref": "#/components/responses/Error"}}
+    }},
+    "/v1/models/{id}": {"get": {
+      "operationId": "retrieveModel", "summary": "Resolve YuE2 or a compatibility alias",
+      "security": [{"BearerAuth": []}, {}],
+      "parameters": [{"name": "id", "in": "path", "required": true, "schema": {"type": "string"}}],
+      "responses": {"200": {"description": "Canonical YuE2 model metadata", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/Model"}}}}, "401": {"$ref": "#/components/responses/Error"}, "404": {"$ref": "#/components/responses/Error"}}
+    }},
+    "/synth": {"post": {
+      "operationId": "submitNativeMusic", "summary": "Submit a native asynchronous generation job",
+      "description": "Retains native batching, replay metadata, scores and latents. GPU jobs remain serial.",
+      "requestBody": {"required": true, "content": {"application/json": {"schema": {"$ref": "#/components/schemas/NativeRequest"}}}},
+      "responses": {"200": {"$ref": "#/components/responses/Job"}, "400": {"description": "Native error object with an error string"}}
+    }},
+    "/job": {
+      "get": {
+        "operationId": "getJob", "summary": "Poll a job or download its completed result",
+        "parameters": [
+          {"name": "id", "in": "query", "required": true, "schema": {"type": "string"}},
+          {"name": "result", "in": "query", "description": "Presence requests the result instead of status", "schema": {"type": "integer", "enum": [1]}}
+        ],
+        "responses": {"200": {"description": "Status JSON, or result: native synthesis multipart audio/replay/latents; VAE or compatibility jobs return raw audio/latents; transcription/tokenization return JSON", "content": {"application/json": {"schema": {"type": "object"}}, "multipart/mixed": {"schema": {"type": "string", "format": "binary"}}, "application/octet-stream": {"schema": {"type": "string", "format": "binary"}}}}, "404": {"description": "Job/result unavailable"}}
+      },
+      "post": {
+        "operationId": "cancelJob", "summary": "Request cooperative cancellation",
+        "parameters": [
+          {"name": "id", "in": "query", "required": true, "schema": {"type": "string"}},
+          {"name": "cancel", "in": "query", "required": true, "schema": {"type": "integer", "enum": [1]}}
+        ],
+        "responses": {"200": {"description": "Current status; cancellation completes cooperatively"}, "404": {"description": "Unknown job"}}
+      }
+    },
+    "/vae": {"post": {
+      "operationId": "submitVae", "summary": "Encode uploaded audio or decode raw latents",
+      "requestBody": {"required": true, "content": {"multipart/form-data": {"schema": {
+        "type": "object", "properties": {
+          "audio": {"type": "string", "format": "binary"}, "src_latents": {"type": "string", "format": "binary", "description": "Time-major f32 [T,64]"},
+          "request": {"type": "string", "format": "binary", "description": "Optional native request JSON file controlling output"}
+        }, "oneOf": [{"required": ["audio"], "not": {"required": ["src_latents"]}}, {"required": ["src_latents"], "not": {"required": ["audio"]}}]
+      }}}}, "responses": {"200": {"$ref": "#/components/responses/Job"}, "400": {"description": "Invalid upload"}}
+    }},
+    "/transcribe": {"post": {
+      "operationId": "submitScoreTranscription", "summary": "Optional music-to-ABC transcription; not lyric ASR",
+      "description": "Route exists only when the optional transcriber is configured; inspect /props capabilities.",
+      "requestBody": {"required": true, "content": {"multipart/form-data": {"schema": {"type": "object", "required": ["audio"], "properties": {"audio": {"type": "string", "format": "binary"}, "melody_only": {"type": "string", "description": "Presence requests melody-only ABC"}}}}}},
+      "responses": {"200": {"$ref": "#/components/responses/Job"}, "400": {"description": "Invalid upload"}, "404": {"description": "Optional model unavailable"}}
+    }},
+    "/tokenize": {"post": {
+      "operationId": "submitTokenization", "summary": "Optional audio-to-semantic-token encoding",
+      "description": "Route exists only when the optional tokenizer is configured; inspect /props capabilities.",
+      "requestBody": {"required": true, "content": {"multipart/form-data": {"schema": {"type": "object", "required": ["audio"], "properties": {"audio": {"type": "string", "format": "binary"}}}}}},
+      "responses": {"200": {"$ref": "#/components/responses/Job"}, "400": {"description": "Invalid upload"}, "404": {"description": "Optional model unavailable"}}
+    }},
+    "/health": {"get": {"operationId": "health", "summary": "Liveness, not model warmup/readiness", "responses": {"200": {"description": "status=ok"}}}},
+    "/props": {"get": {"operationId": "properties", "summary": "Defaults, models, capabilities and output formats", "responses": {"200": {"description": "Native service configuration"}}}},
+    "/system/gpu": {"get": {"operationId": "gpuTelemetry", "summary": "On-request device telemetry and bounded history", "responses": {"200": {"description": "GPU telemetry or unavailability details"}}}},
+    "/logs": {"get": {"operationId": "logs", "summary": "Global native stderr stream", "responses": {"200": {"description": "Server-sent log events", "content": {"text/event-stream": {"schema": {"type": "string"}}}}}}},
+    "/docs": {"get": {"operationId": "apiGuide", "summary": "Local browser API guide", "responses": {"200": {"description": "Embedded UI opened on its API view; gzip supported by browsers", "content": {"text/html": {"schema": {"type": "string"}}}}}}},
+    "/openapi.json": {"get": {"operationId": "apiSchema", "summary": "This OpenAPI document", "responses": {"200": {"description": "OpenAPI 3.1", "content": {"application/json": {"schema": {"type": "object"}}}}}}}
+  },
+  "components": {
+    "securitySchemes": {"BearerAuth": {"type": "http", "scheme": "bearer", "description": "Required on /v1 only when YUE2_API_KEY is configured. This is a local key, not an OpenAI account credential."}},
+    "schemas": {
+      "NativeRequest": {
+        "type": "object", "additionalProperties": true,
+        "properties": {
+          "style": {"type": "string"}, "lyrics": {"type": "string"}, "cot": {"type": "string", "enum": ["full", "melody", "off"], "default": "full"},
+          "abc": {"type": "string", "description": "Explicit score conditioning; fresh generation leaves this empty"},
+          "semantic_tokens": {"type": "string"}, "source_tokens": {"type": "string"}, "source_start": {"type": "number"}, "source_end": {"type": "number"},
+          "duration": {"type": "number", "minimum": 0, "default": 360}, "steps": {"type": "integer", "minimum": 1, "default": 8},
+          "seed": {"type": "integer", "format": "int64", "default": -1}, "lm_seed": {"type": "integer", "format": "int64", "default": -1},
+          "lm_batch_size": {"type": "integer", "minimum": 1, "default": 1}, "synth_batch_size": {"type": "integer", "minimum": 1, "maximum": 9, "default": 1},
+          "cfg_scale": {"type": "number"}, "peak_clip": {"type": "integer", "default": 10}, "mp3_bitrate": {"type": "integer", "default": 128},
+          "output_format": {"type": "string", "description": "Native audio format. The v1 adapters also accept wav and pcm aliases.", "default": "mp3"},
+          "abc_sampling": {"$ref": "#/components/schemas/Sampling"}, "semantic_sampling": {"$ref": "#/components/schemas/Sampling"},
+          "adapters": {"type": "array", "items": {"type": "object", "required": ["name"], "properties": {"name": {"type": "string"}, "scale": {"type": "number", "default": 1}}}}
+        }
+      },
+      "Sampling": {"type": "object", "properties": {
+        "temperature": {"type": "number"}, "top_p": {"type": "number"}, "top_k": {"type": "integer"}, "repetition_penalty": {"type": "number"},
+        "penalty_window": {"type": "integer"}, "min_tokens": {"type": "integer"}, "max_tokens": {"type": "integer"}
+      }},
+      "MusicRequest": {
+        "allOf": [
+          {"$ref": "#/components/schemas/NativeRequest"},
+          {"type": "object", "anyOf": [{"required": ["input"]}, {"required": ["lyrics"]}, {"required": ["style"]}, {"required": ["instructions"]}], "properties": {
+            "model": {"type": ["string", "null"], "enum": ["yue2", "yue2-3b", "tts-1", "tts-1-hd", "gpt-4o-mini-tts", null], "default": "yue2"},
+            "input": {"type": ["string", "null"], "description": "Lyrics verbatim. An empty string plus instrumental direction is supported."},
+            "instructions": {"type": ["string", "null"], "description": "Additional genre, instrumentation, mood and delivery direction"},
+            "voice": {"type": ["string", "null"], "enum": ["auto", "default", "female", "male", "alloy", "ash", "ballad", "coral", "echo", "fable", "nova", "onyx", "sage", "shimmer", "verse", "marin", "cedar", null], "default": "auto", "description": "Approximate vocal-style hint, not an OpenAI voice or a fixed YuE2 singer identity"},
+            "response_format": {"type": ["string", "null"], "enum": ["mp3", "opus", "aac", "flac", "wav", "pcm", "ogg", "m4a", "wav16", "wav24", "wav32", null], "default": "mp3"},
+            "speed": {"type": ["number", "null"], "minimum": 0.25, "maximum": 4, "default": 1, "description": "Pitch-preserving output tempo adjustment; not inference speed or prompt BPM"},
+            "stream_format": {"type": ["string", "null"], "enum": ["audio", null], "default": "audio"},
+            "stream": {"type": ["boolean", "null"], "enum": [false, null]}, "n": {"type": ["integer", "null"], "enum": [1, null]},
+            "lm_batch_size": {"const": 1}, "synth_batch_size": {"const": 1}
+          }}
+        ]
+      },
+      "Model": {"type": "object", "required": ["id", "object", "created", "owned_by"], "properties": {
+        "id": {"const": "yue2"}, "object": {"const": "model"}, "created": {"type": "integer"}, "owned_by": {"type": "string"},
+        "aliases": {"type": "array", "items": {"type": "string"}}, "capabilities": {"type": "object"}
+      }},
+      "Error": {"type": "object", "required": ["error"], "properties": {"error": {"type": "object", "required": ["message", "type", "param", "code"], "properties": {
+        "message": {"type": "string"}, "type": {"type": "string"}, "param": {"type": ["string", "null"]}, "code": {"type": "string"}
+      }}}}
+    },
+    "responses": {
+      "Audio": {"description": "Complete audio file. Normal exports remain 48 kHz stereo; explicit pcm is raw 24 kHz mono PCM16LE. No multipart envelope.",
+        "headers": {
+          "X-Request-ID": {"schema": {"type": "string"}}, "X-YuE2-Job-ID": {"schema": {"type": "string"}, "description": "Native job ID for inspection/cancellation"},
+          "X-Audio-Sample-Rate": {"schema": {"type": "integer"}}, "X-Audio-Channels": {"schema": {"type": "integer"}}
+        },
+        "content": {
+          "audio/mpeg": {"schema": {"type": "string", "format": "binary"}}, "audio/ogg": {"schema": {"type": "string", "format": "binary"}},
+          "audio/aac": {"schema": {"type": "string", "format": "binary"}}, "audio/flac": {"schema": {"type": "string", "format": "binary"}},
+          "audio/mp4": {"schema": {"type": "string", "format": "binary"}}, "audio/wav": {"schema": {"type": "string", "format": "binary"}},
+          "audio/pcm": {"schema": {"type": "string", "format": "binary"}}
+        }
+      },
+      "Error": {"description": "OpenAI-shaped error", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/Error"}}}},
+      "Job": {"description": "Submitted native job", "content": {"application/json": {"schema": {"type": "object", "required": ["id"], "properties": {"id": {"type": "string"}}}}}}
+    }
+  }
+}

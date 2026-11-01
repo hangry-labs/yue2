@@ -16,6 +16,22 @@ import ggml_release
 import storage
 
 ROOT = Path(__file__).resolve().parents[1]
+API_ENV_KEYS = ('YUE2_API_KEY', 'YUE2_API_TIMEOUT_SECONDS')
+
+
+def api_environment(existing=None):
+    """Keep configured API access across image updates; explicit host values win."""
+    environment = os.environ.copy()
+    previous = dict(item.split('=', 1) for item in (existing or {}).get('Config', {}).get('Env', []) if '=' in item)
+    for key in API_ENV_KEYS:
+        if key not in environment and key in previous:
+            environment[key] = previous[key]
+    return environment
+
+
+def api_env_flags(environment):
+    # Docker reads values from its environment. Never put keys in printed argv.
+    return [value for key in API_ENV_KEYS if key in environment for value in ('--env', key)]
 
 
 def setting(name, default):
@@ -169,6 +185,7 @@ def main():
                    'node:24-bookworm-slim', 'sh', '-c', script]
         run(command, args.dry_run)
     elif args.command == 'start':
+        server_env = api_environment()
         models = storage.MODELS
         adapters = storage.ADAPTERS
         for filename in ('YuE2-3B-Q8_0.gguf', 'YuE2-Vae-F32.gguf'):
@@ -181,6 +198,7 @@ def main():
             existing = subprocess.run(['docker', 'inspect', container], capture_output=True, text=True)
             if existing.returncode == 0:
                 info = json.loads(existing.stdout)[0]
+                server_env = api_environment(info)
                 labels = info['Config'].get('Labels') or {}
                 if labels.get('org.opencontainers.image.source') != 'https://github.com/hangry-labs/yue2':
                     raise RuntimeError('Container name belongs to another project; choose CONTAINER explicitly')
@@ -195,9 +213,12 @@ def main():
                 selected = setting('GPU_DEVICE', 'all')
                 correct_gpu = any((r.get('Count') == -1 if selected == 'all'
                                    else r.get('DeviceIDs') == selected.split(',')) for r in requests)
+                configured = dict(item.split('=', 1) for item in info['Config'].get('Env', []) if '=' in item)
+                correct_api = all(configured.get(key, default) == server_env.get(key, default)
+                                  for key, default in (('YUE2_API_KEY', ''), ('YUE2_API_TIMEOUT_SECONDS', '600')))
                 if (info['Image'] == image_info['Id'] and info['State']['Running']
                         and info['Config']['Cmd'] == image_info['Config']['Cmd']
-                        and bindings == [binding] and correct_mounts and correct_gpu):
+                        and bindings == [binding] and correct_mounts and correct_gpu and correct_api):
                     print(f'Already running: http://localhost:{port}')
                     return 0
                 run(['docker', 'stop', container])
@@ -208,7 +229,7 @@ def main():
              '--label', 'io.hangrylabs.project=yue2',
              '-p', setting('BIND_ADDRESS', '127.0.0.1') + f':{port}:8087',
              '--mount', f'type=bind,source={models},target=/models,readonly',
-             '--mount', f'type=bind,source={adapters},target=/adapters,readonly', image], args.dry_run)
+             '--mount', f'type=bind,source={adapters},target=/adapters,readonly', *api_env_flags(server_env), image], args.dry_run, env=server_env)
         print(f'UI: http://localhost:{port}')
     elif args.command == 'stop':
         if not args.dry_run:
