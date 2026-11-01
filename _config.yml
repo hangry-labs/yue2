@@ -63,6 +63,11 @@ exclude:
   - docker
   - scripts
   - tests
+  - benchmarks/__init__.py
+  - benchmarks/metrics.py
+  - benchmarks/reports.py
+  - benchmarks/run.py
+  - benchmarks/runtime.py
   - node_modules
   - .jekyll-cache
   - .jekyll-metadata

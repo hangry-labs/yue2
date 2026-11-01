@@ -1,6 +1,7 @@
 cmake_minimum_required(VERSION 3.19...3.28)
 project(yue2-ggml LANGUAGES C CXX)
 
+# Keep source-built dependencies aligned with their existing C++17 artifacts.
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
@@ -69,6 +70,10 @@ endif()
 
 # HTTP, JSON and MP3 decoding from pinned upstream sources or installed targets.
 include(cmake/app-deps.cmake)
+
+# Application tools and parity harnesses use C++20; dependencies keep C++17.
+set(CMAKE_CXX_STANDARD 20)
+message(STATUS "YuE2 application C++ standard: ${CMAKE_CXX_STANDARD}")
 
 # Shared compile options and ggml linkage
 macro(link_ggml_backends target)

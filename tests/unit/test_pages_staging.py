@@ -52,6 +52,18 @@ class PagesStagingTests(unittest.TestCase):
             self.build()
         self.assertEqual((destination / 'README.md').read_text(), 'Overview')
 
+    def test_benchmark_docs_are_public_but_harness_code_and_raw_runs_are_not(self):
+        self.initialize_git()
+        folder = self.root / 'benchmarks'
+        folder.mkdir()
+        for name in ('README.md', 'BASELINE.json', 'corpus.json', 'run.py', 'raw-run.json'):
+            (folder / name).write_text('{}', encoding='utf-8')
+        destination = self.build()
+        for name in ('README.md', 'BASELINE.json', 'corpus.json'):
+            self.assertTrue((destination / 'benchmarks' / name).is_file())
+        for name in ('run.py', 'raw-run.json'):
+            self.assertFalse((destination / 'benchmarks' / name).exists())
+
     @patch('scripts.stage_pages.subprocess.check_output', return_value=b'README.md\0')
     def test_external_symlink_is_rejected_before_clearing_previous_stage(self, listing):
         (self.root / 'README.md').write_text('Overview', encoding='utf-8')

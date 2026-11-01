@@ -5,6 +5,11 @@ of the compiled official GGML 0.28.0/CUDA libraries. They compile the current ap
 against that installation. No registry login is needed to download the public
 archive. There is still one runtime image variant, with external model weights.
 
+The application uses C++20 with the existing GCC 13/CUDA 12.9.1 toolchain.
+GGML and the other compiled dependencies retain C++17. Source builds configure
+dependencies before selecting C++20 for application tools and parity harnesses,
+so the existing compiled GGML artifact remains compatible and reusable.
+
 ## Normal builds
 
 ```text
@@ -58,8 +63,8 @@ archive path. See [Docker runtime commands](DOCKER.md).
 ## Refreshing the dependency release
 
 Rebuild only after an intentional GGML, ABI/options, toolchain or GPU target
-change. C++17, inference defaults and the existing distribution targets are
-preserved by the current package.
+change. The current GGML package preserves C++17, inference defaults and the
+existing distribution targets.
 
 ```text
 task deps:verify

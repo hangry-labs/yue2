@@ -12,6 +12,7 @@ vars:
   CUDA_ARCHITECTURES: '{{.YUE2_CUDA_ARCHITECTURES | default "auto"}}'
   BUILD_JOBS: '{{.YUE2_BUILD_JOBS | default "4"}}'
   GGML_DEPS_IMAGE: '{{.YUE2_GGML_DEPS_IMAGE | default ""}}'
+  ASR_URL: '{{.YUE2_ASR_URL | default ""}}'
   LM_SEED: '831001'
   SEED: '831001'
 
@@ -110,6 +111,38 @@ tasks:
   test1:
     desc: Run the fixed-seed 8-step music baseline in Docker
     cmds: ['"{{.PYTHON}}" tests/benchmarks/test1.py --image "{{.IMAGE}}" --lm-seed "{{.LM_SEED}}" --seed "{{.SEED}}"']
+  benchmark:
+    desc: Run the resident-model speed, VRAM and four-language lyric baseline
+    cmds: [{task: benchmark-baseline}]
+  benchmark-plan:
+    desc: Show the fixed benchmark workload without network or GPU execution
+    cmds: ['"{{.PYTHON}}" -m benchmarks.run plan {{.CLI_ARGS}}']
+  benchmark-preflight:
+    desc: Check the selected image, model hashes, GPU tools and remote ASR judge
+    env:
+      YUE2_BENCHMARK_ASR_URL: '{{.ASR_URL}}'
+    cmds: ['"{{.PYTHON}}" -m benchmarks.run preflight {{.CLI_ARGS}}']
+  benchmark-smoke:
+    desc: Run one English warmup and measured song without updating public reports
+    env:
+      YUE2_BENCHMARK_ASR_URL: '{{.ASR_URL}}'
+    cmds: ['"{{.PYTHON}}" -m benchmarks.run run --pause-dev --languages en --repeats 1 {{.CLI_ARGS}}']
+  benchmark-baseline:
+    desc: Run four-language cold/warm benchmarks and refresh reviewed metric reports
+    env:
+      YUE2_BENCHMARK_ASR_URL: '{{.ASR_URL}}'
+    cmds: ['"{{.PYTHON}}" -m benchmarks.run run --pause-dev --write-reports {{.CLI_ARGS}}']
+  benchmark-score:
+    desc: Rescore an existing run through ASR without regenerating songs
+    env:
+      YUE2_BENCHMARK_ASR_URL: '{{.ASR_URL}}'
+    cmds: ['"{{.PYTHON}}" -m benchmarks.run score {{.CLI_ARGS}}']
+  benchmark-compare:
+    desc: Compare matched before/after run.json files and fail on regressions
+    cmds: ['"{{.PYTHON}}" -m benchmarks.reports {{.CLI_ARGS}}']
+  benchmark-test:
+    desc: Test benchmark scoring, timing, isolation and regression checks without a GPU
+    cmds: ['"{{.PYTHON}}" -m unittest discover -s tests/unit -p test_benchmarks.py -v']
   test:api:
     desc: Check capabilities and GPU telemetry against the running local server
     env:

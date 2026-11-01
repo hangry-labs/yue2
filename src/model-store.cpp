@@ -78,6 +78,7 @@ struct CpuEntry {
 
 struct ModelStore {
     EvictPolicy policy;
+    size_t      load_count = 0;  // successful GPU module loads, including reloads
 
     std::unordered_map<ModelKey, GpuEntry, ModelKeyHash, ModelKeyEq> gpu;
     HandleMap                                                        handle_to_key;
@@ -131,6 +132,7 @@ static T * install_entry(ModelStore *     s,
     e.label    = label;
     s->gpu.emplace(k, e);
     s->handle_to_key.emplace(obj, k);
+    s->load_count++;
     return obj;
 }
 
@@ -398,4 +400,8 @@ int store_gpu_module_count(const ModelStore * s) {
         return 0;
     }
     return (int) s->gpu.size();
+}
+
+size_t store_load_count(const ModelStore * s) {
+    return s ? s->load_count : 0;
 }

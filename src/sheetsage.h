@@ -1050,7 +1050,7 @@ static std::vector<int> ss2_overlap_prefix(const SS2Tokenizer &          t,
         if (!fields[SS2_F_TIMESTAMP].empty()) {
             int time_id             = (int) lround((e.time - window_start) * (t.time1 - t.time0) / 300.0);
             time_id                 = std::max(0, std::min(time_id, t.time1 - t.time0 - 1));
-            fields[SS2_F_TIMESTAMP] = { t.time0 + time_id };
+            fields[SS2_F_TIMESTAMP].assign(1, t.time0 + time_id);
         }
         if (i == 0) {
             for (int f : { SS2_F_STRUCTURE, SS2_F_KEY, SS2_F_CHORD }) {

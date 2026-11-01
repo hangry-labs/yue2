@@ -25,7 +25,7 @@ container with external models.
 | [Development](DEVELOPMENT.md) | Repository layout, local data migration, Task commands and native builds |
 | [Website](WEBSITE.md) | Themed README site, local preview, gallery integration and Pages deployment |
 | [Build dependencies](BUILDING.md) | Reusable CUDA libraries, integrity checks and source rebuilds |
-| [Benchmarks](BENCHMARKS.md) | Fixed generation profile, measurement method and recorded results |
+| [Benchmarks](BENCHMARKS.md) | Resident-model speed/VRAM/lyric suite and historical long-song baseline |
 | [CI and releases](RELEASING.md) | Tags, registry publication and Docker Hub overview maintenance |
 | [Docker Hub overview](dockerhub.md) | Registry-ready product description with absolute links |
 

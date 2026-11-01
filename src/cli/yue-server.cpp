@@ -173,9 +173,11 @@ enum class JobStatus : int {
 
 struct Job {
     std::string            id;
+    std::chrono::steady_clock::time_point submitted = std::chrono::steady_clock::now();
     std::atomic<JobStatus> status{ JobStatus::RUNNING };
     std::string            result_body;
     std::string            result_mime;
+    std::string            metrics_json;  // published with DONE, read only after status acquire
     std::atomic<bool>      cancel{ false };
 
     // memory ordering contract: result_body and result_mime are written
@@ -660,11 +662,15 @@ static void run_vae_decode(std::shared_ptr<Job> job, Yue2Request request, std::v
 }
 
 static void run_job(std::shared_ptr<Job> job, Yue2Request request) {
+    Timer worker_timer;
+    double queue_seconds = std::chrono::duration<double>(worker_timer.t - job->submitted).count();
+    size_t loads_before = store_load_count(g_pipeline.store);
     active_job_set(job);
     fprintf(stderr, "[Server] Job %s: %s\n", job->id.c_str(), request_to_json(&request).c_str());
 
     std::vector<Yue2Song> songs;
     bool ok = pipeline_generate(&g_pipeline, request, &songs, server_cancel_job, (void *) &job->cancel);
+    double pipeline_seconds = worker_timer.ms() / 1000.0;
 
     if (!ok) {
         active_job_set(nullptr);
@@ -700,6 +706,36 @@ static void run_job(std::shared_ptr<Job> job, Yue2Request request) {
     active_job_set(nullptr);
     job->result_body = multipart_build_tracks(request_parts, audio_parts, is_mp3 ? "audio/mpeg" : "audio/wav", latents);
     job->result_mime = MULTIPART_MIME;
+    // The compute worker owns ModelStore. Publish an immutable snapshot before
+    // DONE so HTTP threads never inspect resident models while they are changing.
+    double worker_seconds = worker_timer.ms() / 1000.0;
+    double audio_seconds = 0;
+    bool truncated = false;
+    for (const auto & song : songs) {
+        audio_seconds += (double) song.T_audio / YUE2_SAMPLE_RATE;
+        truncated = truncated || song.truncated;
+    }
+    auto * metrics_doc = yyjson_mut_doc_new(nullptr);
+    auto * metrics = yyjson_mut_obj(metrics_doc);
+    yyjson_mut_doc_set_root(metrics_doc, metrics);
+    yyjson_mut_obj_add_int(metrics_doc, metrics, "schema", 1);
+    yyjson_mut_obj_add_real(metrics_doc, metrics, "queue_seconds", queue_seconds);
+    yyjson_mut_obj_add_real(metrics_doc, metrics, "pipeline_seconds", pipeline_seconds);
+    yyjson_mut_obj_add_real(metrics_doc, metrics, "encoding_packaging_seconds", worker_seconds - pipeline_seconds);
+    yyjson_mut_obj_add_real(metrics_doc, metrics, "worker_seconds", worker_seconds);
+    yyjson_mut_obj_add_real(metrics_doc, metrics, "audio_seconds", audio_seconds);
+    yyjson_mut_obj_add_bool(metrics_doc, metrics, "truncated", truncated);
+    yyjson_mut_obj_add_bool(metrics_doc, metrics, "keep_loaded", g_keep_loaded);
+    yyjson_mut_obj_add_int(metrics_doc, metrics, "steps", request.steps);
+    yyjson_mut_obj_add_uint(metrics_doc, metrics, "module_loads", store_load_count(g_pipeline.store) - loads_before);
+    yyjson_mut_obj_add_uint(metrics_doc, metrics, "resident_weight_bytes", store_vram_bytes(g_pipeline.store));
+    yyjson_mut_obj_add_int(metrics_doc, metrics, "resident_modules", store_gpu_module_count(g_pipeline.store));
+    char * metrics_text = yyjson_mut_write(metrics_doc, 0, nullptr);
+    if (metrics_text) {
+        job->metrics_json = metrics_text;
+        free(metrics_text);
+    }
+    yyjson_mut_doc_free(metrics_doc);
     job->status.store(JobStatus::DONE);
 }
 
@@ -968,7 +1004,13 @@ int main(int argc, char ** argv) {
         }
         JobStatus status = job->status.load();
         if (!req.has_param("result")) {
-            res.set_content(json_string("status", job_status_str(status)), "application/json");
+            std::string body = json_string("status", job_status_str(status));
+            if (status == JobStatus::DONE && !job->metrics_json.empty()) {
+                body.pop_back();
+                body += ",\"metrics\":" + job->metrics_json + "}";
+            }
+            res.set_header("Cache-Control", "no-store");
+            res.set_content(body, "application/json");
             return;
         }
         if (status != JobStatus::DONE) {

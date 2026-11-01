@@ -5,6 +5,7 @@
 .github
 site
 examples
+benchmarks
 _config.yml
 404.md
 **/.github

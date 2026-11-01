@@ -16,7 +16,7 @@ browser studio, HTTP API and stereo 48 kHz MP3 or WAV output.
 Write your lyrics, describe the music and generate a song on your own GPU.
 Keep the audio, edit the ABC score or reuse the generated semantic tokens and
 acoustic latents for another take. This Hangry Labs fork packages the
-[yue2.cpp](https://github.com/ServeurpersoCom/yue2.cpp) C++17/GGML engine with a
+[yue2.cpp](https://github.com/ServeurpersoCom/yue2.cpp) engine as C++20 with GGML, a
 local studio, Docker workflows and a repeatable generation baseline.
 
 ## Quick Start
@@ -215,6 +215,8 @@ dependency artifact remains available for rollback. See [build dependencies](doc
 | `task status` / `task logs` | Inspect the container or follow logs |
 | `task validate` | Check tooling, dependency pins, UI and native CPU build |
 | `task test1` | Run the fixed-seed, 8-step GPU generation baseline |
+| `task benchmark-plan` | Inspect the resident-model benchmark workload without a GPU |
+| `task benchmark-baseline` | Measure warm generation, VRAM and four-language lyric fidelity |
 
 Copy `.env.example` to `.env` for local Task settings. CLI overrides include
 `task start PORT=8088` and `task test1 SEED=123`; use `PYTHON=python3` where
@@ -232,6 +234,12 @@ not a performance guarantee.
 `task test1` uses [the recorded prompt](tests/fixtures/test1.txt) and saves audio,
 score, tokens, latents, replay settings, logs and timings under `data/results/test1/`.
 See [methodology and measured results](docs/BENCHMARKS.md).
+
+For repeatable warm inference measurements, use [the benchmark suite](benchmarks/README.md).
+It keeps weights resident, excludes full warmups, measures 30-second songs in
+four languages, and uses your remote ASR service to score lyric fidelity. Speed,
+sampled GPU memory and lyric scores have [separate reports](benchmarks/BENCHMARKS.md)
+and matched before/after regression checks.
 
 ## Documentation
 
@@ -258,7 +266,7 @@ See the [documentation index](docs/README.md) for user and developer guides.
 
 Current development version; a stable application release has not been recorded.
 
-- Package the C++17/GGML song engine and standalone studio for CUDA in Docker.
+- Package the C++20/GGML song engine and standalone studio for CUDA in Docker.
 - Add the Hangry Labs Create, Library, API and System views with GPU telemetry.
 - Keep weights external, with pinned model downloads and mandatory image checks.
 - Add a repeatable 8-step generation baseline and verified reusable CUDA libraries.

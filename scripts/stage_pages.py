@@ -41,7 +41,9 @@ def stage(root=ROOT):
         if source.is_file():
             public_roots = ('docs/', 'assets/', 'examples/', 'site/theme/', 'web/src/assets/')
             public_files = {'README.md', '_config.yml', '404.md', 'LICENSE', 'THIRD_PARTY_NOTICES.md'}
-            if name in public_files or name.startswith(public_roots):
+            benchmark_doc = name.startswith('benchmarks/') and (
+                name.endswith('.md') or name in ('benchmarks/BASELINE.json', 'benchmarks/corpus.json'))
+            if name in public_files or name.startswith(public_roots) or benchmark_doc:
                 files.append((source, destination / name))
     if destination.exists():
         shutil.rmtree(destination)

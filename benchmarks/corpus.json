@@ -1,0 +1,42 @@
+{
+  "schema": 1,
+  "description": "Original, plain-language lyrics for approximately 30-second songs with a prominent solo vocal.",
+  "cases": [
+    {
+      "id": "sunlight-en",
+      "language": "en",
+      "language_name": "English",
+      "support": "upstream-listed",
+      "seed": 91001,
+      "style": "English acoustic folk pop, 84 BPM, clear solo female singing, very clear pronunciation, lead vocal loud and upfront above quiet acoustic guitar and soft brushes, simple melody, vocals from the start, no instrumental intro, no backing vocals, no humming, no ad libs, sing only the supplied lyrics",
+      "lyrics": "Sunlight falls across the floor\nYour footsteps reach my door\nTake my hand and stay\nWe will sing today"
+    },
+    {
+      "id": "morning-zh",
+      "language": "zh",
+      "language_name": "Chinese",
+      "support": "upstream-listed",
+      "seed": 92001,
+      "style": "Mandarin Chinese acoustic pop, 84 BPM, clear solo female singing, very clear Mandarin pronunciation, lead vocal loud and upfront above quiet acoustic guitar and soft brushes, simple melody, vocals from the start, no instrumental intro, no backing vocals, no humming, no ad libs, sing only the supplied lyrics",
+      "lyrics": "阳光照进我房间\n你的笑容在眼前\n牵着你的手向前\n一起走到海那边"
+    },
+    {
+      "id": "morning-es",
+      "language": "es",
+      "language_name": "Spanish",
+      "support": "experimental",
+      "seed": 93001,
+      "style": "Spanish acoustic folk pop, 84 BPM, clear solo female singing in Spanish, very clear pronunciation, lead vocal loud and upfront above quiet acoustic guitar and soft brushes, simple melody, vocals from the start, no instrumental intro, no backing vocals, no humming, no ad libs, sing only the supplied lyrics",
+      "lyrics": "Llega la luz del día\nTu voz me da alegría\nDame tu mano al andar\nVamos los dos a cantar"
+    },
+    {
+      "id": "morning-de",
+      "language": "de",
+      "language_name": "German",
+      "support": "experimental",
+      "seed": 94001,
+      "style": "German acoustic folk pop, 84 BPM, clear solo female singing in German, very clear pronunciation, lead vocal loud and upfront above quiet acoustic guitar and soft brushes, simple melody, vocals from the start, no instrumental intro, no backing vocals, no humming, no ad libs, sing only the supplied lyrics",
+      "lyrics": "Sonne scheint in unser Haus\nKomm wir gehen heute raus\nNimm mich bei der Hand\nWir laufen an den Strand"
+    }
+  ]
+}

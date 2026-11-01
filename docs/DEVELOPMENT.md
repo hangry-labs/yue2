@@ -14,6 +14,7 @@ Python helpers use the standard library; Python is not added to the inference im
 | `cmake/` | Build identity, asset embedding and reusable GGML package helpers |
 | `docker/` | Pinned model-download manifest and compiled dependency configuration |
 | `tests/benchmarks/` | Repeatable generation runner |
+| `benchmarks/` | Resident-model speed, memory and ASR lyric suite; corpus and public metric reports |
 | `tests/unit/` | CPU-only tooling and lifecycle tests |
 | `tests/integration/` | Read-only checks against a running server |
 | `tests/fixtures/` | Baseline prompts |
@@ -99,7 +100,7 @@ the in-container paths and server defaults have not changed.
 | task deps:export | Export a local dependency archive and checksum for release upload |
 | task start | Start the default server or replace an older project image |
 | task stop / status / logs | Operate this project's container |
-| task test | Tooling tests and GGML source-pin verification |
+| task test | Tooling/benchmark tests and native dependency pin verification |
 | task test:api | Read-only capabilities and GPU telemetry checks against the running server |
 | task check:cpu | Compile all native targets and check executable loading in Docker |
 | task web:check | Check UI types, request behavior and formatting in Node Docker |
@@ -107,6 +108,9 @@ the in-container paths and server defaults have not changed.
 | task assets:build | Convert the original PNG artwork to WebP with host FFmpeg |
 | task validate | Tooling, vendor, UI and CPU checks |
 | task test1 | Full GPU generation baseline |
+| task benchmark-plan | Offline resident-model workload and fixed settings |
+| task benchmark-baseline | Cold/warm speed, sampled VRAM and four-language lyric scoring |
+| task benchmark-compare | Matched before/after regression gates |
 | task test1:prepare | Prepare the request without Docker inference |
 
 Task configuration is in Taskfile.yml; implementation is in scripts/dev.py.
@@ -132,7 +136,8 @@ Dockerfile stages:
 - cuda-toolchain: pinned CUDA 12.9.1 development base and build tools.
 - ggml-deps-build / ggml-deps: isolated GGML compilation and portable dependency artifact.
 - selected-ggml: verified release named context, source artifact or selected prebuilt image.
-- build: C++17 app compilation linked against the verified GGML installation.
+- app-deps: cached upstream HTTP/JSON libraries and MP3 decoder headers.
+- build: C++20 app compilation linked against the verified dependency installations.
 - weights-check: verifies the assembled image contains no common model-weight files.
 - runtime: CUDA runtime, native executables, notices and embedded UI.
 
@@ -147,6 +152,11 @@ VERSION owns the application version. Task builds inject the Git revision;
 CI injects the validated commit. The same version/revision is embedded in UI and
 native binaries. Direct Docker builds without a SOURCE_REVISION argument show
 an unknown revision, but retain the application version.
+
+Application tools and parity harnesses require C++20. Source-built dependencies
+are configured with C++17 to match the precompiled GGML and HTTP/JSON packages.
+This uses the existing GCC 13/CUDA 12.9.1 toolchain and GGML artifact; changing the
+application language standard does not rebuild CUDA kernels.
 
 ## GGML dependency
 
@@ -179,7 +189,7 @@ The Docker runtime is the supported development baseline. The original engine
 also contains native CPU, CUDA, Vulkan, Metal and SYCL paths. They are not all
 qualified as product distributions.
 
-For CPU development with CMake 3.19+, Python 3, Ninja and a C++17 toolchain:
+For CPU development with CMake 3.19+, Python 3, Ninja and a C++20 toolchain:
 
 ```text
 cmake -S . -B build/native-cpu -G Ninja -DCMAKE_BUILD_TYPE=Release -DGGML_CUDA=OFF -DGGML_VULKAN=OFF

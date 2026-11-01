@@ -1,4 +1,14 @@
-# Repeatable generation baseline
+# Generation benchmarks
+
+The [resident-model suite](../benchmarks/README.md) measures warm speed, sampled
+VRAM and ASR lyric fidelity separately, using 30-second songs in four languages.
+Run `task benchmark-plan`, `task benchmark-smoke` or `task benchmark-baseline`.
+It includes cold startup separately, verifies zero model loads in timed calls,
+and supports matched before/after regression gates. See [recorded results](../benchmarks/BENCHMARKS.md).
+
+The earlier long-song test below remains a separate cold CLI baseline.
+
+## Long-song CLI baseline
 
 ```text
 task test1
@@ -60,3 +70,18 @@ After the repository reorganization, the same fixed profile produced 270.8 s
 of audio in 79.3 s pipeline / 84.3 s wall time. The ABC score, semantic tokens,
 latents and MP3 were byte-identical to the initial baseline on this machine.
 The timing difference is not claimed as an engine speed improvement.
+
+## C++20 qualification
+
+On 2026-11-01, the C++20 application linked against the existing GGML 0.28.0
+artifact passed the same eight-step profile on the RTX 5070 Ti:
+
+| Measurement | Result |
+| --- | --- |
+| Generated audio | 286.2 s (4m 46s) |
+| Pipeline | 91.5 s |
+| Total wall | 98.8 s |
+
+The ABC score, semantic tokens, latents and MP3 were byte-identical to the
+C++17 application using the same dependencies. A native rebuild overlapped this
+qualification run, so these timings are not an isolated speed comparison.

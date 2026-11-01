@@ -1,0 +1,236 @@
+{
+  "schema": 1,
+  "run_id": "20261101T170052Z-846682fc",
+  "status": "complete",
+  "assessment_policy": "relative_asr_v2",
+  "timing": {
+    "total_seconds": 349.3021148000844,
+    "warmup_requests_seconds": 58.90102849993855,
+    "measured_requests_seconds": 252.9042243002914,
+    "asr_requests_seconds": 6.452381900046021,
+    "other_seconds": 31.044480099808425,
+    "measured_pipeline_seconds": 236.520054416,
+    "source": "monotonic_clock",
+    "scope": "suite start through scoring; report export excluded"
+  },
+  "preliminary": false,
+  "image_id": "sha256:2c8ed04ae8f7960b8bf46b57c06d9017fbcefde66f8f43f79731b1db9eabb53d",
+  "revision": "bbc19f2-dirty",
+  "gpu": "NVIDIA GeForce RTX 5070 Ti",
+  "asr_model": "Qwen/Qwen3-ASR-0.6B-hf",
+  "languages": {
+    "en": {
+      "calls": 10,
+      "support": "upstream-listed",
+      "pipeline_seconds": {
+        "n": 10,
+        "median": 5.8778535205,
+        "p95": 7.39164915085,
+        "min": 4.803118661,
+        "max": 7.425635386
+      },
+      "worker_seconds": {
+        "n": 10,
+        "median": 5.8956615565,
+        "p95": 7.41458273875,
+        "min": 4.819119497,
+        "max": 7.4503356819999995
+      },
+      "client_seconds": {
+        "n": 10,
+        "median": 6.287494800053537,
+        "p95": 7.838235945033375,
+        "min": 5.174585900036618,
+        "max": 7.8721523999702185
+      },
+      "audio_seconds": {
+        "n": 10,
+        "median": 29.998666666666665,
+        "p95": 29.998666666666665,
+        "min": 29.998666666666665,
+        "max": 29.998666666666665
+      },
+      "audio_seconds_per_generation_second": 4.895147805211394,
+      "rtf": 0.20428392354882438,
+      "peak_device_mib": 12836.0,
+      "peak_delta_mib": 9136.0,
+      "resident_weight_mib": 3755.2684326171875,
+      "module_loads": 0,
+      "judged": 10,
+      "lyric_accuracy_percent": {
+        "n": 10,
+        "median": 94.73684210526316,
+        "p95": 100.0,
+        "min": 89.47368421052632,
+        "max": 100.0
+      },
+      "mean_wer": 0.042105263157894736,
+      "mean_cer": 0.04939759036144578,
+      "repeat_groups": 1,
+      "repeat_groups_bit_identical": 1,
+      "warnings": 0,
+      "audio_integrity_warnings": 0,
+      "duration_warnings": 0
+    },
+    "zh": {
+      "calls": 10,
+      "support": "upstream-listed",
+      "pipeline_seconds": {
+        "n": 10,
+        "median": 5.3335644460000005,
+        "p95": 5.9016702054,
+        "min": 4.785944699,
+        "max": 6.091596273
+      },
+      "worker_seconds": {
+        "n": 10,
+        "median": 5.3523762355,
+        "p95": 5.9261701297,
+        "min": 4.805650366,
+        "max": 6.115727308
+      },
+      "client_seconds": {
+        "n": 10,
+        "median": 5.718253550003283,
+        "p95": 6.348241395025979,
+        "min": 5.15421579987742,
+        "max": 6.568008300149813
+      },
+      "audio_seconds": {
+        "n": 10,
+        "median": 29.998666666666665,
+        "p95": 29.998666666666665,
+        "min": 29.998666666666665,
+        "max": 29.998666666666665
+      },
+      "audio_seconds_per_generation_second": 5.578296189334918,
+      "rtf": 0.17926620711031602,
+      "peak_device_mib": 12836.0,
+      "peak_delta_mib": 9136.0,
+      "resident_weight_mib": 3755.2684326171875,
+      "module_loads": 0,
+      "judged": 10,
+      "lyric_accuracy_percent": {
+        "n": 10,
+        "median": 82.14285714285714,
+        "p95": 89.28571428571429,
+        "min": 35.71428571428571,
+        "max": 89.28571428571429
+      },
+      "mean_wer": null,
+      "mean_cer": 0.2857142857142857,
+      "repeat_groups": 1,
+      "repeat_groups_bit_identical": 1,
+      "warnings": 0,
+      "audio_integrity_warnings": 0,
+      "duration_warnings": 0
+    },
+    "es": {
+      "calls": 10,
+      "support": "experimental",
+      "pipeline_seconds": {
+        "n": 10,
+        "median": 6.974404464500001,
+        "p95": 9.3344900371,
+        "min": 4.728672756,
+        "max": 9.503321920000001
+      },
+      "worker_seconds": {
+        "n": 10,
+        "median": 6.990937690499999,
+        "p95": 9.354427296499999,
+        "min": 4.745179621999999,
+        "max": 9.524759366
+      },
+      "client_seconds": {
+        "n": 10,
+        "median": 7.380016150069423,
+        "p95": 9.830720725038555,
+        "min": 5.080856699962169,
+        "max": 10.011514300014824
+      },
+      "audio_seconds": {
+        "n": 10,
+        "median": 29.998666666666665,
+        "p95": 29.998666666666665,
+        "min": 29.998666666666665,
+        "max": 29.998666666666665
+      },
+      "audio_seconds_per_generation_second": 4.4117975471913855,
+      "rtf": 0.22666497936574959,
+      "peak_device_mib": 12929.0,
+      "peak_delta_mib": 9229.0,
+      "resident_weight_mib": 3755.2684326171875,
+      "module_loads": 0,
+      "judged": 10,
+      "lyric_accuracy_percent": {
+        "n": 10,
+        "median": 70.0,
+        "p95": 92.75,
+        "min": 40.0,
+        "max": 95.0
+      },
+      "mean_wer": 0.305,
+      "mean_cer": 0.2537313432835821,
+      "repeat_groups": 1,
+      "repeat_groups_bit_identical": 1,
+      "warnings": 0,
+      "audio_integrity_warnings": 0,
+      "duration_warnings": 0
+    },
+    "de": {
+      "calls": 10,
+      "support": "experimental",
+      "pipeline_seconds": {
+        "n": 10,
+        "median": 5.3845672485,
+        "p95": 6.328170952149999,
+        "min": 4.602044471999999,
+        "max": 6.652478164
+      },
+      "worker_seconds": {
+        "n": 10,
+        "median": 5.4005522345,
+        "p95": 6.345148706949999,
+        "min": 4.622389988,
+        "max": 6.670729453
+      },
+      "client_seconds": {
+        "n": 10,
+        "median": 5.766443850006908,
+        "p95": 6.744903229945338,
+        "min": 4.959885900141671,
+        "max": 7.095658699981868
+      },
+      "audio_seconds": {
+        "n": 10,
+        "median": 29.998666666666665,
+        "p95": 29.998666666666665,
+        "min": 28.638666666666666,
+        "max": 29.998666666666665
+      },
+      "audio_seconds_per_generation_second": 5.585601135729454,
+      "rtf": 0.17903175964414877,
+      "peak_device_mib": 12856.0,
+      "peak_delta_mib": 9156.0,
+      "resident_weight_mib": 3755.2684326171875,
+      "module_loads": 0,
+      "judged": 10,
+      "lyric_accuracy_percent": {
+        "n": 10,
+        "median": 85.0,
+        "p95": 100.0,
+        "min": 75.0,
+        "max": 100.0
+      },
+      "mean_wer": 0.135,
+      "mean_cer": 0.07317073170731708,
+      "repeat_groups": 1,
+      "repeat_groups_bit_identical": 1,
+      "warnings": 0,
+      "audio_integrity_warnings": 0,
+      "duration_warnings": 0
+    }
+  },
+  "resident_growth_mib": -197.0
+}

@@ -46,6 +46,9 @@ class Document(HTMLParser):
 def verify(root=ROOT):
     output = root / 'build/pages/output'
     required = ['index.html', 'docs/index.html', 'docs/DOCKER.html', 'docs/WEBSITE.html',
+                'benchmarks/index.html', 'benchmarks/BENCHMARKS.html',
+                'benchmarks/speed/BENCHMARKS.html', 'benchmarks/memory/BENCHMARKS.html',
+                'benchmarks/lyrics/BENCHMARKS.html',
                 'examples/index.html', 'examples/guide/index.html', '404.html']
     for name in required:
         if not (output / name).is_file():
@@ -54,7 +57,7 @@ def verify(root=ROOT):
                  'Gemfile', 'Gemfile.lock', 'Dockerfile', 'Taskfile.yml', 'CMakeLists.txt'}
     for path in output.rglob('*'):
         relative = path.relative_to(output)
-        if any(part in forbidden for part in relative.parts) or path.suffix in ('.cred', '.pyc'):
+        if any(part in forbidden for part in relative.parts) or path.suffix in ('.cred', '.pyc', '.py'):
             raise ValueError(f'Private/build input leaked into Pages: {relative}')
         if path.is_symlink():
             raise ValueError('Published files must not link outside the output.')

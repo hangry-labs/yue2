@@ -4,7 +4,7 @@
 
 # yue2.cpp
 
-Portable C++17 implementation of YuE2 song generation using GGML.
+Portable C++20 implementation of YuE2 song generation using GGML.
 Style tags and lyrics in, stereo 48kHz MP3 or WAV out, with the ABC score
 the model composed. Runs on CPU, CUDA, Vulkan.
 
@@ -819,6 +819,20 @@ GET  /                          Embedded WebUI (gzipped HTML)
 ```
 
 Error responses are JSON: `{"error":"message"}`.
+
+Completed `/synth` jobs also return a `metrics` object on `GET /job?id=N`.
+Schema 1 records `queue_seconds`, `pipeline_seconds`, `encoding_packaging_seconds`,
+`worker_seconds`, `audio_seconds`, `steps`, `truncated`, `keep_loaded`,
+`module_loads`, `resident_modules` and `resident_weight_bytes`. Timings use a
+monotonic clock. Pipeline time includes the native generation stages; worker time
+also includes encoding/packaging. These exclude HTTP polling/transfer and ASR.
+Resident bytes count model weight buffers, not total GPU memory. The single
+compute worker captures the snapshot before publishing `done`; HTTP handlers
+never read live ModelStore state. Running/failed/cancelled and non-synthesis jobs
+retain the existing status response without partial metrics.
+
+The [benchmark harness](../benchmarks/README.md) combines these snapshots with
+sampled device memory, actual audio validation and an external ASR judge.
 
 **GET /props** returns the sample rate, the frame rate, the context, the
 adapter directory with the halves each entry changes, and the full default

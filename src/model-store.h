@@ -119,6 +119,7 @@ BPETokenizer * store_bpe(ModelStore * s, const char * lm_path);
 // the count of loaded GPU modules.
 size_t store_vram_bytes(const ModelStore * s);
 int    store_gpu_module_count(const ModelStore * s);
+size_t store_load_count(const ModelStore * s);
 
 // RAII helper. Builds on top of store_release, nothing else.
 struct ModelHandle {
