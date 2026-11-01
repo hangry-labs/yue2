@@ -64,9 +64,9 @@ def configuration(cases, repeats, interval):
             'seed_schedule': [0 if i == 2 else i for i in range(repeats)]}
 
 
-def preflight(args, cases):
-    if not shutil.which('ffmpeg') or not shutil.which('nvidia-smi'):
-        raise ValueError('Benchmark requires Docker, nvidia-smi and FFmpeg on the host')
+def preflight(args, cases, use_asr=True):
+    if not shutil.which('nvidia-smi') or (use_asr and not shutil.which('ffmpeg')):
+        raise ValueError('Benchmark requires Docker/nvidia-smi, and FFmpeg for ASR scoring')
     command(['docker', 'version', '--format', '{{.Server.Version}}'])
     image = json.loads(command(['docker', 'image', 'inspect', args.image]))[0]
     models = {}
@@ -75,22 +75,24 @@ def preflight(args, cases):
         if not path.is_file():
             raise ValueError('Prepare external models first: task models')
         models[name] = {'bytes': path.stat().st_size, 'sha256': digest(path)}
-    judge = asr_inventory(args.asr_url)
-    missing = [case['language_name'] for case in cases if case['language_name'] not in judge['languages']]
-    if missing:
-        raise ValueError('ASR does not advertise: ' + ', '.join(missing))
+    judge = None
+    if use_asr:
+        judge = asr_inventory(args.asr_url)
+        missing = [case['language_name'] for case in cases if case['language_name'] not in judge['languages']]
+        if missing:
+            raise ValueError('ASR does not advertise: ' + ', '.join(missing))
     return {'image_id': image['Id'], 'image_revision': (image['Config'].get('Labels') or {}).get(
                 'org.opencontainers.image.revision'), 'models': models, 'gpu': gpu_info(args.gpu),
             'other_gpu_containers': gpu_workers(exclude=(args.dev_container,)), 'asr': judge,
-            'ffmpeg': command(['ffmpeg', '-version']).splitlines()[0]}
+            'ffmpeg': command(['ffmpeg', '-version']).splitlines()[0] if shutil.which('ffmpeg') else None}
 
 
-def generate_call(instance, sampler, case, phase, index, round_index, folder):
+def generate_call(instance, sampler, case, phase, index, round_index, folder, *, payload=None, timeout=180):
     identity = f'{phase}-{index:02d}-{case["id"]}'
-    payload = request(case, round_index)
+    payload = request(case, round_index) if payload is None else payload
     save(folder / (identity + '.request.json'), payload)
     started = time.perf_counter()
-    measurement, audio, replay, latent = synth(instance['url'], payload)
+    measurement, audio, replay, latent = synth(instance['url'], payload, timeout=timeout)
     ended = time.perf_counter()
     metrics = measurement['server']
     if phase == 'measured':
@@ -117,6 +119,8 @@ def generate_call(instance, sampler, case, phase, index, round_index, folder):
 
 
 def score_run(run, folder, asr_url):
+    if run.get('suite') == 'long_music':
+        raise ValueError('Long-music benchmarks do not use ASR scoring')
     cases = {case['id']: case for case in run['cases']}
     judge = asr_inventory(asr_url)
     if judge['model'] != run['environment']['asr']['model']:

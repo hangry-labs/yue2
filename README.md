@@ -217,6 +217,7 @@ dependency artifact remains available for rollback. See [build dependencies](doc
 | `task test1` | Run the fixed-seed, 8-step GPU generation baseline |
 | `task benchmark-plan` | Inspect the resident-model benchmark workload without a GPU |
 | `task benchmark-baseline` | Measure warm generation, VRAM and four-language lyric fidelity |
+| `task benchmark-long` | Measure five English long songs with resident models and no ASR |
 
 Copy `.env.example` to `.env` for local Task settings. CLI overrides include
 `task start PORT=8088` and `task test1 SEED=123`; use `PYTHON=python3` where

@@ -1,0 +1,67 @@
+{
+  "schema": 1,
+  "suite": "long_music",
+  "run_id": "20261101T172743Z-89688399",
+  "status": "complete",
+  "timing": {
+    "total_seconds": 430.9583112997934,
+    "warmup_requests_seconds": 27.475139599991962,
+    "measured_requests_seconds": 368.18865989963524,
+    "asr_requests_seconds": 0,
+    "other_seconds": 35.29451180016622,
+    "measured_pipeline_seconds": 345.536775191,
+    "source": "monotonic_clock",
+    "scope": "suite start through audio integrity analysis; report export excluded"
+  },
+  "preliminary": false,
+  "image_id": "sha256:2c8ed04ae8f7960b8bf46b57c06d9017fbcefde66f8f43f79731b1db9eabb53d",
+  "revision": "bbc19f2-dirty",
+  "gpu": "NVIDIA GeForce RTX 5070 Ti",
+  "asr_enabled": false,
+  "languages": {
+    "en": {
+      "calls": 5,
+      "judged": 0,
+      "pipeline_seconds": {
+        "n": 5,
+        "median": 70.033677652,
+        "p95": 72.03415365480001,
+        "min": 63.153151021999996,
+        "max": 72.397630726
+      },
+      "worker_seconds": {
+        "n": 5,
+        "median": 70.316458996,
+        "p95": 72.3745247042,
+        "min": 63.434676679999995,
+        "max": 72.737597943
+      },
+      "client_seconds": {
+        "n": 5,
+        "median": 74.32958290004171,
+        "p95": 76.81274291984737,
+        "min": 67.5579164000228,
+        "max": 77.15950179984793
+      },
+      "audio_seconds": {
+        "n": 5,
+        "median": 299.9986666666667,
+        "p95": 299.9986666666667,
+        "min": 286.2386666666667,
+        "max": 299.9986666666667
+      },
+      "audio_seconds_per_generation_second": 4.289422833543705,
+      "rtf": 0.23313159807419834,
+      "peak_device_mib": 13418.0,
+      "peak_delta_mib": 10821.0,
+      "resident_weight_mib": 3755.2684326171875,
+      "module_loads": 0,
+      "warnings": 0,
+      "duration_warnings": 0,
+      "audio_integrity_warnings": 0,
+      "repeat_groups": 0,
+      "repeat_groups_bit_identical": 0
+    }
+  },
+  "resident_growth_mib": 1919.0
+}

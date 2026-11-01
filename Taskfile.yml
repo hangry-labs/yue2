@@ -140,9 +140,18 @@ tasks:
   benchmark-compare:
     desc: Compare matched before/after run.json files and fail on regressions
     cmds: ['"{{.PYTHON}}" -m benchmarks.reports {{.CLI_ARGS}}']
+  benchmark-long:
+    desc: Run five English long songs with resident weights, speed/VRAM metrics and no ASR
+    cmds: ['"{{.PYTHON}}" -m benchmarks.long run --pause-dev {{.CLI_ARGS}}']
+  benchmark-long-plan:
+    desc: Show the five-song long-music profile without network or GPU execution
+    cmds: ['"{{.PYTHON}}" -m benchmarks.long plan {{.CLI_ARGS}}']
+  benchmark-long-preflight:
+    desc: Verify the long-suite image, weights and GPU tools without contacting ASR
+    cmds: ['"{{.PYTHON}}" -m benchmarks.long preflight {{.CLI_ARGS}}']
   benchmark-test:
-    desc: Test benchmark scoring, timing, isolation and regression checks without a GPU
-    cmds: ['"{{.PYTHON}}" -m unittest discover -s tests/unit -p test_benchmarks.py -v']
+    desc: Test short/long benchmark timing, scoring, isolation and regression checks without a GPU
+    cmds: ['"{{.PYTHON}}" -m unittest discover -s tests/unit -p "test*benchmark*.py" -v']
   test:api:
     desc: Check capabilities and GPU telemetry against the running local server
     env:

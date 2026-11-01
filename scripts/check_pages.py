@@ -49,6 +49,7 @@ def verify(root=ROOT):
                 'benchmarks/index.html', 'benchmarks/BENCHMARKS.html',
                 'benchmarks/speed/BENCHMARKS.html', 'benchmarks/memory/BENCHMARKS.html',
                 'benchmarks/lyrics/BENCHMARKS.html',
+                'benchmarks/long-music/BENCHMARKS.html',
                 'examples/index.html', 'examples/guide/index.html', '404.html']
     for name in required:
         if not (output / name).is_file():

@@ -58,11 +58,16 @@ class PagesStagingTests(unittest.TestCase):
         folder.mkdir()
         for name in ('README.md', 'BASELINE.json', 'corpus.json', 'run.py', 'raw-run.json'):
             (folder / name).write_text('{}', encoding='utf-8')
+        (folder / 'fixtures').mkdir()
+        (folder / 'fixtures/long-music.txt').write_text('Public prompt', encoding='utf-8')
+        (folder / 'fixtures/unapproved.txt').write_text('Not staged', encoding='utf-8')
         destination = self.build()
         for name in ('README.md', 'BASELINE.json', 'corpus.json'):
             self.assertTrue((destination / 'benchmarks' / name).is_file())
         for name in ('run.py', 'raw-run.json'):
             self.assertFalse((destination / 'benchmarks' / name).exists())
+        self.assertTrue((destination / 'benchmarks/fixtures/long-music.txt').is_file())
+        self.assertFalse((destination / 'benchmarks/fixtures/unapproved.txt').exists())
 
     @patch('scripts.stage_pages.subprocess.check_output', return_value=b'README.md\0')
     def test_external_symlink_is_rejected_before_clearing_previous_stage(self, listing):

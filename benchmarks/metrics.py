@@ -121,10 +121,10 @@ def verify_warm(metrics):
         raise ValueError('Pipeline time exceeds total worker time')
 
 
-def integrity_flags(info):
+def integrity_flags(info, min_seconds=25, max_seconds=31):
     flags = []
-    if not 25 <= info['duration_seconds'] <= 31:
-        flags.append('duration_outside_25_to_31_seconds')
+    if not min_seconds <= info['duration_seconds'] <= max_seconds:
+        flags.append(f'duration_outside_{min_seconds}_to_{max_seconds}_seconds')
     if info['silent_window_fraction'] > .5:
         flags.append('mostly_silent_audio')
     if info['clipping_fraction'] > .001:

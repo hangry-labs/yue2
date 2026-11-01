@@ -7,6 +7,8 @@ The normal Studio retains its standard eviction policy.
 
 The [baseline review](BASELINE_REVIEW.md) explains the measured results and
 ASR variability; [generated reports](BENCHMARKS.md) retain the complete tables.
+The separate [long-music benchmark](long-music/BENCHMARKS.md) measures five
+English long songs without ASR.
 
 ```powershell
 task benchmark-plan
@@ -156,3 +158,36 @@ machine before attributing a performance difference to code.
 
 The earlier long-song cold baseline remains available as `task test1`; see
 [its methodology and history](../docs/BENCHMARKS.md).
+
+## Long music
+
+```powershell
+task benchmark-long-plan
+task benchmark-long-preflight
+task benchmark-long
+```
+
+This separate suite uses the owner's original [prompt](fixtures/long-music.txt),
+a 300-second ceiling, five distinct fixed seeds (831001–831005), eight steps and
+the normal context/attention/VAE settings. It does not contact ASR, check ASR
+readiness, or calculate a lyric score. The same isolated resident-model worker
+and sampled VRAM telemetry are used. ASR/FFmpeg are not required for this suite.
+
+Default warmup mode is `short`: one excluded 30-second English warmup followed
+by five measured long songs. It warms all three models and executes the network,
+but the first long request can still include longer-shape allocation/graph setup.
+For exactly five generations total, use `task benchmark-long -- --warmup first`:
+the first long song becomes the cold/warmup observation and the next four form
+the warm statistics. The report states the selected mode and actual sample count.
+
+Actual output duration is measured; the model may end before five minutes.
+Lengths outside 250–301 seconds are technical flags rather than silently padded
+audio. Per-call request/pipeline/encoding time, aggregate RTF, median/p95 and
+device memory are retained. GPU work finishes before CPU WAV integrity analysis.
+Total wall time includes this analysis and excludes final report export.
+
+Raw evidence and native WAVs stay under
+`data/results/benchmarks/long-music/<run-id>/`. Public speed/memory reports are
+under `benchmarks/long-music/` and never overwrite the multilingual baseline.
+The same `benchmark-compare` task accepts two matched long-suite `run.json` files;
+short and long workloads cannot be compared, and ASR gates do not apply.

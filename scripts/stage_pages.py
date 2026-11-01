@@ -42,7 +42,8 @@ def stage(root=ROOT):
             public_roots = ('docs/', 'assets/', 'examples/', 'site/theme/', 'web/src/assets/')
             public_files = {'README.md', '_config.yml', '404.md', 'LICENSE', 'THIRD_PARTY_NOTICES.md'}
             benchmark_doc = name.startswith('benchmarks/') and (
-                name.endswith('.md') or name in ('benchmarks/BASELINE.json', 'benchmarks/corpus.json'))
+                name.endswith('.md') or name in ('benchmarks/BASELINE.json', 'benchmarks/corpus.json',
+                    'benchmarks/long-music/BASELINE.json', 'benchmarks/fixtures/long-music.txt'))
             if name in public_files or name.startswith(public_roots) or benchmark_doc:
                 files.append((source, destination / name))
     if destination.exists():

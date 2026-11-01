@@ -65,6 +65,7 @@ exclude:
   - tests
   - benchmarks/__init__.py
   - benchmarks/metrics.py
+  - benchmarks/long.py
   - benchmarks/reports.py
   - benchmarks/run.py
   - benchmarks/runtime.py

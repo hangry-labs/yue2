@@ -8,6 +8,11 @@ and supports matched before/after regression gates. See [recorded results](../be
 
 The earlier long-song test below remains a separate cold CLI baseline.
 
+For five long English generations using the supplied cinematic synth-rock prompt,
+run `task benchmark-long`. This resident-model profile targets 300 seconds and
+makes no ASR requests. See [long-music results](../benchmarks/long-music/BENCHMARKS.md)
+and [warmup/count options](../benchmarks/README.md#long-music).
+
 ## Long-song CLI baseline
 
 ```text

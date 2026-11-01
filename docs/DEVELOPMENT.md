@@ -110,6 +110,7 @@ the in-container paths and server defaults have not changed.
 | task test1 | Full GPU generation baseline |
 | task benchmark-plan | Offline resident-model workload and fixed settings |
 | task benchmark-baseline | Cold/warm speed, sampled VRAM and four-language lyric scoring |
+| task benchmark-long | Five English long songs, warm inference/VRAM and no ASR |
 | task benchmark-compare | Matched before/after regression gates |
 | task test1:prepare | Prepare the request without Docker inference |
 

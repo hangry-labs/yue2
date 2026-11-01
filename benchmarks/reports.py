@@ -11,6 +11,9 @@ from .metrics import assessed_status, distribution, suite_timing, technical_flag
 
 
 def summarize(run):
+    if run.get('suite') == 'long_music':
+        from .long import summarize as summarize_long
+        return summarize_long(run)
     measured = [call for call in run['calls'] if call['phase'] == 'measured']
     result = {'schema': 1, 'run_id': run['run_id'], 'status': assessed_status(run),
               'assessment_policy': 'relative_asr_v2', 'timing': suite_timing(run),
@@ -132,6 +135,9 @@ def sections(run, summary):
 
 
 def write_reports(run, folder, public=False):
+    if run.get('suite') == 'long_music':
+        from .long import write_reports as write_long_reports
+        return write_long_reports(run, folder, public)
     summary = summarize(run)
     overview, speed, memory, quality = sections(run, summary)
     folder = Path(folder)
@@ -155,6 +161,12 @@ def write_reports(run, folder, public=False):
 
 
 def compare(before, after, latency_limit=.15, vram_limit=256, score_drop=None):
+    suite = before.get('suite', 'short_music')
+    if suite != after.get('suite', 'short_music'):
+        raise ValueError('Cannot compare short and long benchmark suites')
+    judge_enabled = suite != 'long_music'
+    if not judge_enabled and score_drop is not None:
+        raise ValueError('Long music benchmarks have no ASR score gate')
     for run in (before, after):
         if run['status'] not in ('complete', 'complete_with_warnings') or run['preliminary']:
             raise ValueError('Comparison requires two complete dedicated-worker runs')
@@ -166,13 +178,13 @@ def compare(before, after, latency_limit=.15, vram_limit=256, score_drop=None):
     for key in ('uuid', 'driver_version', 'name'):
         if before['environment']['gpu'][key] != after['environment']['gpu'][key]:
             raise ValueError('GPU or driver changed')
-    if before['environment']['asr']['model'] != after['environment']['asr']['model']:
+    if judge_enabled and before['environment']['asr']['model'] != after['environment']['asr']['model']:
         raise ValueError('ASR judge changed')
     a, b = summarize(before), summarize(after)
     failures, changes, review_signals = [], {}, []
     for language, old in a['languages'].items():
         new = b['languages'][language]
-        if new['calls'] != old['calls'] or new['judged'] != new['calls']:
+        if new['calls'] != old['calls'] or (judge_enabled and new['judged'] != new['calls']):
             failures.append(language + ': incomplete measured/scored calls')
         if new['module_loads']:
             failures.append(language + ': weight reload during timed generation')
@@ -185,12 +197,13 @@ def compare(before, after, latency_limit=.15, vram_limit=256, score_drop=None):
         delta['peak_delta_mib'] = new['peak_delta_mib'] - old['peak_delta_mib']
         if delta['peak_delta_mib'] > vram_limit:
             failures.append(language + ': peak VRAM increase beyond allowance')
-        delta['lyric_score_points'] = new['lyric_accuracy_percent']['median'] - old['lyric_accuracy_percent']['median']
-        delta['minimum_lyric_score_points'] = new['lyric_accuracy_percent']['min'] - old['lyric_accuracy_percent']['min']
-        if min(delta['lyric_score_points'], delta['minimum_lyric_score_points']) < 0:
-            review_signals.append(language + ': ASR match decreased; review judge variability and paired samples')
-        if score_drop is not None and min(delta['lyric_score_points'], delta['minimum_lyric_score_points']) < -score_drop:
-            failures.append(language + ': lyric fidelity dropped beyond allowance')
+        if judge_enabled:
+            delta['lyric_score_points'] = new['lyric_accuracy_percent']['median'] - old['lyric_accuracy_percent']['median']
+            delta['minimum_lyric_score_points'] = new['lyric_accuracy_percent']['min'] - old['lyric_accuracy_percent']['min']
+            if min(delta['lyric_score_points'], delta['minimum_lyric_score_points']) < 0:
+                review_signals.append(language + ': ASR match decreased; review judge variability and paired samples')
+            if score_drop is not None and min(delta['lyric_score_points'], delta['minimum_lyric_score_points']) < -score_drop:
+                failures.append(language + ': lyric fidelity dropped beyond allowance')
         if new['duration_warnings'] > old['duration_warnings']:
             failures.append(language + ': additional duration failures')
         if new['audio_integrity_warnings'] > old['audio_integrity_warnings']:
