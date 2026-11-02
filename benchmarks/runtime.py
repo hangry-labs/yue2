@@ -60,7 +60,27 @@ def track_parts(content_type, body):
     return audio[0], replay[0], latent[0] if latent else b''
 
 
-def synth(base, payload, timeout=180):
+def batch_parts(content_type, body):
+    """Decode the native JSON/audio/latent triplets without losing track order."""
+    message = BytesParser(policy=policy.default).parsebytes(
+        b'Content-Type: ' + content_type.encode() + b'\r\nMIME-Version: 1.0\r\n\r\n' + body)
+    parts = list(message.iter_parts())
+    if not parts or len(parts) % 3:
+        raise ValueError('Expected complete replay/WAV/latent triplets')
+    tracks = []
+    for index in range(0, len(parts), 3):
+        replay, audio, latent = parts[index:index + 3]
+        if [p.get_content_type() for p in (replay, audio, latent)] != [
+                'application/json', 'audio/wav', 'application/octet-stream']:
+            raise ValueError('Unexpected native track ordering or output format')
+        data = audio.get_payload(decode=True)
+        if not data:
+            raise ValueError('Empty WAV track')
+        tracks.append((data, json.loads(replay.get_payload(decode=True)), latent.get_payload(decode=True)))
+    return tracks
+
+
+def _synth(base, payload, timeout, decoder):
     started = time.perf_counter()
     job = http_json(base, '/synth', payload)['id']
     try:
@@ -74,15 +94,24 @@ def synth(base, payload, timeout=180):
         else:
             raise TimeoutError(f'Generation {job} timed out')
         with urlopen(base + '/job?id=' + job + '&result=1', timeout=30) as response:
-            audio, replay, latent = track_parts(response.headers['Content-Type'], response.read())
+            result = decoder(response.headers['Content-Type'], response.read())
         return {'job_id': job, 'client_seconds': time.perf_counter() - started,
-                'server': status.get('metrics', {})}, audio, replay, latent
+                'server': status.get('metrics', {})}, result
     except BaseException:
         try:
             http_json(base, '/job?id=' + job + '&cancel=1', {})
         except (OSError, ValueError):
             pass
         raise
+
+
+def synth(base, payload, timeout=180):
+    measurement, result = _synth(base, payload, timeout, track_parts)
+    return measurement, *result
+
+
+def synth_many(base, payload, timeout=900):
+    return _synth(base, payload, timeout, batch_parts)
 
 
 def asr_inventory(base):
@@ -213,6 +242,25 @@ def require_idle_dev(info):
         except HTTPError as error:
             if error.code != 404:
                 raise
+
+
+@contextmanager
+def paused_development_server(dev_container, pause_dev):
+    """Hold one pause across multiple isolated workers, restoring exact identity."""
+    paused = None
+    info = container_info(dev_container)
+    try:
+        if info and info['State']['Running']:
+            if not pause_dev:
+                raise RuntimeError('Stop the development server or select --pause-dev')
+            require_idle_dev(info)
+            print('Pausing idle development server for the complete variation suite.', flush=True)
+            command(['docker', 'stop', info['Id']])
+            paused = info['Id']
+        yield
+    finally:
+        if paused:
+            command(['docker', 'start', paused])
 
 
 @contextmanager

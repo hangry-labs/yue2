@@ -1,0 +1,184 @@
+{
+  "schema": 1,
+  "suite": "acoustic_variations",
+  "run_id": "20261102T181141Z-14c926d8",
+  "status": "complete",
+  "image_id": "sha256:80e6c58ff65124fa7f0276c8f3f4e4fb45b387e2f31259a90bab2582c15d910a",
+  "revision": "e2d2469-dirty",
+  "gpu": "NVIDIA GeForce RTX 5070 Ti",
+  "asr_model": "Qwen/Qwen3-ASR-0.6B-hf",
+  "matched_conditioning": true,
+  "timing": {
+    "total_seconds": 764.8588754001539,
+    "scope": "setup through generation, cleanup, audio analysis and ASR; report export excluded",
+    "warmup_client_seconds": 225.40269979997538,
+    "measured_client_seconds": 416.9765206994489,
+    "asr_seconds": 28.084377000341192
+  },
+  "groups": {
+    "1": {
+      "requests": 3,
+      "tracks": 3,
+      "pipeline_seconds": {
+        "n": 3,
+        "median": 24.623551432,
+        "p95": 24.6630923011,
+        "min": 21.358512992,
+        "max": 24.667485731
+      },
+      "worker_seconds": {
+        "n": 3,
+        "median": 24.729979098,
+        "p95": 24.778340225399997,
+        "min": 21.468978757000002,
+        "max": 24.783713684
+      },
+      "client_seconds": {
+        "n": 3,
+        "median": 26.42924869991839,
+        "p95": 26.50999534984585,
+        "min": 22.986524399835616,
+        "max": 26.51896719983779
+      },
+      "seconds_per_track": 23.549850051666667,
+      "audio_seconds_per_generation_second": 5.095517228491828,
+      "peak_device_mib": 12591.0,
+      "peak_delta_mib": 9405.0,
+      "resident_weights_mib": 3755.2684326171875,
+      "module_loads": 0,
+      "asr_match": {
+        "n": 3,
+        "median": 84.07643312101911,
+        "p95": 85.79617834394905,
+        "min": 83.43949044585987,
+        "max": 85.98726114649682
+      },
+      "warnings": 0,
+      "asr_errors": 0,
+      "retained_growth_mib": -7.0
+    },
+    "2": {
+      "requests": 3,
+      "tracks": 6,
+      "pipeline_seconds": {
+        "n": 3,
+        "median": 28.331157825,
+        "p95": 29.4813576873,
+        "min": 26.572213398,
+        "max": 29.609157672000002
+      },
+      "worker_seconds": {
+        "n": 3,
+        "median": 28.488415686,
+        "p95": 29.7013642476,
+        "min": 26.746970709000003,
+        "max": 29.83613631
+      },
+      "client_seconds": {
+        "n": 3,
+        "median": 30.93222780013457,
+        "p95": 32.2462566900067,
+        "min": 29.041482200147584,
+        "max": 32.392259899992496
+      },
+      "seconds_per_track": 14.085421482500001,
+      "audio_seconds_per_generation_second": 8.519352212197223,
+      "peak_device_mib": 12987.0,
+      "peak_delta_mib": 9792.0,
+      "resident_weights_mib": 3755.2684326171875,
+      "module_loads": 0,
+      "asr_match": {
+        "n": 6,
+        "median": 84.07643312101911,
+        "p95": 86.46496815286625,
+        "min": 83.43949044585987,
+        "max": 86.62420382165605
+      },
+      "warnings": 0,
+      "asr_errors": 0,
+      "retained_growth_mib": 21.0
+    },
+    "3": {
+      "requests": 3,
+      "tracks": 9,
+      "pipeline_seconds": {
+        "n": 3,
+        "median": 34.267282222,
+        "p95": 35.385857313699994,
+        "min": 31.639534893,
+        "max": 35.510143434999996
+      },
+      "worker_seconds": {
+        "n": 3,
+        "median": 34.550402739999996,
+        "p95": 35.6722121266,
+        "min": 31.886432023,
+        "max": 35.796857614000004
+      },
+      "client_seconds": {
+        "n": 3,
+        "median": 37.95627409988083,
+        "p95": 39.07980764003005,
+        "min": 35.061938299797475,
+        "max": 39.20464470004663
+      },
+      "seconds_per_track": 11.268551172222223,
+      "audio_seconds_per_generation_second": 10.64898804049201,
+      "peak_device_mib": 13537.0,
+      "peak_delta_mib": 10339.0,
+      "resident_weights_mib": 3755.2684326171875,
+      "module_loads": 0,
+      "asr_match": {
+        "n": 9,
+        "median": 84.07643312101911,
+        "p95": 86.62420382165605,
+        "min": 83.43949044585987,
+        "max": 86.62420382165605
+      },
+      "warnings": 0,
+      "asr_errors": 0,
+      "retained_growth_mib": -122.0
+    },
+    "4": {
+      "requests": 3,
+      "tracks": 12,
+      "pipeline_seconds": {
+        "n": 3,
+        "median": 41.32814973,
+        "p95": 42.3129961455,
+        "min": 38.120226058,
+        "max": 42.422423525
+      },
+      "worker_seconds": {
+        "n": 3,
+        "median": 41.794661241,
+        "p95": 42.7035512196,
+        "min": 38.482863674,
+        "max": 42.804538995
+      },
+      "client_seconds": {
+        "n": 3,
+        "median": 46.28272799984552,
+        "p95": 47.237019780022095,
+        "min": 42.827173199970275,
+        "max": 47.34305220004171
+      },
+      "seconds_per_track": 10.155899942749999,
+      "audio_seconds_per_generation_second": 11.815660585779028,
+      "peak_device_mib": 14161.0,
+      "peak_delta_mib": 11179.0,
+      "resident_weights_mib": 3755.2684326171875,
+      "module_loads": 0,
+      "asr_match": {
+        "n": 12,
+        "median": 84.07643312101911,
+        "p95": 86.62420382165605,
+        "min": 83.43949044585987,
+        "max": 86.62420382165605
+      },
+      "warnings": 0,
+      "asr_errors": 0,
+      "retained_growth_mib": -182.0
+    }
+  }
+}

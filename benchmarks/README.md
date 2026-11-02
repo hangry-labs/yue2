@@ -13,6 +13,43 @@ ASR variability; [generated reports](BENCHMARKS.md) retain the complete tables.
 The separate [long-music benchmark](long-music/BENCHMARKS.md) measures five
 English long songs without ASR.
 
+The separate [acoustic-variation benchmark](variations/BENCHMARKS.md) compares
+one and two renditions of two-minute English songs, including full-song ASR.
+It exercises the shared-mask CUDA fix and does not change the other suites.
+
+```powershell
+task benchmark-variations-plan
+task benchmark-variations ASR_URL=http://your-asr-server:8010
+```
+
+The default is three matched seeds per variation count: six measured requests,
+nine measured tracks, plus one excluded full-length warmup per count. Each count
+gets a fresh worker so a larger batch's retained allocations cannot inflate the
+single-variation baseline. Models stay resident, timed calls must load zero
+modules, and all GPU requests run serially. The 120-second ceiling is applied to
+each rendition; shorter-than-100-second outputs remain flagged.
+
+The reports include batch latency, amortized time per track, aggregate audio
+throughput, sampled VRAM and ASR match per rendition. Scores have no absolute
+quality gate. Complete tracks are sent to ASR only after generation, without
+reference prompts. Current production requests are capped at three variations.
+Raw evidence stays under
+`data/results/benchmarks/variations/`. Rescore without regeneration using
+`python -m benchmarks.variations score --run PATH/run.json --asr-url URL`.
+
+To measure the supported choices, use
+`task benchmark-variations -- --variations 1,2,3`. The recorded four-choice
+experiment used the retained `yue2:variations-check` qualification image before
+the product cap. To reproduce that historical workload, explicitly select it
+with `--image yue2:variations-check --variations 1,2,3,4`. The
+[scaling analysis](variations/SCALING.md) compares mean batch latency, time per
+rendition, throughput gains and rounded native stage totals. Recompute it from
+saved evidence without loading models:
+
+```powershell
+task benchmark-variations-analyze -- --run PATH/run.json --write-report
+```
+
 ```powershell
 task benchmark-plan
 task benchmark-test

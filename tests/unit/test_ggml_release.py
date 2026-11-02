@@ -16,6 +16,14 @@ import ggml_release as release
 
 
 class ReleaseArchiveTests(unittest.TestCase):
+    def test_application_ci_cannot_silently_compile_an_unpublished_dependency(self):
+        with patch.object(sys, 'argv', ['ggml_release.py', 'prepare', '--require-prebuilt']), \
+                patch.object(release, 'plan', return_value={'image': 'ggml-deps', 'archive': None}), \
+                patch.object(release, 'prepare') as prepare:
+            with self.assertRaisesRegex(ValueError, 'No published GGML dependency'):
+                release.main()
+            prepare.assert_not_called()
+
     def test_small_exported_recipe_reproduces_the_dependency_fingerprint(self):
         with tempfile.TemporaryDirectory() as directory:
             key = release.ggml_deps.fingerprint()

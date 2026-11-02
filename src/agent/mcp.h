@@ -57,6 +57,7 @@ inline std::string required_string(yyjson_val * object, const char * name, size_
 inline Yue2Request song_request(yyjson_val * args) {
     strict_keys(args, {"guide_token", "lyrics", "direction", "duration_seconds", "tempo_bpm", "format"});
     Yue2Request r; request_init(&r);
+    r.synth_batch_size = 1;  // One song artifact per agent call.
     r.duration = 150;  // Agent default: a complete song of about 2.5 minutes.
     r.lyrics = required_string(args, "lyrics", 12000, true);
     r.style = required_string(args, "direction", 2000);

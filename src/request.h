@@ -11,6 +11,9 @@
 #include <string>
 #include <vector>
 
+constexpr int YUE2_VARIATIONS_DEFAULT = 2;
+constexpr int YUE2_VARIATIONS_MAX = 3;
+
 // One adapter of a request: an entry of the --adapters directory and its strength
 struct Yue2Adapter {
     std::string name;
@@ -49,7 +52,7 @@ struct Yue2Request {
     // number of flow matching variations per song, consecutive noise seeds
     // (seed + j) on the same semantic stream. Output order is song-major:
     // song * synth_batch_size + variation.
-    int synth_batch_size;  // 1
+    int synth_batch_size;  // 2, allowed 1..3
 
     // sampling of each autoregressive stage, the checkpoint presets by default
     Yue2Sampling abc_sampling;

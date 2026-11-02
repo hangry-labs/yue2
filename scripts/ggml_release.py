@@ -172,10 +172,11 @@ def export_recipe(output_dir, key):
     """Publish the exact small build recipe, never the fetched GGML source."""
     files = ['Dockerfile', 'LICENSE', 'THIRD_PARTY_NOTICES.md',
              'docker/ggml-deps.json', 'docker/ggml-source.json',
-             'cmake/ggml-abi.cmake', 'cmake/ggml-source.cmake',
+             'cmake/ggml-abi.cmake', 'cmake/ggml-source.cmake', 'cmake/ggml-patches.cmake',
              'cmake/ggml-deps/CMakeLists.txt', 'cmake/ggml-deps/Yue2GGMLConfig.cmake.in',
              'scripts/ggml_deps.py', 'scripts/check_no_weights.py',
              'scripts/verify_ggml_source.py', 'vendor/licenses/ggml-MIT.txt']
+    files.extend(p.relative_to(ROOT).as_posix() for p in (ROOT / 'cmake/ggml-patches').rglob('*') if p.is_file())
     target = output_dir / ('yue2-ggml-build-recipe-' + key[:20] + '.tar.gz')
     with tempfile.NamedTemporaryFile(dir=output_dir, suffix='.partial', delete=False) as stream:
         partial = Path(stream.name)
@@ -267,11 +268,16 @@ def main():
     parser.add_argument('--cache-dir', type=Path)
     parser.add_argument('--output-dir', type=Path)
     parser.add_argument('--image')
+    parser.add_argument('--require-prebuilt', action='store_true',
+                        help='Fail before Docker compilation if no published dependency is pinned')
     args = parser.parse_args()
     if args.command == 'export':
         export(args.output_dir, args.image)
         return
     dependency = plan()
+    if args.require_prebuilt and not dependency.get('archive') and dependency['image'] == 'ggml-deps':
+        raise ValueError('No published GGML dependency is pinned. Build/export and upload the replacement, '
+                         'then pin its verified archive before running application CI.')
     context = prepare(dependency, args.cache_dir) if args.command == 'prepare' else None
     print(json.dumps(dependency, indent=2))
     if os.environ.get('GITHUB_OUTPUT'):

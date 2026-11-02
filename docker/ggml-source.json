@@ -5,5 +5,15 @@
   "commit": "facdc44a67da17df4433adcc468b424f48e9ded2",
   "url": "https://codeload.github.com/ggml-org/ggml/tar.gz/facdc44a67da17df4433adcc468b424f48e9ded2",
   "sha256": "fe81fbbfdfe89a7e11c7dd646acbbf586825e9f5cdc434ac2f9703ed3f48f10c",
-  "license_sha256": "94f29bbed6a22c35b992c5c6ebf0e7c92f13b836b90f36f461c9cf2f0f1d010d"
+  "license_sha256": "94f29bbed6a22c35b992c5c6ebf0e7c92f13b836b90f36f461c9cf2f0f1d010d",
+  "patches": [
+    {
+      "file": "cmake/ggml-patches/0001-cuda-shared-attention-mask.patch",
+      "sha256": "cf717613f079a70137abe0d961367aaf53312b3382cbec3ccf62e3ca5a47e1aa",
+      "upstream": "https://github.com/ServeurpersoCom/ggml/pull/3",
+      "target": "src/ggml-cuda/fattn-common.cuh",
+      "before_sha256": "d47e737d80329f4b0862e92109b060a4ef7031041165b812ce0d6792b9466679",
+      "after_sha256": "c4076630b0c40818770aa0578c3dd54a81cebcbc719c4f4992f17bffb377f57a"
+    }
+  ]
 }

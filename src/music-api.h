@@ -125,6 +125,8 @@ static bool music_api_parse(const std::string & body, MusicApiRequest & out, Mus
     const char * voice = music_api_voice(text("voice"));
     if (!voice) return fail("voice", "Unknown voice hint. Use auto, female, male or a documented compatibility alias; describe other vocals in instructions.", "unsupported_value");
     if (!request_parse_json(&out.native, body.c_str())) return fail("", "Invalid native music settings.");
+    // These compatibility routes deliver one audio file, regardless of Studio defaults.
+    if (!get("synth_batch_size")) out.native.synth_batch_size = 1;
     if (get("input")) out.native.lyrics = text("input");
     if (!text("instructions").empty()) {
         if (!out.native.style.empty()) out.native.style += ", ";

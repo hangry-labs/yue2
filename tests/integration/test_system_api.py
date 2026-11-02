@@ -24,6 +24,8 @@ class SystemApiTests(unittest.TestCase):
         self.assertTrue(props['capabilities']['vae'])
         self.assertTrue(props['model'])
         self.assertTrue(props['vae'])
+        self.assertEqual(props['defaults']['synth_batch_size'], 2)
+        self.assertEqual(props['limits']['synth_batch_size_max'], 3)
 
     def test_queue_and_result_storage_are_reported_without_private_job_details(self):
         for route in ('/health', '/status', '/system/queue'):

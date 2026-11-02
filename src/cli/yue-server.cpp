@@ -379,6 +379,9 @@ static void handle_props(const httplib::Request &, httplib::Response & res) {
     yyjson_mut_obj_add_int(doc, root, "sample_rate", YUE2_SAMPLE_RATE);
     yyjson_mut_obj_add_int(doc, root, "frame_rate", YUE2_FRAME_RATE);
     yyjson_mut_obj_add_int(doc, root, "context", YUE2_CONTEXT);
+    auto * limits = yyjson_mut_obj(doc);
+    yyjson_mut_obj_add_int(doc, limits, "synth_batch_size_max", YUE2_VARIATIONS_MAX);
+    yyjson_mut_obj_add_val(doc, root, "limits", limits);
     res.set_header("Cache-Control", "no-store");
     auto * capabilities = yyjson_mut_obj(doc);
     yyjson_mut_obj_add_bool(doc, capabilities, "transcribe", !g_transcriber_path.empty());
@@ -462,9 +465,9 @@ static bool validate(const std::string & json, httplib::Response & res, Yue2Requ
         res.set_content(json_string("error", "lm_batch_size exceeds --max-batch"), "application/json");
         return false;
     }
-    if (r->synth_batch_size < 1 || r->synth_batch_size > 9) {
+    if (r->synth_batch_size < 1 || r->synth_batch_size > YUE2_VARIATIONS_MAX) {
         res.status = 400;
-        res.set_content(json_string("error", "synth_batch_size must be between 1 and 9"), "application/json");
+        res.set_content(json_string("error", "synth_batch_size must be between 1 and 3"), "application/json");
         return false;
     }
     if (!yue2_sampling_valid(r->abc_sampling, "abc") || !yue2_sampling_valid(r->semantic_sampling, "semantic")) {

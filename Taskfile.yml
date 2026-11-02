@@ -149,6 +149,17 @@ tasks:
   benchmark-long-preflight:
     desc: Verify the long-suite image, weights and GPU tools without contacting ASR
     cmds: ['"{{.PYTHON}}" -m benchmarks.long preflight {{.CLI_ARGS}}']
+  benchmark-variations:
+    desc: Compare one/two acoustic variations with two-minute songs, warm weights, VRAM and full-song ASR
+    env:
+      YUE2_BENCHMARK_ASR_URL: '{{.ASR_URL}}'
+    cmds: ['"{{.PYTHON}}" -m benchmarks.variations run --pause-dev --write-reports {{.CLI_ARGS}}']
+  benchmark-variations-plan:
+    desc: Show the matched two-minute variation workload without GPU or network calls
+    cmds: ['"{{.PYTHON}}" -m benchmarks.variations plan {{.CLI_ARGS}}']
+  benchmark-variations-analyze:
+    desc: Analyze batch scaling and per-stage timings from saved variation evidence without generation
+    cmds: ['"{{.PYTHON}}" scripts/analyze_variation_scaling.py {{.CLI_ARGS}}']
   benchmark-test:
     desc: Test short/long benchmark timing, scoring, isolation and regression checks without a GPU
     cmds: ['"{{.PYTHON}}" -m unittest discover -s tests/unit -p "test*benchmark*.py" -v']

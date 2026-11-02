@@ -161,7 +161,7 @@
           "semantic_tokens": {"type": "string"}, "source_tokens": {"type": "string"}, "source_start": {"type": "number"}, "source_end": {"type": "number"},
           "duration": {"type": "number", "minimum": 0, "default": 360}, "steps": {"type": "integer", "minimum": 1, "default": 8},
           "seed": {"type": "integer", "format": "int64", "default": -1}, "lm_seed": {"type": "integer", "format": "int64", "default": -1},
-          "lm_batch_size": {"type": "integer", "minimum": 1, "default": 1}, "synth_batch_size": {"type": "integer", "minimum": 1, "maximum": 9, "default": 1},
+          "lm_batch_size": {"type": "integer", "minimum": 1, "default": 1}, "synth_batch_size": {"type": "integer", "minimum": 1, "maximum": 3, "default": 2, "description": "Acoustic renditions per composition. Fresh requests default to two; legacy replay requests with semantic_tokens and no count retain one."},
           "cfg_scale": {"type": "number"}, "peak_clip": {"type": "integer", "default": 10}, "mp3_bitrate": {"type": "integer", "default": 128},
           "output_format": {"type": "string", "description": "Native audio format. The v1 adapters also accept wav and pcm aliases.", "default": "mp3"},
           "abc_sampling": {"$ref": "#/components/schemas/Sampling"}, "semantic_sampling": {"$ref": "#/components/schemas/Sampling"},
@@ -185,7 +185,7 @@
             "speed": {"type": ["number", "null"], "minimum": 0.25, "maximum": 4, "default": 1, "description": "Pitch-preserving output tempo adjustment; not inference speed or prompt BPM"},
             "stream_format": {"type": ["string", "null"], "enum": ["audio", null], "default": "audio"},
             "stream": {"type": ["boolean", "null"], "enum": [false, null]}, "n": {"type": ["integer", "null"], "enum": [1, null]},
-            "lm_batch_size": {"const": 1}, "synth_batch_size": {"const": 1}
+            "lm_batch_size": {"const": 1}, "synth_batch_size": {"const": 1, "default": 1}
           }}
         ]
       },

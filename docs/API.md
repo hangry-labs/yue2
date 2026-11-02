@@ -83,6 +83,25 @@ helpers can download the completed file, but this is not live music generation.
 `gpt-4o-mini-tts`. These aliases all use local YuE2; no provider model or cloud
 account is involved. Unknown models return 404.
 
+## Acoustic variations
+
+Studio and fresh native `/synth` requests default to **two acoustic renditions**
+of each composition. `synth_batch_size` accepts integers **1–3**; larger counts
+and other value types are rejected before queue admission. `/props` advertises
+the default and `limits.synth_batch_size_max`. Explicit one-track requests remain
+available. Per-track replay exports specify one; older replay requests containing
+`semantic_tokens` without a count also retain one.
+
+The [two-minute scaling benchmark](../benchmarks/variations/SCALING.md) found a
+67% throughput gain from one to two, another 25% from two to three, and only 11%
+from three to four. The fourth saved about 1.1 seconds per rendition while adding
+624 MiB to the sampled device peak. This product caps the choice at three.
+These are RTX 5070 Ti observations with resident models and include desktop memory;
+they do not establish capacity for every song length or prompt.
+
+The OpenAI compatibility routes and MCP still return **one track per call**;
+their single-file contracts do not inherit the native two-variation default.
+
 `voice` defaults to `auto`, which adds no vocal hint. `default` behaves the same.
 These hints supplement musical direction; they do not identify fixed singers:
 

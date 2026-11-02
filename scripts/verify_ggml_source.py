@@ -24,7 +24,17 @@ def verify(root=ROOT):
         raise ValueError('GGML license differs from the retained upstream notice')
     if (root / 'vendor/ggml').exists():
         raise ValueError('GGML source belongs in the build cache, not vendor/ggml')
-    print(f'PASS: official GGML {source["version"]}, immutable source checksum and MIT notice')
+    for patch in source.get('patches', []):
+        path = root / patch['file']
+        if not path.resolve().is_relative_to((root / 'cmake/ggml-patches').resolve()):
+            raise ValueError('GGML patch must stay in cmake/ggml-patches')
+        if hashlib.sha256(path.read_bytes().replace(b'\r\n', b'\n')).hexdigest() != patch['sha256']:
+            raise ValueError('GGML patch checksum mismatch')
+        for field in ('before_sha256', 'after_sha256'):
+            if not re.fullmatch(r'[0-9a-f]{64}', patch.get(field, '')):
+                raise ValueError('GGML patch needs exact source checksums')
+    print(f'PASS: official GGML {source["version"]}, immutable source checksum and MIT notice; '
+          f'{len(source.get("patches", []))} reviewed source patch(es)')
     return source
 
 

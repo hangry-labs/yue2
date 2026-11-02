@@ -432,6 +432,10 @@ static bool pipeline_generate(Yue2Pipeline *          p,
         fprintf(stderr, "[Pipeline] FATAL: steps and batch sizes must be positive\n");
         return false;
     }
+    if (r.synth_batch_size > YUE2_VARIATIONS_MAX) {
+        fprintf(stderr, "[Pipeline] FATAL: synth_batch_size must be between 1 and 3\n");
+        return false;
+    }
     if (!yue2_sampling_valid(r.abc_sampling, "abc") || !yue2_sampling_valid(r.semantic_sampling, "semantic")) {
         return false;
     }

@@ -34,9 +34,9 @@ def fingerprint(root=ROOT, architectures=None, cuda_base=None):
         raise ValueError('Dockerfile dependency boundary is missing or duplicated')
     digest.update(dockerfile[0].encode())
     files = [root / 'scripts/ggml_deps.py', root / 'scripts/check_no_weights.py',
-             root / 'cmake/ggml-abi.cmake', root / 'cmake/ggml-source.cmake',
+             root / 'cmake/ggml-abi.cmake', root / 'cmake/ggml-source.cmake', root / 'cmake/ggml-patches.cmake',
              root / 'docker/ggml-source.json']
-    for directory in ('cmake/ggml-deps',):
+    for directory in ('cmake/ggml-deps', 'cmake/ggml-patches'):
         files.extend(p for p in (root / directory).rglob('*') if p.is_file())
     for path in sorted(files, key=lambda value: value.relative_to(root).as_posix()):
         digest.update(path.relative_to(root).as_posix().encode() + b'\0')

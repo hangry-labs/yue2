@@ -29,6 +29,15 @@ class MusicApiTests(unittest.TestCase):
         self.assertFalse(model['capabilities']['parallel_inference'])
         self.assertEqual(self.call('/v1/models/tts-1')['id'], 'yue2')
 
+    def test_native_variation_cap_rejects_invalid_counts_before_queueing(self):
+        self.assertEqual(self.call('/props')['limits']['synth_batch_size_max'], 3)
+        before = self.call('/status')['queue']['pending']
+        for count in (0, -1, 4, 9, 4294967298, 2.5, '2', True, None):
+            with self.subTest(count=count):
+                error = self.call('/synth', {'synth_batch_size': count}, status=400)
+                self.assertIn('synth_batch_size', error['error'])
+        self.assertEqual(self.call('/status')['queue']['pending'], before)
+
     def test_both_routes_reject_unsupported_streaming_and_conflicts(self):
         for path in ('/v1/audio/music', '/v1/audio/speech'):
             with self.subTest(path=path):

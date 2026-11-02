@@ -24,6 +24,8 @@ def main():
     assert mapped['native']['seed'] == 9007199254740999 and mapped['native']['lm_seed'] == -1
     assert mapped['native']['steps'] == 8
     assert mapped['native']['plan_retries'] == 2
+    assert mapped['native']['synth_batch_size'] == 1
+    assert translate({'input': original, 'synth_batch_size': 1})['native']['synth_batch_size'] == 1
     assert translate({'input': original, 'plan_retries': 0})['native']['plan_retries'] == 0
     assert translate({'input': original, 'plan_retries': 8})['native']['plan_retries'] == 8
     pcm = translate({'lyrics': original, 'style': 'piano', 'response_format': 'pcm', 'speed': .25})

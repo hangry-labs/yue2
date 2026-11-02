@@ -16,6 +16,13 @@ run `task benchmark-long`. This resident-model profile targets 300 seconds and
 makes no ASR requests. See [long-music results](../benchmarks/long-music/BENCHMARKS.md)
 and [warmup/count options](../benchmarks/README.md#long-music).
 
+`task benchmark-variations` is a separate two-minute English profile for acoustic
+batching: three matched seeds with one/two variations, isolated warm workers,
+sampled VRAM, per-track audio integrity and full-rendition ASR. See the
+[variation results](../benchmarks/variations/BENCHMARKS.md) and
+[workload details](../benchmarks/README.md). It does not add multi-variation
+requests to the short multilingual or five-minute no-ASR suites.
+
 ## Long-song CLI baseline
 
 ```text

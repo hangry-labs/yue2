@@ -170,7 +170,8 @@ application language standard does not rebuild CUDA kernels.
 `docker/ggml-source.json` pins official GGML 0.28.0 by exact commit and archive
 SHA-256. `cmake/ggml-source.cmake` uses CMake FetchContent to verify and unpack
 that archive inside the build directory. The repository contains no GGML source
-tree or submodule. No runtime source patch is currently necessary; local settings
+tree or submodule. One checksum-verified CUDA shared-mask patch is applied during
+source builds; see [the dependency recipe](BUILDING.md#official-source-and-local-overrides). Other local settings
 are in `cmake/ggml-abi.cmake` and `cmake/ggml-deps/`.
 
 Normal CUDA builds use installed headers and libraries from the precompiled

@@ -27,7 +27,7 @@ void request_init(Yue2Request * r) {
     r->seed             = -1;
     r->steps            = 8;
     r->lm_batch_size    = 1;
-    r->synth_batch_size = 1;
+    r->synth_batch_size = YUE2_VARIATIONS_DEFAULT;
     r->peak_clip        = 10;
     r->cfg_scale        = -1.0f;
     r->semantic_tokens  = "";
@@ -162,13 +162,23 @@ static bool request_parse_obj(yyjson_val * obj, Yue2Request * r, std::string * e
     if ((v = yyjson_obj_get(obj, "lm_batch_size")) && yyjson_is_int(v)) {
         r->lm_batch_size = yyjson_get_int(v);
     }
-    if ((v = yyjson_obj_get(obj, "synth_batch_size")) && yyjson_is_int(v)) {
+    if ((v = yyjson_obj_get(obj, "synth_batch_size"))) {
+        if (!yyjson_is_int(v) || yyjson_get_sint(v) < 1 || yyjson_get_sint(v) > YUE2_VARIATIONS_MAX) {
+            const char * message = "synth_batch_size must be an integer between 1 and 3";
+            if (error) *error = message;
+            fprintf(stderr, "[Request] ERROR: %s\n", message);
+            return false;
+        }
         r->synth_batch_size = yyjson_get_int(v);
     }
     parse_sampling(obj, "abc_sampling", &r->abc_sampling);
     parse_sampling(obj, "semantic_sampling", &r->semantic_sampling);
     if ((v = yyjson_obj_get(obj, "semantic_tokens")) && yyjson_is_str(v)) {
         r->semantic_tokens = yy_str(v);
+    }
+    // Older per-track replay files omitted this field when one was the default.
+    if (!yyjson_obj_get(obj, "synth_batch_size") && !r->semantic_tokens.empty()) {
+        r->synth_batch_size = 1;
     }
     if ((v = yyjson_obj_get(obj, "cfg_scale")) && yyjson_is_num(v)) {
         r->cfg_scale = (float) yyjson_get_num(v);

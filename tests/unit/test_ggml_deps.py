@@ -24,6 +24,8 @@ class DependencyIdentityTests(unittest.TestCase):
             'cmake/ggml-deps/CMakeLists.txt': '# options\n',
             'cmake/ggml-abi.cmake': '# ABI\n',
             'cmake/ggml-source.cmake': '# verified FetchContent\n',
+            'cmake/ggml-patches.cmake': '# apply verified patches\n',
+            'cmake/ggml-patches/test.patch': '# patch\n',
             'docker/ggml-source.json': '{"commit":"test-release","sha256":"exact-source-archive"}\n',
         }
         for name, value in files.items():
@@ -45,6 +47,7 @@ class DependencyIdentityTests(unittest.TestCase):
 
     def test_source_options_architecture_and_toolchain_invalidate(self):
         for filename in ('docker/ggml-source.json', 'cmake/ggml-source.cmake', 'cmake/ggml-deps/CMakeLists.txt', 'cmake/ggml-abi.cmake',
+                         'cmake/ggml-patches.cmake', 'cmake/ggml-patches/test.patch',
                          'scripts/ggml_deps.py', 'scripts/check_no_weights.py'):
             with self.subTest(filename=filename), tempfile.TemporaryDirectory() as directory:
                 root = self.fixture(directory)

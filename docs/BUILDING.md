@@ -1,6 +1,6 @@
 # Reusable CUDA build dependencies
 
-Normal `task build` and CI download a **checksum-pinned GitHub Release archive**
+Normal `task build` and CI can use a **checksum-pinned GitHub Release archive**
 of the compiled official GGML 0.28.0/CUDA libraries. They compile the current app and UI
 against that installation. No registry login is needed to download the public
 archive. There is still one runtime image variant, with external model weights.
@@ -23,9 +23,14 @@ The first two commands inspect the lock and optionally warm the dependency cache
 `build/ggml-release/<archive-sha256>/`. Subsequent builds verify and reuse it.
 
 The lock in `docker/ggml-deps.json` records the versioned asset URL, exact download
-size, archive SHA-256 and dependency input key. It currently points to
-[the GGML 0.28.0 dependency release](https://github.com/hangry-labs/yue2/releases/tag/ggml-deps-cc43a4cc92197996f17c).
-It uses that specific asset, never the latest-release endpoint. The adjacent
+size, archive SHA-256 and dependency input key. The previous unpatched
+[GGML 0.28.0 dependency release](https://github.com/hangry-labs/yue2/releases/tag/ggml-deps-cc43a4cc92197996f17c)
+is retained for rollback. The shared-mask fix requires a newly built artifact;
+while its archive is unset, local Task builds reuse the matching local dependency
+image and fresh local machines explicitly build from source. Application CI fails
+early with upload/pinning instructions, avoiding an accidental long source build.
+Publish the verified replacement and pin its download before running CI.
+Configured archives use a specific asset, never the latest-release endpoint. The adjacent
 uploaded `.sha256` file is useful for manual downloads; builds trust the checksum
 committed in the lock rather than fetching a replacement checksum from the server.
 
@@ -102,7 +107,7 @@ source, clear `archive`, `image` and `input_key` in the lock.
 
 The input key covers the checksum-pinned GGML source archive identity, the shared ABI definitions,
 dependency CMake wrapper, metadata/checker scripts, dependency-only Docker stages,
-pinned CUDA base, platform and architecture list. App/UI/version edits and release
+pinned CUDA base, platform, architecture list and reviewed source patches. App/UI/version edits and release
 transport changes do not invalidate those compiled libraries. Keep the Dockerfile
 fingerprint boundary and shared ABI definitions intact.
 
@@ -116,8 +121,20 @@ reviewed locks establish which binary to trust.
 `docker/ggml-source.json` pins official version 0.28.0, its exact commit and source
 archive SHA-256. Source builds use CMake FetchContent to verify that archive before
 unpacking it under their build directory. No full GGML source is committed here.
-There are no GGML source patches in this release. Our overrides are the C++17/ABI
-settings in `cmake/ggml-abi.cmake` and CUDA/backend settings in `cmake/ggml-deps/`.
+The single reviewed patch in `cmake/ggml-patches/` adapts
+[ServeurpersoCom/ggml PR #3](https://github.com/ServeurpersoCom/ggml/pull/3): the CUDA
+attention-mask scan now broadcasts a shared mask across acoustic variations, as
+the attention kernels already do. The source lock records the patch checksum and
+exact before/after file hashes. CMake rejects unexpected source, verifies the
+result and safely skips an already applied patch on reconfiguration. Patch bytes
+and application logic enter the dependency fingerprint and exported build recipe.
+Our other overrides are the C++17/ABI settings in `cmake/ggml-abi.cmake` and
+CUDA/backend settings in `cmake/ggml-deps/`. No full dependency source is vendored.
+
+`tests/cuda/README.md` documents a model-free compute-sanitizer reproduction.
+`task benchmark-variations` qualifies real two-minute renditions, sampled VRAM
+and full-song ASR. Fresh Studio/native generation defaults to two variations,
+with a maximum of three. Single-track compatibility routes and replays keep one.
 
 The first source build needs network access; its downloaded source is reused by
 that build directory. Normal artifact consumers do not fetch the source at all.

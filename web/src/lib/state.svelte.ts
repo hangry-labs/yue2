@@ -2,7 +2,7 @@ import type { Yue2Request, Yue2Props, Song } from './types.js';
 import { OUTPUT_FORMATS } from './config.js';
 import { emptyRequest } from './fields.js';
 import type { InputMode } from './generation.js';
-import { editablePrompt } from './generation.js';
+import { editablePrompt, variationCount } from './generation.js';
 import { clearCompositionInputs } from './lyrics.js';
 import { DEFAULT_PLAYBACK_VOLUME, playbackVolume } from './playback.js';
 
@@ -61,6 +61,10 @@ export const app = $state({
 	request: {
 		...emptyRequest(),
 		...saved.request,
+		synth_batch_size:
+			saved.request.synth_batch_size == null
+				? undefined
+				: variationCount(saved.request.synth_batch_size),
 		abc_sampling: { ...saved.request.abc_sampling },
 		semantic_sampling: { ...saved.request.semantic_sampling }
 	} as Yue2Request,
@@ -96,6 +100,12 @@ export function setRequest(incoming: Yue2Request) {
 	app.request = {
 		...base,
 		...incoming,
+		synth_batch_size:
+			incoming.synth_batch_size == null
+				? incoming.semantic_tokens?.trim()
+					? 1
+					: undefined
+				: variationCount(incoming.synth_batch_size),
 		abc_sampling: { ...base.abc_sampling, ...incoming.abc_sampling },
 		semantic_sampling: { ...base.semantic_sampling, ...incoming.semantic_sampling }
 	};

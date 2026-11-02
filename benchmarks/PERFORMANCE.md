@@ -1,5 +1,9 @@
 # Where generation time goes
 
+The later [two-minute acoustic-variation qualification](variations/BENCHMARKS.md)
+compares one/two renditions with sampled VRAM and full-song ASR. The historical
+investigation below retains its original workload and observations.
+
 Investigation on 2026-11-01, RTX 5070 Ti 16 GB, CUDA 12.9.1, eight steps,
 full score planning, context 24576 and resident models. Runtime image:
 `sha256:2c8ed04ae8f7960b8bf46b57c06d9017fbcefde66f8f43f79731b1db9eabb53d`.

@@ -15,7 +15,7 @@
 	import { putSong, getAllSongs, saveJob, loadJob, clearJob } from '../lib/db.js';
 	import { clearSection, emptyRequest } from '../lib/fields.js';
 	import { updateLyrics, clearCompositionInputs } from '../lib/lyrics.js';
-	import { generationRequest, inputRequest } from '../lib/generation.js';
+	import { generationRequest, inputRequest, variationCount } from '../lib/generation.js';
 	import SettingHelp from './SettingHelp.svelte';
 	import PlaybackControls from './PlaybackControls.svelte';
 	import {
@@ -823,18 +823,29 @@
 						</div>
 						<div class="setting-field">
 							<div class="setting-label">
-								<label for="setting-21">Batch</label><SettingHelp
-									title="Batch"
-									text="Acoustic variations of each composition, up to 9. These share the same musical performance but start with different noise. More variations require more time and memory."
+								<label for="setting-21">Variations</label><SettingHelp
+									title="Variations"
+									text="Different acoustic renditions of the same composition and musical performance. Two are recommended by default; choose one to use less memory, or three for another take. In our two-minute RTX 5070 Ti benchmark, two improved throughput by 67% over one; three added another 25%. Four added only 11% more throughput, saving about 1.1 seconds per rendition while adding about 0.6 GiB to the sampled device peak, so we cap this at three. These measurements include desktop memory; longer songs and other prompts can use more."
 								/>
 							</div>
-							<input
+							<select
 								id="setting-21"
-								type="text"
-								placeholder={ph(d?.synth_batch_size)}
-								bind:value={app.request.synth_batch_size}
-								title="Noise variations per song on the same codes, seeds noise seed + index, 9 at most."
-							/>
+								bind:value={
+									() =>
+										variationCount(
+											app.request.synth_batch_size,
+											app.inputMode === 'replay' ? 1 : 2
+										),
+									(value) => {
+										app.request.synth_batch_size = value;
+									}
+								}
+								title="Choose one to three acoustic renditions. Two are recommended."
+							>
+								<option value={1}>1 variation</option>
+								<option value={2}>2 variations (recommended)</option>
+								<option value={3}>3 variations</option>
+							</select>
 						</div>
 						<div class="setting-field">
 							<div class="setting-label">

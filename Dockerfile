@@ -11,7 +11,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 FROM cuda-toolchain AS ggml-deps-build
 WORKDIR /dependency
 COPY cmake/ggml-deps/ cmake/ggml-deps/
-COPY cmake/ggml-abi.cmake cmake/ggml-source.cmake cmake/
+COPY cmake/ggml-abi.cmake cmake/ggml-source.cmake cmake/ggml-patches.cmake cmake/
+COPY cmake/ggml-patches/ cmake/ggml-patches/
 COPY docker/ggml-source.json docker/ggml-source.json
 ARG CUDA_ARCHITECTURES="75-virtual;80-virtual;86-real;89-real;120a-real"
 ARG BUILD_JOBS=4

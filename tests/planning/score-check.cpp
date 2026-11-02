@@ -93,6 +93,20 @@ int main(int argc, char ** argv) {
     Yue2Request request;
     std::string error;
     check(request_parse_json(&request, "{}", &error) && request.plan_retries == 2 && error.empty(), "default two retries");
+    check(request.synth_batch_size == 2, "fresh requests default to two acoustic variations");
+    for (int value : {1,2,3}) {
+        const std::string json = "{\"synth_batch_size\":" + std::to_string(value) + "}";
+        check(request_parse_json(&request, json.c_str()) && request.synth_batch_size == value, "allowed variation count");
+    }
+    for (const char * value : {"0", "-1", "4", "9", "4294967298", "9223372036854775807", "2.0", "2.5", "true", "null", "\"2\"", "[]", "{}"}) {
+        const std::string json = std::string("{\"synth_batch_size\":") + value + "}";
+        check(!request_parse_json(&request, json.c_str(), &error) && error.find("synth_batch_size") != std::string::npos,
+              "variation cap and integer validation cannot be bypassed");
+    }
+    check(request_parse_json(&request, "{\"semantic_tokens\":\"1,2,3\"}") && request.synth_batch_size == 1,
+          "legacy per-track replay stays one variation");
+    check(request_parse_json(&request, "{\"semantic_tokens\":\"1,2,3\",\"synth_batch_size\":3}") && request.synth_batch_size == 3,
+          "explicit variation override on replay is preserved");
     for (int value : {0,2,8}) {
         const std::string json = "{\"plan_retries\":" + std::to_string(value) + "}";
         check(request_parse_json(&request, json.c_str()) && request.plan_retries == value, "allowed retry count parsed");
@@ -106,7 +120,7 @@ int main(int argc, char ** argv) {
     }
     request_init(&request); request.plan_retries = 0;
     Yue2Request replay = request_replay(request, GOOD, "1,2,3", 0, 0);
-    check(replay.abc == GOOD && replay.semantic_tokens == "1,2,3" && replay.plan_retries == 0,
+    check(replay.abc == GOOD && replay.semantic_tokens == "1,2,3" && replay.plan_retries == 0 && replay.synth_batch_size == 1,
           "replay retains actual score/tokens and retry policy");
     if (failures) return 1;
     puts("PASS: score corruption checks, bounded retry/recovery, batch seeds, cancellation and request contracts");

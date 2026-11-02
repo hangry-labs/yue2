@@ -17,7 +17,8 @@ class SourcePinTests(unittest.TestCase):
         self.temp = tempfile.TemporaryDirectory()
         self.addCleanup(self.temp.cleanup)
         self.root = Path(self.temp.name)
-        for name in ('docker/ggml-source.json', 'vendor/licenses/ggml-MIT.txt'):
+        for name in ('docker/ggml-source.json', 'vendor/licenses/ggml-MIT.txt',
+                     'cmake/ggml-patches/0001-cuda-shared-attention-mask.patch'):
             target = self.root / name
             target.parent.mkdir(parents=True, exist_ok=True)
             shutil.copyfile(ROOT / name, target)
@@ -41,6 +42,11 @@ class SourcePinTests(unittest.TestCase):
     def test_modified_license_is_rejected(self):
         (self.root / 'vendor/licenses/ggml-MIT.txt').write_text('missing notice')
         with self.assertRaisesRegex(ValueError, 'license'):
+            verify(self.root)
+
+    def test_modified_patch_is_rejected(self):
+        (self.root / 'cmake/ggml-patches/0001-cuda-shared-attention-mask.patch').write_text('wrong patch')
+        with self.assertRaisesRegex(ValueError, 'patch checksum'):
             verify(self.root)
 
     def test_source_cannot_be_accidentally_vendored_again(self):

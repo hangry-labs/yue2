@@ -12,5 +12,21 @@
       "sha256": "63b9621135d5de01df99ec4d20f528ca6a75f8691ef14a335ad282a65b2b9eb0",
       "size": 99091970
     }
+  },
+  "official_v0280_unpatched": {
+    "checkout_ref": "e2d24691b41f99ebdf17878780440fb901fba55c",
+    "source_commit": "facdc44a67da17df4433adcc468b424f48e9ded2",
+    "dependency": {
+      "schema": 2,
+      "cuda_base": "nvidia/cuda:12.9.1-devel-ubuntu24.04@sha256:020bc241a628776338f4d4053fed4c38f6f7f3d7eb5919fecb8de313bb8ba47c",
+      "architectures": "75-virtual;80-virtual;86-real;89-real;120a-real",
+      "image": null,
+      "input_key": "cc43a4cc92197996f17c34e9a1afa09c8c1f6bb60485a6a6935a250cab23e27e",
+      "archive": {
+        "url": "https://github.com/hangry-labs/yue2/releases/download/ggml-deps-cc43a4cc92197996f17c/yue2-ggml-linux-amd64-cuda12.9-cc43a4cc92197996f17c.tar.gz",
+        "sha256": "30c0b1b0c506b8fa517e42d4bc1a0a3b488123512a4f7ca22b2c8e9a68aaaeee",
+        "size": 102985070
+      }
+    }
   }
 }

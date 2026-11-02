@@ -130,7 +130,9 @@ FFmpeg is included for compressed exports and broader upload support. The studio
 retains its native encoder. Optional transcription/tokenization models stay disabled.
 
 Requests use full score mode, a 360-second duration ceiling, **8 flow-matching
-steps**, one song and one variation, random seeds, and MP3 at 128 kbps. The
+steps**, one composition and two acoustic variations (maximum three), random
+seeds, and MP3 at 128 kbps. Single-track compatibility routes and saved replays
+keep one rendition. The
 8-step default is a deliberate Hangry Labs choice; upstream uses 32. Other
 inference defaults retain the
 [upstream initialization](https://github.com/ServeurpersoCom/yue2.cpp/blob/8af01740686824ffd4a1839a457954f42e2a8ce7/src/request.cpp).
