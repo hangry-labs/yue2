@@ -122,6 +122,12 @@ track: `n`, `lm_batch_size` and `synth_batch_size` must be 1 when provided.
 Responses contain the audio directly with the correct MIME type and extension,
 plus `X-Request-ID`, `X-YuE2-Job-ID`, `X-Audio-Sample-Rate` and `X-Audio-Channels`.
 Use `/synth` for asynchronous work, native batches, replay JSON and latents.
+Native and compatibility requests also accept `plan_retries` (integer 0–8,
+default 2): extra attempts for malformed model-generated scores before the music
+stages. Zero disables retries but retains the early check. It does not retry
+finished audio, change supplied scores or guarantee an ending/lyric accuracy.
+Greedy score sampling is not retried. MCP agents use the engine default without
+access to this advanced setting. See the [planning behavior](ARCHITECTURE.md#request-json-reference).
 The existing [native API reference](ARCHITECTURE.md#endpoints) remains available.
 
 ## Authentication, errors and cancellation

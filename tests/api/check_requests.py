@@ -23,6 +23,9 @@ def main():
     assert mapped['native']['style'] == 'country, acoustic guitar, warm clear lead vocals'
     assert mapped['native']['seed'] == 9007199254740999 and mapped['native']['lm_seed'] == -1
     assert mapped['native']['steps'] == 8
+    assert mapped['native']['plan_retries'] == 2
+    assert translate({'input': original, 'plan_retries': 0})['native']['plan_retries'] == 0
+    assert translate({'input': original, 'plan_retries': 8})['native']['plan_retries'] == 8
     pcm = translate({'lyrics': original, 'style': 'piano', 'response_format': 'pcm', 'speed': .25})
     assert pcm['pcm'] and pcm['speed'] == .25 and pcm['native']['output_format'] == 'wav16'
     direct = translate({'lyrics': original, 'input': original, 'style': 'pop', 'instructions': 'gentle',
@@ -50,6 +53,8 @@ def main():
         ({'input': 'words', 'abc_sampling': {'max_tokens': 1.5}}, ('abc_sampling.max_tokens', 'invalid_value')),
         ({'input': 'embedded\0null'}, ('input', 'invalid_value'))
     ]
+    invalid += [({'input': original, 'plan_retries': value}, ('plan_retries', 'invalid_value'))
+                for value in (-1, 9, 1.5, True, None, '2', 2147483648, 18446744073709551615)]
     for body, error in invalid:
         translate(body, error)
     print(f'PASS: request aliases, exact lyrics/int64 seeds, explicit conditioning, PCM/speed and {len(invalid)} errors.')

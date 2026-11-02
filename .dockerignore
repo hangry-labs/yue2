@@ -1,6 +1,8 @@
 .git
 **/.git
 .ai
+UPSTREAM_ISSUES.md
+UPSTREAM_PULL_REQUESTS.md
 .idea
 .github
 site

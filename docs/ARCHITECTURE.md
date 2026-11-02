@@ -547,6 +547,7 @@ the server rejects a request with neither.
     "source_tokens":   "",
     "source_start":    0.0,
     "source_end":      -1.0,
+    "plan_retries":    2,
     "abc_sampling":      { "temperature": 0.7, "top_p": 0.9,  "top_k": 30,  "repetition_penalty": 1.005, "penalty_window": 100, "min_tokens": 32,  "max_tokens": 4096 },
     "semantic_sampling": { "temperature": 1.0, "top_p": 0.95, "top_k": 100, "repetition_penalty": 1.2,   "penalty_window": 50,  "min_tokens": 200, "max_tokens": 9000 }
 }
@@ -648,6 +649,25 @@ on both sides: temperature in [0, 5], top-p in (0, 1], top-k at least 1,
 repetition penalty positive, penalty window in [1, 100], `min_tokens`
 between 0 and `max_tokens`, `max_tokens` at least 1. A preset outside the
 bounds is a 400 from the server and a FATAL from the CLI.
+
+**`plan_retries`** (integer, default `2`, range `0`–`8`)
+Extra attempts when the model writes an obviously malformed ABC score. The
+pipeline checks its meter, note length, key, voice/bar structure and suspicious
+colons before semantic generation. Two retries mean at most three planning
+attempts. A valid first plan continues unchanged. Each retry changes only the
+planning seed; style, lyrics, sampling budgets and acoustic seed are retained.
+Song `i`, retry `k` uses `lm_seed + i + k * lm_batch_size`; an unrepresentable
+retry seed fails clearly rather than wrapping. Greedy planning (temperature zero)
+does not retry because another seed cannot change the plan.
+
+Zero retries still checks the plan and fails early. Exhaustion stops that job
+before semantic generation, synthesis and decoding. Caller-supplied ABC, replay
+and score-free generation retain their existing behavior; edited scores are not
+silently replaced. The replay contains the actual accepted score and codes.
+The standalone `yue-plan` command warns and still saves its score for inspection.
+This is a corruption heuristic, not a complete ABC validator, lyric-alignment
+check or guarantee of a complete musical ending. Duration/token-budget cutoffs
+are separate. Invalid retry types or values fail with HTTP400 or a CLI error.
 
 ## yue-plan reference
 
@@ -773,7 +793,8 @@ POST /synth                     Submit a generation job, returns job ID
   response: {"id":"1a2b..."}
   400 on malformed JSON, unknown cot mode, unknown output_format,
   steps < 1, lm_batch_size outside [1, --max-batch], synth_batch_size
-  outside [1, 9], a sampling preset outside the protocol bounds, an
+  outside [1, 9], plan_retries not an integer in [0, 8], a sampling preset
+  outside the protocol bounds, an
   adapter missing from the --adapters directory, or both semantic_tokens
   and source_tokens
 

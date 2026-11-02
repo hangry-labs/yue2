@@ -33,6 +33,7 @@ export interface Yue2Request {
 	cfg_scale?: number;
 	semantic_tokens?: string;
 	abc_sampling: Yue2Sampling;
+	plan_retries?: number;
 	semantic_sampling: Yue2Sampling;
 	output_format?: string;
 	peak_clip?: number;

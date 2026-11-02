@@ -2,6 +2,7 @@
 
 #include "request.h"
 
+#include "score-check.h"
 #include "task-types.h"
 #include "yyjson.h"
 
@@ -32,6 +33,7 @@ void request_init(Yue2Request * r) {
     r->semantic_tokens  = "";
 
     r->abc_sampling      = YUE2_ABC_SAMPLING;
+    r->plan_retries      = YUE2_PLAN_RETRIES_DEFAULT;
     r->semantic_sampling = YUE2_SEMANTIC_SAMPLING;
 
     r->output_format = OUTPUT_FORMAT_MP3;
@@ -116,8 +118,19 @@ static void add_sampling(yyjson_mut_doc *     doc,
     }
 }
 
-static void request_parse_obj(yyjson_val * obj, Yue2Request * r) {
+static bool request_parse_obj(yyjson_val * obj, Yue2Request * r, std::string * error = nullptr) {
     yyjson_val * v;
+
+    if ((v = yyjson_obj_get(obj, "plan_retries"))) {
+        if (!yyjson_is_int(v) || (yyjson_is_uint(v) && yyjson_get_uint(v) > YUE2_PLAN_RETRIES_MAX) ||
+            yyjson_get_sint(v) < 0 || yyjson_get_sint(v) > YUE2_PLAN_RETRIES_MAX) {
+            const char * message = "plan_retries must be an integer between 0 and 8";
+            fprintf(stderr, "[Request] ERROR: %s\n", message);
+            if (error) *error = message;
+            return false;
+        }
+        r->plan_retries = yyjson_get_int(v);
+    }
 
     if ((v = yyjson_obj_get(obj, "style")) && yyjson_is_str(v)) {
         r->style = yy_str(v);
@@ -187,10 +200,12 @@ static void request_parse_obj(yyjson_val * obj, Yue2Request * r) {
             }
         }
     }
+    return true;
 }
 
-bool request_parse_json(Yue2Request * r, const char * json) {
+bool request_parse_json(Yue2Request * r, const char * json, std::string * error) {
     request_init(r);
+    if (error) *error = "invalid JSON";
     yyjson_doc * doc = yyjson_read(json, strlen(json), 0);
     if (!doc) {
         fprintf(stderr, "[Request] ERROR: malformed JSON\n");
@@ -202,9 +217,10 @@ bool request_parse_json(Yue2Request * r, const char * json) {
         yyjson_doc_free(doc);
         return false;
     }
-    request_parse_obj(root, r);
+    bool ok = request_parse_obj(root, r, error);
     yyjson_doc_free(doc);
-    return true;
+    if (ok && error) error->clear();
+    return ok;
 }
 
 bool request_parse(Yue2Request * r, const char * path) {
@@ -220,8 +236,9 @@ bool request_parse(Yue2Request * r, const char * path) {
         yyjson_doc_free(doc);
         return false;
     }
-    request_parse_obj(root, r);
+    bool ok = request_parse_obj(root, r);
     yyjson_doc_free(doc);
+    if (!ok) return false;
     fprintf(stderr, "[Request] Parsed %s\n", path);
     return true;
 }
@@ -265,6 +282,9 @@ std::string request_to_json(const Yue2Request * r, bool sparse) {
         yyjson_mut_obj_add_int(doc, root, "synth_batch_size", r->synth_batch_size);
     }
     add_sampling(doc, root, "abc_sampling", r->abc_sampling, d.abc_sampling, sparse);
+    if (!sparse || r->plan_retries != d.plan_retries) {
+        yyjson_mut_obj_add_int(doc, root, "plan_retries", r->plan_retries);
+    }
     add_sampling(doc, root, "semantic_sampling", r->semantic_sampling, d.semantic_sampling, sparse);
     if (!sparse || r->semantic_tokens != d.semantic_tokens) {
         yyjson_mut_obj_add_strncpy(doc, root, "semantic_tokens", r->semantic_tokens.c_str(), r->semantic_tokens.size());

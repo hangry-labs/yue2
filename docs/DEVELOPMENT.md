@@ -16,6 +16,7 @@ Python helpers use the standard library; Python is not added to the inference im
 | `tests/benchmarks/` | Repeatable generation runner |
 | `benchmarks/` | Resident-model speed, memory and ASR lyric suite; corpus and public metric reports |
 | `tests/unit/` | CPU-only tooling and lifecycle tests |
+| `tests/planning/` | Model-free generated-score checks, retry policy and request contracts |
 | `tests/integration/` | Read-only checks against a running server |
 | `tests/fixtures/` | Baseline prompts |
 | `tests/parity/` | Optional model-dependent upstream numerical harnesses and historical logs |
@@ -137,7 +138,8 @@ has not been qualified as a support matrix.
 Dockerfile stages:
 - web: Node 24 checks and builds the current Svelte source.
 - source: selects source files; excludes models and local state.
-- cpu-checks: compiles all native targets and verifies startup without weights.
+- cpu-checks: compiles all native targets, checks startup, and exercises score
+  validation/retries, codecs, APIs and queue/storage without weights.
 - cuda-toolchain: pinned CUDA 12.9.1 development base and build tools.
 - ggml-deps-build / ggml-deps: isolated GGML compilation and portable dependency artifact.
 - selected-ggml: verified release named context, source artifact or selected prebuilt image.

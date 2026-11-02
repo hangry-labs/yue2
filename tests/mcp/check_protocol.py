@@ -81,7 +81,7 @@ def main(binary):
             arguments = {'lyrics': '[Verse]\nA little light', 'direction': 'English piano', 'duration_seconds': 30}
             assert call('generate_song', arguments, modern)['isError']
             arguments['guide_token'] = guide['guide_token']
-            for field in ('steps', 'seed', 'model', 'adapters', 'cfg_scale', 'semantic_tokens', 'settings', 'speed', 'cot'):
+            for field in ('steps', 'seed', 'model', 'adapters', 'cfg_scale', 'semantic_tokens', 'settings', 'speed', 'cot', 'plan_retries'):
                 assert call('generate_song', {**arguments, field: 1}, modern)['isError'], field
             for field, value in [('duration_seconds', 0), ('duration_seconds', 361), ('format', 'mp3'),
                                  ('tempo_bpm', 29), ('tempo_bpm', 301), ('tempo_bpm', 90.5),

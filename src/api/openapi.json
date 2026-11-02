@@ -165,6 +165,7 @@
           "cfg_scale": {"type": "number"}, "peak_clip": {"type": "integer", "default": 10}, "mp3_bitrate": {"type": "integer", "default": 128},
           "output_format": {"type": "string", "description": "Native audio format. The v1 adapters also accept wav and pcm aliases.", "default": "mp3"},
           "abc_sampling": {"$ref": "#/components/schemas/Sampling"}, "semantic_sampling": {"$ref": "#/components/schemas/Sampling"},
+          "plan_retries": {"type": "integer", "minimum": 0, "maximum": 8, "default": 2, "description": "Extra planning attempts for structurally malformed model-generated ABC, before semantic/audio generation. Zero disables retries, not the check. Supplied scores and replays are unchanged; greedy planning is not retried. This does not validate musical quality, lyrics or a complete ending."},
           "adapters": {"type": "array", "items": {"type": "object", "required": ["name"], "properties": {"name": {"type": "string"}, "scale": {"type": "number", "default": 1}}}}
         }
       },

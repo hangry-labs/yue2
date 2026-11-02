@@ -85,6 +85,11 @@ static bool music_api_parse(const std::string & body, MusicApiRequest & out, Mus
             (yyjson_get_sint(value) < INT32_MIN || yyjson_get_sint(value) > INT32_MAX))
             return fail(key, std::string(key) + " is outside the supported integer range.");
     }
+    if (auto * value = yyjson_obj_get(root, "plan_retries")) {
+        if (!yyjson_is_int(value) || (yyjson_is_uint(value) && yyjson_get_uint(value) > 8) ||
+            yyjson_get_sint(value) < 0 || yyjson_get_sint(value) > 8)
+            return fail("plan_retries", "plan_retries must be an integer between 0 and 8.");
+    }
     for (auto * key : {"abc_sampling", "semantic_sampling"}) {
         auto * sampling = get(key);
         if (!sampling) continue;

@@ -22,6 +22,7 @@
 #include "model-store.h"
 #include "nar.h"
 #include "request.h"
+#include "score-check.h"
 #include "timer.h"
 #include "torch-cpu-rng.h"
 #include "vae-enc.h"
@@ -434,6 +435,10 @@ static bool pipeline_generate(Yue2Pipeline *          p,
     if (!yue2_sampling_valid(r.abc_sampling, "abc") || !yue2_sampling_valid(r.semantic_sampling, "semantic")) {
         return false;
     }
+    if (!yue2_plan_retries_valid(r.plan_retries)) {
+        fprintf(stderr, "[Pipeline] FATAL: plan_retries must be between 0 and 8\n");
+        return false;
+    }
     std::vector<AdapterUse> ar_adapters, nar_adapters;
     if (!pipeline_adapters(p, r, &ar_adapters, &nar_adapters)) {
         return false;
@@ -459,6 +464,10 @@ static bool pipeline_generate(Yue2Pipeline *          p,
     }
     const int B = replay || continued ? 1 : r.lm_batch_size;
     const int M = r.synth_batch_size;
+    if (r.lm_seed > std::numeric_limits<int64_t>::max() - (B - 1)) {
+        fprintf(stderr, "[Pipeline] FATAL: batch seeds exceed the signed 64-bit range\n");
+        return false;
+    }
 
     // A supplied stream with no score renders without one, whatever the
     // mode: a score planned now is not the one the codes follow
@@ -498,6 +507,18 @@ static bool pipeline_generate(Yue2Pipeline *          p,
             abc_ids[i]   = plans[i].tokens;
             scores[i]    = bpe_decode(tok, abc_ids[i]);
             truncated[i] = plans[i].truncated;
+            const auto replan = [&](int64_t retry_seed) {
+                std::vector<Yue2Generation> again;
+                if (!yue2_generate(lm, &p->kv, {open}, {}, 1.0f, r.abc_sampling, retry_seed,
+                                   YUE2_PHASE_ABC, &again, cancelled, cancel_data)) return false;
+                abc_ids[i] = std::move(again[0].tokens);
+                scores[i] = bpe_decode(tok, abc_ids[i]);
+                truncated[i] = again[0].truncated;
+                return true;
+            };
+            if (!yue2_check_planned_score(scores[i], r.lm_seed, i, B, r.plan_retries,
+                    r.abc_sampling.temperature != 0.0f, replan,
+                    [&] { return cancelled && cancelled(cancel_data); })) return false;
         }
     }
 

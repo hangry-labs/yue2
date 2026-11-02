@@ -53,6 +53,8 @@ struct Yue2Request {
 
     // sampling of each autoregressive stage, the checkpoint presets by default
     Yue2Sampling abc_sampling;
+    // Extra attempts for malformed model-generated scores, 0..8 (not full-song retries).
+    int plan_retries;  // 2
     Yue2Sampling semantic_sampling;
 
     // semantic stream (CSV of codec values, 25 per second). Non empty replaces
@@ -93,7 +95,7 @@ struct Yue2Request {
 void request_init(Yue2Request * r);
 
 // parses a JSON string, missing fields keep their default
-bool request_parse_json(Yue2Request * r, const char * json);
+bool request_parse_json(Yue2Request * r, const char * json, std::string * error = nullptr);
 
 // parses a JSON file, missing fields keep their default
 bool request_parse(Yue2Request * r, const char * path);

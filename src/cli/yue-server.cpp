@@ -435,9 +435,10 @@ static void handle_props(const httplib::Request &, httplib::Response & res) {
 // Validates what the pipeline would refuse anyway, so a bad request fails
 // fast with a 400 instead of occupying the worker
 static bool validate(const std::string & json, httplib::Response & res, Yue2Request * r) {
-    if (!request_parse_json(r, json.c_str())) {
+    std::string parse_error;
+    if (!request_parse_json(r, json.c_str(), &parse_error)) {
         res.status = 400;
-        res.set_content(json_string("error", "invalid JSON"), "application/json");
+        res.set_content(json_string("error", parse_error), "application/json");
         return false;
     }
     Yue2Cot cot;

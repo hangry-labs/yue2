@@ -88,6 +88,7 @@ RUN --mount=type=cache,id=yue2-native-cpu,target=/build,sharing=locked \
     -DBUILD_SHARED_LIBS=OFF -DYUE2_REVISION="$SOURCE_REVISION" \
     && cmake --build /build --parallel 4 \
     && python3 /smoke_binaries.py /build \
+    && /build/score-check \
     && python3 tests/audio/check_formats.py /build/audio-formats-check \
     && python3 tests/api/check_requests.py /build/music-api-check \
     && python3 tests/mcp/check_protocol.py /build/mcp-check \
