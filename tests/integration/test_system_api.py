@@ -25,6 +25,23 @@ class SystemApiTests(unittest.TestCase):
         self.assertTrue(props['model'])
         self.assertTrue(props['vae'])
 
+    def test_queue_and_result_storage_are_reported_without_private_job_details(self):
+        for route in ('/health', '/status', '/system/queue'):
+            with self.subTest(route=route):
+                data = self.fetch(route)
+                self.assertEqual(data['status'], 'ok')
+                queue = data['queue']
+                self.assertEqual(queue['pending'], queue['active'] + queue['queued'])
+                self.assertEqual(queue['available'], queue['limit'] - queue['pending'])
+                self.assertIn(queue['active'], (0, 1))
+                self.assertIsInstance(queue['accepting'], bool)
+                self.assertGreaterEqual(queue['retry_after_seconds'], 1)
+                self.assertNotIn('jobs', queue)
+                self.assertEqual(data['results']['location'], 'volume')
+                self.assertGreater(data['results']['ttl_seconds'], 0)
+                self.assertGreater(data['results']['limit_bytes'], 0)
+                self.assertLess(data['http']['synchronous_limit'], data['http']['workers'])
+
     def test_gpu_history_is_bounded_and_sensors_can_be_unavailable(self):
         data = self.fetch('/system/gpu')
         self.assertEqual(data['sampling'], 'on_request')

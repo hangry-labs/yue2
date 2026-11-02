@@ -143,6 +143,28 @@ class PublicationTests(unittest.TestCase):
 
 
 class LifecycleTests(unittest.TestCase):
+    def test_aggregate_pending_queue_prevents_replacement_without_logs(self):
+        response = Mock()
+        response.__enter__ = Mock(return_value=response)
+        response.__exit__ = Mock(return_value=False)
+        response.read.return_value = json.dumps({'queue': {'pending': 2}}).encode()
+        with patch.object(dev.urllib.request, 'urlopen', return_value=response), \
+                patch.object(dev.subprocess, 'run') as logs:
+            with self.assertRaisesRegex(RuntimeError, 'generation is active'):
+                dev.active_jobs('yue2-dev', 8087)
+            logs.assert_not_called()
+
+    def test_queue_and_retention_environment_survive_image_updates(self):
+        prior = {'Config': {'Env': ['YUE2_QUEUE_LIMIT=3', 'YUE2_RESULT_TTL_SECONDS=7200', 'YUE2_RESULT_MAX_FILES=64']}}
+        with patch.dict(dev.os.environ, {'YUE2_QUEUE_LIMIT': '4'}, clear=True):
+            env = dev.api_environment(prior)
+            self.assertEqual(env['YUE2_QUEUE_LIMIT'], '4')
+            self.assertEqual(env['YUE2_RESULT_TTL_SECONDS'], '7200')
+            self.assertEqual(env['YUE2_RESULT_MAX_FILES'], '64')
+            argv = dev.api_env_flags(env)
+            self.assertIn('YUE2_RESULT_TTL_SECONDS', argv)
+            self.assertNotIn('7200', argv)
+
     def test_auto_uses_pinned_archive_even_when_local_image_exists(self):
         dependency = {'image': 'ggml-deps', 'key': 'current', 'archive': {'sha256': 'pinned'},
                       'architectures': '86-real;120a-real', 'cuda_base': 'cuda'}
@@ -194,11 +216,13 @@ class LifecycleTests(unittest.TestCase):
         response = Mock()
         response.__enter__ = Mock(return_value=response)
         response.__exit__ = Mock(return_value=False)
-        response.read.return_value = json.dumps({'status': 'running'}).encode()
-        with patch.object(dev.subprocess, 'run', return_value=logs), \
-                patch.object(dev.urllib.request, 'urlopen', return_value=response):
-            with self.assertRaisesRegex(RuntimeError, 'generation is active'):
-                dev.active_jobs('yue2-dev', 8087)
+        for state in ('running', 'queued'):
+            with self.subTest(state=state):
+                response.read.return_value = json.dumps({'status': state}).encode()
+                with patch.object(dev.subprocess, 'run', return_value=logs), \
+                        patch.object(dev.urllib.request, 'urlopen', return_value=response):
+                    with self.assertRaisesRegex(RuntimeError, 'generation is active'):
+                        dev.active_jobs('yue2-dev', 8087)
 
 
 if __name__ == '__main__':

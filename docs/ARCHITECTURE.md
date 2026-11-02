@@ -800,7 +800,7 @@ POST /vae                       Submit a VAE job, returns job ID
   latents that are not whole frames within the context
 
 GET  /job?id=N                  Poll job status
-  response: {"status":"running|done|failed|cancelled"}
+  response: {"status":"queued|running|done|failed|cancelled","queue_position":0}
 
 GET  /job?id=N&result=1         Fetch job result
   multipart/mixed, boundary yue2-batch-boundary: per track, song-major,
@@ -817,8 +817,9 @@ GET  /job?id=N&result=1         Fetch job result
 POST /job?id=N&cancel=1         Cancel a specific job
   response: {"status":"cancelled"}
 
-GET  /health                    Server health check
-  response: {"status":"ok"}
+GET  /health                    Liveness plus queue and result storage
+GET  /status                    Same uncached operational snapshot
+GET  /system/queue              Same snapshot for System monitoring
 
 GET  /props                     Version, model paths, rates, default request
   response: application/json
@@ -870,9 +871,13 @@ in [audio formats](AUDIO.md).
 
 One worker thread consumes jobs from a FIFO queue and runs them serially
 through the resident pipeline. The HTTP handler enqueues and returns a job
-id immediately; the client polls. Completed jobs sit in memory and are
-evicted FIFO past 32 entries, so a disconnected client can still fetch its
-result after reconnecting. A running job is never evicted.
+id immediately; the client polls. One atomic admission cap covers every route
+(default eight jobs including active work), with HTTP 429/Retry-After for excess
+submissions. Completed result bodies and metadata live on the output volume,
+streamed in bounded chunks rather than retained in RAM. They survive restart
+until expiry (24 hours, 10 GiB / 256 native results by default). MCP retains its
+separate one-hour export policy without an extra native audio copy. See
+[queue and storage](QUEUE.md) for the complete contract and load-test method.
 
 Each job carries a cancel flag polled between autoregressive steps,
 between ODE steps and between VAE tiles, and passed down to FFmpeg output

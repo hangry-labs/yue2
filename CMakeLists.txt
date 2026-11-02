@@ -209,8 +209,12 @@ target_link_libraries(music-api-check PRIVATE yyjson)
 add_executable(mcp-check tests/mcp/server.cpp src/request.cpp ${SKILL_OUTPUT})
 target_include_directories(mcp-check PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src ${CMAKE_CURRENT_BINARY_DIR})
 target_link_libraries(mcp-check PRIVATE yyjson httplib Threads::Threads)
+add_executable(server-check tests/server/runtime.cpp src/request.cpp ${SKILL_OUTPUT})
+target_include_directories(server-check PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src ${CMAKE_CURRENT_BINARY_DIR})
+target_link_libraries(server-check PRIVATE yyjson httplib Threads::Threads)
 if(WIN32)
     target_link_libraries(mcp-check PRIVATE bcrypt)
+    target_link_libraries(server-check PRIVATE bcrypt)
 endif()
 
 # Model-free codec integration checks run in the CPU CI image, never the runtime.

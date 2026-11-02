@@ -101,7 +101,8 @@ docker run -d --name yue2 --gpus all \
 The image runs as UID 10001; a custom bind mount must be writable by that user.
 `task start` uses ignored `data/results/studio/` for persistent output. On Linux,
 prepare that bind directory for UID 10001 before starting. Native/Studio results
-keep their existing browser/memory behavior. In-flight jobs and guide tokens are
+use disk-backed server result storage; the browser library remains separate.
+See [queue limits and storage](QUEUE.md). In-flight jobs and guide tokens are
 process-local and disappear on restart; completed metadata and capability URLs
 survive in persisted storage, with their original expiry.
 
@@ -109,7 +110,11 @@ Expired owned files are swept on startup, on submissions and every 30 seconds.
 Every download checks expiry even before the sweep. Storage is bounded to 128
 files / 2 GiB, with a 512 MiB per-file limit. Unexpired exports are never evicted
 to make room; a full store fails the new export. Up to eight MCP songs may be
-queued/generating; they still run serially.
+queued/generating; they still run serially. All compute routes also share the
+configurable global eight-job limit. When full, tools return `isError: true`,
+`structuredContent.code: queue_full` and `retry_after_seconds: 5`, with a
+`Retry-After: 5` header. Wait with exponential backoff and jitter before retrying
+a refused submission; poll accepted handles instead of resubmitting.
 
 For clients on another machine or a forwarded port, set the operator environment
 variable **`YUE2_MCP_PUBLIC_URL`** to their reachable HTTP(S) origin, for example

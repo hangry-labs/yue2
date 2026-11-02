@@ -153,6 +153,18 @@ cancelled generation 409, generation failures 500 and the local deadline 504.
 Schema and local guide routes are public. Unknown optional native model routes
 remain unavailable; this change does not load transcription/tokenization models.
 
+All compute routes share a configurable eight-job limit, including the active
+job. Excess native/compatibility requests return **429** with `Retry-After: 5`;
+compatibility errors retain the OpenAI envelope. Back off with jitter before
+retrying refused submissions. Accepted jobs must be polled rather than submitted
+again. An already-full native result store returns **507** before generation.
+
+`GET /health`, `/status` and `/system/queue` report queue counts/capacity and
+volume usage without exposing other callers' job handles or lyrics. Completed
+native/API results are streamed from `/output/jobs`, survive restarts, and expire
+after 24 hours by default. The browser library remains separate. See
+[queue limits, persistence and load testing](QUEUE.md) for configuration and limits.
+
 The compatibility reference is OpenAI's [speech endpoint](https://developers.openai.com/api/reference/resources/audio/subresources/speech/methods/create).
 Music routes, native controls and extended formats are local capabilities.
 

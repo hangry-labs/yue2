@@ -44,6 +44,42 @@ export interface Yue2Request {
 }
 
 // GET /props response
+export interface RuntimeStatus {
+	status: string;
+	queue: {
+		limit: number;
+		pending: number;
+		queued: number;
+		active: number;
+		available: number;
+		accepting: boolean;
+		retry_after_seconds: number;
+		rejected: number;
+		completed: number;
+		failed: number;
+		cancelled: number;
+		active_operation: string;
+	};
+	results: {
+		location: string;
+		files: number;
+		bytes: number;
+		limit_bytes: number;
+		limit_files: number;
+		max_file_bytes: number;
+		ttl_seconds: number;
+		full: boolean;
+	};
+	http: {
+		workers: number;
+		synchronous_limit: number;
+		synchronous_waiters: number;
+		download_limit: number;
+		log_stream_limit: number;
+		max_upload_bytes: number;
+	};
+}
+
 export interface Yue2Props {
 	version: string;
 	model: string;

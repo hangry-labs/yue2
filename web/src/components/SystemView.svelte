@@ -3,6 +3,7 @@
 	import { app } from '../lib/state.svelte.js';
 	import GpuMonitor from './GpuMonitor.svelte';
 	import LogCard from './LogCard.svelte';
+	import QueueMonitor from './QueueMonitor.svelte';
 	let { active }: { active: boolean } = $props();
 	const filename = (path?: string) => path?.split(/[/\\]/).pop() || 'Unavailable';
 </script>
@@ -38,6 +39,7 @@
 					mounted read-only from your machine.
 				</p>
 			</section>
+			<QueueMonitor {active} />
 			<section class="surface">
 				<h3>Available tools</h3>
 				<ul class="capabilities">

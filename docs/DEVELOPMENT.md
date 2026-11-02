@@ -61,12 +61,13 @@ in `examples/`. See the [format and generation guide](../examples/README.md).
 | `data/models/` | Required and optional GGUF files | `/models`, read-only |
 | `data/adapters/` | Optional LoRA adapters | `/adapters`, read-only |
 | `data/checkpoints/` | Original checkpoints for advanced conversion/reference checks | Not mounted by normal startup |
-| `data/results/` | Benchmark evidence, build-dependency exports and temporary MCP audio in `studio/` | Studio `/output` bind and per-run output mounts |
+| `data/results/` | Benchmark evidence, build-dependency exports and server results in `studio/` | Studio `/output` bind and per-run output mounts |
 
 Tasks create these directories when needed. The tracked download manifest is
 [`docker/models.json`](../docker/models.json); model files are never tracked or
 baked into the image. Browser songs/settings still live in browser storage,
-and server jobs/results remain in memory.
+and completed server results live on `/output` with bounded retention. Only
+active/queued work and small metadata stay in server memory. See [queue/storage](QUEUE.md).
 
 For an existing checkout with root-level `models/`, `adapters/`, `checkpoints/`
 or `results/`, finish active work before migrating:
@@ -119,8 +120,10 @@ Task configuration is in Taskfile.yml; implementation is in scripts/dev.py.
 Defaults match .env.example. CLI variables override local settings.
 Only the named project container is replaced. Start refuses replacement while a
 known job is running and does not stop another project's container with that name.
-Changing images restarts the process and clears its in-memory jobs/results.
-Models and browser data persist.
+Changing images restarts the process and cancels active/queued work. Completed
+results persist on the output volume until their original expiry; models and
+browser data persist. Queue and retention environment variables are preserved
+across Task image updates.
 
 Local builds reuse the pinned public release dependency when
 targeting is automatic. Otherwise they detect host NVIDIA compute capability and

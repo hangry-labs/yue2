@@ -19,6 +19,7 @@
 #include "songwriting-skill.hpp"
 #include "pipeline.h"
 #include "system-gpu.h"
+#include "server/http.h"
 #include "version.h"
 #include "yyjson.h"
 
@@ -112,13 +113,11 @@ static int g_api_timeout = 600;
 // and types parts by their header.
 static const char * MULTIPART_BOUNDARY = "yue2-batch-boundary";
 
-static std::string multipart_build_tracks(const std::vector<std::string> &        request_parts,
+static void multipart_write_tracks(std::ostream & body, const std::vector<std::string> & request_parts,
                                           const std::vector<std::string> &        audio_parts,
                                           const char *                            audio_mime,
                                           const std::vector<std::vector<float>> & latents) {
-    // One set of literal fragments sizes the body exactly and builds it:
-    // audio parts weigh tens of MB, growing the string through repeated
-    // appends would reallocate and copy them
+    // Stream the existing wire format straight to the result file.
     const char * dash       = "--";
     const char * json_head  = "\r\nContent-Type: application/json\r\n\r\n";
     const char * audio_head = "\r\nContent-Type: ";
@@ -129,39 +128,15 @@ static std::string multipart_build_tracks(const std::vector<std::string> &      
     const char * crlf      = "\r\n";
     const char * close_end = "--\r\n";
 
-    const size_t boundary_len = strlen(MULTIPART_BOUNDARY);
-    const size_t per_track    = 3 * strlen(dash) + 3 * boundary_len + strlen(json_head) + 3 * strlen(crlf) +
-                             strlen(audio_head) + strlen(audio_mime) + strlen(head_end) + strlen(latent_head);
-    size_t total = strlen(dash) + boundary_len + strlen(close_end);
     for (size_t i = 0; i < audio_parts.size(); i++) {
-        total += per_track + request_parts[i].size() + audio_parts[i].size() + latents[i].size() * sizeof(float);
+        body << dash << MULTIPART_BOUNDARY << json_head << request_parts[i] << crlf;
+        body << dash << MULTIPART_BOUNDARY << audio_head << audio_mime << head_end;
+        body.write(audio_parts[i].data(), (std::streamsize) audio_parts[i].size());
+        body << crlf << dash << MULTIPART_BOUNDARY << latent_head;
+        body.write(reinterpret_cast<const char *>(latents[i].data()), (std::streamsize) (latents[i].size() * sizeof(float)));
+        body << crlf;
     }
-
-    std::string body;
-    body.reserve(total);
-    for (size_t i = 0; i < audio_parts.size(); i++) {
-        body += dash;
-        body += MULTIPART_BOUNDARY;
-        body += json_head;
-        body += request_parts[i];
-        body += crlf;
-        body += dash;
-        body += MULTIPART_BOUNDARY;
-        body += audio_head;
-        body += audio_mime;
-        body += head_end;
-        body += audio_parts[i];
-        body += crlf;
-        body += dash;
-        body += MULTIPART_BOUNDARY;
-        body += latent_head;
-        body.append(reinterpret_cast<const char *>(latents[i].data()), latents[i].size() * sizeof(float));
-        body += crlf;
-    }
-    body += dash;
-    body += MULTIPART_BOUNDARY;
-    body += close_end;
-    return body;
+    body << dash << MULTIPART_BOUNDARY << close_end;
 }
 
 static const std::string MULTIPART_MIME = std::string("multipart/mixed; boundary=") + MULTIPART_BOUNDARY;
@@ -171,114 +146,57 @@ static const std::string MULTIPART_MIME = std::string("multipart/mixed; boundary
 // the result. the client polls GET /job?id=N until done, then fetches
 // the result with GET /job?id=N&result=1.
 // cancel: POST /job?id=N&cancel=1 sets the per-job flag.
-enum class JobStatus : int {
-    RUNNING   = 0,
-    DONE      = 1,
-    FAILED    = 2,
-    CANCELLED = 3,
-};
+using yue_server::Job;
+using yue_server::JobStatus;
+static std::unique_ptr<yue_server::Queue> g_queue;
+static std::unique_ptr<yue_server::Results> g_results;
+static yue_server::Slots g_waiters(yue_server::API_WAITERS);
+static yue_server::Slots g_downloads(yue_server::DOWNLOADS);
+static yue_server::Slots g_log_streams(yue_server::LOG_STREAMS);
+static yue_server::Slots g_upload_decoders(yue_server::UPLOAD_DECODERS);
+static std::atomic<bool> g_shutdown_requested{false};
+static std::string json_string(const char * key, const std::string & value);
 
-struct Job {
-    std::string            id;
-    std::chrono::steady_clock::time_point submitted = std::chrono::steady_clock::now();
-    std::atomic<JobStatus> status{ JobStatus::RUNNING };
-    std::string            result_body;
-    std::string            result_mime;
-    std::string            metrics_json;  // published with DONE, read only after status acquire
-    std::atomic<bool>      cancel{ false };
-
-    // memory ordering contract: result_body and result_mime are written
-    // before status is stored (seq_cst). the client loads status (seq_cst)
-    // and only reads result fields after seeing done/failed. this guarantees
-    // visibility without an explicit mutex on the result fields.
-};
-
-static std::mutex                                            mtx_jobs;
-static std::unordered_map<std::string, std::shared_ptr<Job>> g_jobs;
-static std::deque<std::string>                               g_job_order;
-static const int                                             MAX_JOBS = 32;
-
-// job currently on the GPU, tracked so shutdown can cancel it and return
-// within one pipeline cancel poll instead of waiting out the generation.
-static std::mutex           mtx_active;
-static std::shared_ptr<Job> g_active_job;
-
-static void active_job_set(std::shared_ptr<Job> job) {
-    std::lock_guard<std::mutex> lock(mtx_active);
-    g_active_job = std::move(job);
-}
-
-static void active_job_cancel() {
-    std::lock_guard<std::mutex> lock(mtx_active);
-    if (g_active_job && g_active_job->status.load() == JobStatus::RUNNING) {
-        fprintf(stderr, "[Server] Cancelling active job %s\n", g_active_job->id.c_str());
-        g_active_job->cancel.store(true);
+static std::shared_ptr<yue_server::Slots::Lease> upload_slot(httplib::Response & res) {
+    try { g_queue->require_capacity(); g_results->require_space(); }
+    catch (const yue_server::QueueFull & e) { yue_server::busy(res, e.what()); return nullptr; }
+    catch (const yue_server::StorageFull & e) {
+        res.status = 507; res.set_content(json_string("error", e.what()), "application/json"); return nullptr;
     }
+    auto slot = g_upload_decoders.acquire();
+    if (!slot) {
+        g_queue->note_rejection();
+        yue_server::busy(res, "Audio upload processing is busy; retry shortly", "uploads_busy");
+    }
+    return slot;
 }
 
-// cancel callback the pipeline polls, reads the per-job atomic flag
+static std::shared_ptr<Job> submit_native(httplib::Response & res, const std::string & kind,
+                                        std::function<void(std::shared_ptr<Job>)> run) {
+    try {
+        g_results->require_space();
+        auto job = g_queue->submit(kind, std::move(run));
+        fprintf(stderr, "[Server] Job %s: queued %s\n", job->id.c_str(), kind.c_str());
+        res.set_content(json_string("id", job->id), "application/json");
+        return job;
+    } catch (const yue_server::QueueFull & e) { yue_server::busy(res, e.what()); }
+      catch (const yue_server::StorageFull & e) {
+        res.status = 507; res.set_content(json_string("error", e.what()), "application/json");
+    }
+    return nullptr;
+}
+
+static void publish_result(const std::shared_ptr<Job> & job, const std::string & mime, const char * data, size_t size) {
+    g_results->save(job->id, mime, job->metrics_json, [&](std::ostream & out) { out.write(data, (std::streamsize) size); });
+    job->status.store(JobStatus::DONE);
+}
+static void publish_result(const std::shared_ptr<Job> & job, const std::string & mime, const std::string & body) {
+    publish_result(job, mime, body.data(), body.size());
+}
+
 static bool server_cancel_job(void * data) {
     auto * flag = (const std::atomic<bool> *) data;
-    return flag && flag->load(std::memory_order_relaxed);
-}
-
-// generate a random hex ID (64 bits of entropy, non-predictable)
-static std::string job_make_id() {
-    static std::mt19937_64      rng(std::random_device{}());
-    static std::mutex           mtx_rng;
-    std::lock_guard<std::mutex> lock(mtx_rng);
-    char                        buf[17];
-    snprintf(buf, sizeof(buf), "%016llx", (unsigned long long) rng());
-    return buf;
-}
-
-static std::shared_ptr<Job> job_create() {
-    std::lock_guard<std::mutex> lock(mtx_jobs);
-    auto                        job = std::make_shared<Job>();
-    job->id                         = job_make_id();
-    g_jobs[job->id]                 = job;
-    g_job_order.push_back(job->id);
-
-    // evict oldest completed jobs to stay under MAX_JOBS.
-    // running jobs are never evicted.
-    while ((int) g_job_order.size() > MAX_JOBS) {
-        bool evicted = false;
-        for (auto it = g_job_order.begin(); it != g_job_order.end(); ++it) {
-            auto jit = g_jobs.find(*it);
-            if (jit == g_jobs.end() || jit->second->status.load() != JobStatus::RUNNING) {
-                if (jit != g_jobs.end()) {
-                    g_jobs.erase(jit);
-                }
-                g_job_order.erase(it);
-                evicted = true;
-                break;
-            }
-        }
-        if (!evicted) {
-            break;
-        }
-    }
-    return job;
-}
-
-static std::shared_ptr<Job> job_find(const std::string & id) {
-    std::lock_guard<std::mutex> lock(mtx_jobs);
-    auto                        it = g_jobs.find(id);
-    return it != g_jobs.end() ? it->second : nullptr;
-}
-
-static const char * job_status_str(JobStatus s) {
-    switch (s) {
-        case JobStatus::RUNNING:
-            return "running";
-        case JobStatus::DONE:
-            return "done";
-        case JobStatus::FAILED:
-            return "failed";
-        case JobStatus::CANCELLED:
-            return "cancelled";
-    }
-    return "running";
+    return g_shutdown_requested.load(std::memory_order_relaxed) || (flag && flag->load(std::memory_order_relaxed));
 }
 
 // log capture: intercept stderr via pipe, forward to terminal + ring buffer.
@@ -371,10 +289,13 @@ struct LogCapture {
 // GET /logs: SSE stream of stderr lines.
 // sends backlog (up to LOG_RING_SIZE) then streams new lines in real time.
 static void handle_logs(const httplib::Request &, httplib::Response & res) {
+    auto slot = g_log_streams.acquire();
+    if (!slot) { yue_server::busy(res, "Log stream slots are busy", "log_streams_busy"); return; }
     res.set_header("Cache-Control", "no-cache");
     res.set_header("X-Accel-Buffering", "no");
     res.set_chunked_content_provider(
-        "text/event-stream", [cursor = uint64_t(0), init = false](size_t, httplib::DataSink & sink) mutable -> bool {
+        "text/event-stream", [slot, cursor = uint64_t(0), init = false](size_t, httplib::DataSink & sink) mutable -> bool {
+            if (!g_svr || !g_svr->is_running()) return false;
             std::unique_lock<std::mutex> lock(mtx_log);
             if (!init) {
                 uint64_t avail = log_seq < LOG_RING_SIZE ? log_seq : (uint64_t) LOG_RING_SIZE;
@@ -400,38 +321,9 @@ static void handle_logs(const httplib::Request &, httplib::Response & res) {
                 }
                 lock.lock();
             }
-            return true;
+            lock.unlock();
+            return sink.write(": keepalive\n\n", 13);
         });
-}
-
-// work queue: one worker owns the models, jobs run in FIFO order
-static std::deque<std::function<void()>> g_work_queue;
-static std::mutex                        mtx_work;
-static std::condition_variable           cv_work;
-static bool                              g_work_stop = false;
-
-static void work_push(std::function<void()> fn) {
-    {
-        std::lock_guard<std::mutex> lock(mtx_work);
-        g_work_queue.push_back(std::move(fn));
-    }
-    cv_work.notify_one();
-}
-
-static void worker_main() {
-    for (;;) {
-        std::function<void()> job;
-        {
-            std::unique_lock<std::mutex> lock(mtx_work);
-            cv_work.wait(lock, [] { return g_work_stop || !g_work_queue.empty(); });
-            if (g_work_stop && g_work_queue.empty()) {
-                return;
-            }
-            job = std::move(g_work_queue.front());
-            g_work_queue.pop_front();
-        }
-        job();
-    }
 }
 
 static Yue2Pipeline g_pipeline;
@@ -442,10 +334,22 @@ static std::string  g_transcriber_path;
 static std::string  g_tokenizer_path;
 
 static void on_signal(int) {
-    active_job_cancel();
+    g_shutdown_requested.store(true);
     if (g_svr) {
         g_svr->stop();
     }
+}
+
+static uint64_t runtime_limit(const char * name, uint64_t fallback, uint64_t maximum) {
+    auto * value = std::getenv(name);
+    if (!value) return fallback;
+    std::string text(value);
+    if (text.empty() || text.find_first_not_of("0123456789") != std::string::npos)
+        throw std::runtime_error(std::string(name) + " must be a positive integer");
+    size_t end = 0; auto number = std::stoull(text, &end);
+    if (end != text.size() || number == 0 || number > maximum)
+        throw std::runtime_error(std::string(name) + " is outside its supported range");
+    return number;
 }
 
 static std::string json_string(const char * key, const std::string & value) {
@@ -498,6 +402,8 @@ static void handle_props(const httplib::Request &, httplib::Response & res) {
     yyjson_mut_obj_add_bool(doc, api, "authentication_required", !g_api_key.empty());
     yyjson_mut_obj_add_int(doc, api, "timeout_seconds", g_api_timeout);
     yyjson_mut_obj_add_val(doc, root, "api", api);
+    auto queue_doc = yue_agent::parse(g_queue->snapshot());
+    yyjson_mut_obj_add_val(doc, root, "queue", yyjson_val_mut_copy(doc, yyjson_doc_get_root(queue_doc.get())));
 
     // The adapter directory, each entry with the halves it changes
     yyjson_mut_val * adapters = yyjson_mut_arr(doc);
@@ -584,40 +490,34 @@ static bool validate(const std::string & json, httplib::Response & res, Yue2Requ
 // Transcribe worker: the uploaded recording becomes an ABC score, the chord
 // symbols dropped when only the melody is wanted.
 static void run_transcribe(std::shared_ptr<Job> job, std::vector<float> audio, bool melody_only) {
-    active_job_set(job);
+    if (g_shutdown_requested || job->cancel) { job->status = JobStatus::CANCELLED; return; }
     fprintf(stderr, "[Server] Transcribe job %s: %.1f s of audio, %s\n", job->id.c_str(),
             (double) audio.size() / MERT_SAMPLE_RATE, melody_only ? "melody only" : "full score");
     std::string abc, error;
     bool        ok = pipeline_transcribe(&g_pipeline, audio.data(), (int) audio.size(), melody_only, &abc, &error);
-    active_job_set(nullptr);
     if (!ok) {
         fprintf(stderr, "[Server] Transcribe job %s failed: %s\n", job->id.c_str(), error.c_str());
         job->status.store(job->cancel.load() ? JobStatus::CANCELLED : JobStatus::FAILED);
         return;
     }
-    job->result_body = json_string("abc", abc);
-    job->result_mime = "application/json";
-    job->status.store(JobStatus::DONE);
+    publish_result(job, "application/json", json_string("abc", abc));
 }
 
 // Tokenize worker: the uploaded recording becomes its semantic codes, the
 // stream a card keeps for its replay and for the continuations it opens.
 static void run_tokenize(std::shared_ptr<Job> job, std::vector<float> audio) {
-    active_job_set(job);
+    if (g_shutdown_requested || job->cancel) { job->status = JobStatus::CANCELLED; return; }
     fprintf(stderr, "[Server] Tokenize job %s: %.1f s of audio\n", job->id.c_str(),
             (double) audio.size() / MERT_SAMPLE_RATE);
     std::vector<int> codes;
     std::string      error;
     bool             ok = pipeline_tokenize(&g_pipeline, audio.data(), (int) audio.size(), &codes, &error);
-    active_job_set(nullptr);
     if (!ok) {
         fprintf(stderr, "[Server] Tokenize job %s failed: %s\n", job->id.c_str(), error.c_str());
         job->status.store(job->cancel.load() ? JobStatus::CANCELLED : JobStatus::FAILED);
         return;
     }
-    job->result_body = json_string("codes", pipeline_format_tokens(codes));
-    job->result_mime = "application/json";
-    job->status.store(JobStatus::DONE);
+    publish_result(job, "application/json", json_string("codes", pipeline_format_tokens(codes)));
 }
 
 // The audio part of a track: peak normalized except WAV32, then encoded in
@@ -632,25 +532,22 @@ static std::string encode_audio(const Yue2Request & request, std::vector<float> 
 // VAE worker, encode: the uploaded recording becomes its latents, raw f32
 // [T, 64] time major, the .vae layout
 static void run_vae_encode(std::shared_ptr<Job> job, std::vector<float> planar, int T, int sr) {
-    active_job_set(job);
+    if (g_shutdown_requested || job->cancel) { job->status = JobStatus::CANCELLED; return; }
     fprintf(stderr, "[Server] VAE encode job %s: %.1f s of audio\n", job->id.c_str(), (double) T / sr);
     std::vector<float> latents;
     int                T_lat = 0;
     bool               ok    = pipeline_encode(&g_pipeline, planar.data(), T, sr, &latents, &T_lat);
-    active_job_set(nullptr);
     if (!ok) {
         job->status.store(job->cancel.load() ? JobStatus::CANCELLED : JobStatus::FAILED);
         return;
     }
-    job->result_body.assign(reinterpret_cast<const char *>(latents.data()), latents.size() * sizeof(float));
-    job->result_mime = "application/octet-stream";
-    job->status.store(JobStatus::DONE);
+    publish_result(job, "application/octet-stream", reinterpret_cast<const char *>(latents.data()), latents.size() * sizeof(float));
 }
 
 // VAE worker, decode: uploaded latents become audio in the output format of
 // the request
 static void run_vae_decode(std::shared_ptr<Job> job, Yue2Request request, std::vector<float> latents, int T_lat) {
-    active_job_set(job);
+    if (g_shutdown_requested || job->cancel) { job->status = JobStatus::CANCELLED; return; }
     fprintf(stderr, "[Server] VAE decode job %s: %d latent frames\n", job->id.c_str(), T_lat);
     VAEGGML *   vae = require_vae(&g_pipeline);
     bool        ok  = vae != nullptr;
@@ -666,22 +563,20 @@ static void run_vae_decode(std::shared_ptr<Job> job, Yue2Request request, std::v
             ok         = !audio_part.empty();
         }
     }
-    active_job_set(nullptr);
     if (!ok) {
         job->status.store(job->cancel.load() ? JobStatus::CANCELLED : JobStatus::FAILED);
         return;
     }
-    job->result_body = std::move(audio_part);
-    job->result_mime = audio_output_format(request.output_format)->mime;
-    job->status.store(JobStatus::DONE);
+    publish_result(job, audio_output_format(request.output_format)->mime, audio_part);
 }
 
-static void run_job(std::shared_ptr<Job> job, Yue2Request request, bool direct = false, double speed = 1, bool pcm = false) {
-    if (job->cancel.load()) { job->status.store(JobStatus::CANCELLED); return; }
+using SongExport = std::function<void(const std::string &, double)>;
+static void run_job(std::shared_ptr<Job> job, Yue2Request request, bool direct = false, double speed = 1, bool pcm = false,
+                    const SongExport & song_export = {}) {
+    if (g_shutdown_requested || job->cancel.load()) { job->status.store(JobStatus::CANCELLED); return; }
     Timer worker_timer;
     double queue_seconds = std::chrono::duration<double>(worker_timer.t - job->submitted).count();
     size_t loads_before = store_load_count(g_pipeline.store);
-    active_job_set(job);
     fprintf(stderr, "[Server] Job %s: %s\n", job->id.c_str(), request_to_json(&request).c_str());
 
     std::vector<Yue2Song> songs;
@@ -689,7 +584,6 @@ static void run_job(std::shared_ptr<Job> job, Yue2Request request, bool direct =
     double pipeline_seconds = worker_timer.ms() / 1000.0;
 
     if (!ok) {
-        active_job_set(nullptr);
         job->status.store(job->cancel.load() ? JobStatus::CANCELLED : JobStatus::FAILED);
         return;
     }
@@ -705,7 +599,6 @@ static void run_job(std::shared_ptr<Job> job, Yue2Request request, bool direct =
         Yue2Song & song = songs[t];
         audio_parts.push_back(encode_audio(request, song.audio, song.T_audio, &job->cancel, speed, pcm));
         if (audio_parts.back().empty()) {
-            active_job_set(nullptr);
             job->status.store(job->cancel.load() ? JobStatus::CANCELLED : JobStatus::FAILED);
             return;
         }
@@ -716,40 +609,48 @@ static void run_job(std::shared_ptr<Job> job, Yue2Request request, bool direct =
         latents.push_back(std::move(song.latents));
     }
 
-    active_job_set(nullptr);
-    job->result_body = direct ? std::move(audio_parts.front()) :
-        multipart_build_tracks(request_parts, audio_parts, audio_output_format(request.output_format)->mime, latents);
-    job->result_mime = direct ? (pcm ? "audio/pcm" : audio_output_format(request.output_format)->mime) : MULTIPART_MIME;
     // The compute worker owns ModelStore. Publish an immutable snapshot before
     // DONE so HTTP threads never inspect resident models while they are changing.
-    double worker_seconds = worker_timer.ms() / 1000.0;
     double audio_seconds = 0;
     bool truncated = false;
     for (const auto & song : songs) {
         audio_seconds += (double) song.T_audio / YUE2_SAMPLE_RATE;
         truncated = truncated || song.truncated;
     }
-    auto * metrics_doc = yyjson_mut_doc_new(nullptr);
-    auto * metrics = yyjson_mut_obj(metrics_doc);
-    yyjson_mut_doc_set_root(metrics_doc, metrics);
-    yyjson_mut_obj_add_int(metrics_doc, metrics, "schema", 1);
-    yyjson_mut_obj_add_real(metrics_doc, metrics, "queue_seconds", queue_seconds);
-    yyjson_mut_obj_add_real(metrics_doc, metrics, "pipeline_seconds", pipeline_seconds);
-    yyjson_mut_obj_add_real(metrics_doc, metrics, "encoding_packaging_seconds", worker_seconds - pipeline_seconds);
-    yyjson_mut_obj_add_real(metrics_doc, metrics, "worker_seconds", worker_seconds);
-    yyjson_mut_obj_add_real(metrics_doc, metrics, "audio_seconds", audio_seconds);
-    yyjson_mut_obj_add_bool(metrics_doc, metrics, "truncated", truncated);
-    yyjson_mut_obj_add_bool(metrics_doc, metrics, "keep_loaded", g_keep_loaded);
-    yyjson_mut_obj_add_int(metrics_doc, metrics, "steps", request.steps);
-    yyjson_mut_obj_add_uint(metrics_doc, metrics, "module_loads", store_load_count(g_pipeline.store) - loads_before);
-    yyjson_mut_obj_add_uint(metrics_doc, metrics, "resident_weight_bytes", store_vram_bytes(g_pipeline.store));
-    yyjson_mut_obj_add_int(metrics_doc, metrics, "resident_modules", store_gpu_module_count(g_pipeline.store));
-    char * metrics_text = yyjson_mut_write(metrics_doc, 0, nullptr);
-    if (metrics_text) {
-        job->metrics_json = metrics_text;
-        free(metrics_text);
+    auto finalize_metrics = [&] {
+        double worker_seconds = worker_timer.ms() / 1000.0;
+        auto * metrics_doc = yyjson_mut_doc_new(nullptr);
+        auto * metrics = yyjson_mut_obj(metrics_doc);
+        yyjson_mut_doc_set_root(metrics_doc, metrics);
+        yyjson_mut_obj_add_int(metrics_doc, metrics, "schema", 1);
+        yyjson_mut_obj_add_real(metrics_doc, metrics, "queue_seconds", queue_seconds);
+        yyjson_mut_obj_add_real(metrics_doc, metrics, "pipeline_seconds", pipeline_seconds);
+        yyjson_mut_obj_add_real(metrics_doc, metrics, "encoding_packaging_seconds", worker_seconds - pipeline_seconds);
+        yyjson_mut_obj_add_real(metrics_doc, metrics, "worker_seconds", worker_seconds);
+        yyjson_mut_obj_add_real(metrics_doc, metrics, "audio_seconds", audio_seconds);
+        yyjson_mut_obj_add_bool(metrics_doc, metrics, "truncated", truncated);
+        yyjson_mut_obj_add_bool(metrics_doc, metrics, "keep_loaded", g_keep_loaded);
+        yyjson_mut_obj_add_int(metrics_doc, metrics, "steps", request.steps);
+        yyjson_mut_obj_add_uint(metrics_doc, metrics, "module_loads", store_load_count(g_pipeline.store) - loads_before);
+        yyjson_mut_obj_add_uint(metrics_doc, metrics, "resident_weight_bytes", store_vram_bytes(g_pipeline.store));
+        yyjson_mut_obj_add_int(metrics_doc, metrics, "resident_modules", store_gpu_module_count(g_pipeline.store));
+        char * metrics_text = yyjson_mut_write(metrics_doc, 0, nullptr);
+        if (metrics_text) {
+            job->metrics_json = metrics_text;
+            free(metrics_text);
+        }
+        yyjson_mut_doc_free(metrics_doc);
+    };
+    if (job->cancel.load()) { job->status.store(JobStatus::CANCELLED); return; }
+    if (song_export) { song_export(audio_parts.front(), audio_seconds); finalize_metrics(); }
+    else {
+        const std::string mime = direct ? (pcm ? "audio/pcm" : audio_output_format(request.output_format)->mime) : MULTIPART_MIME;
+        g_results->save(job->id, mime, job->metrics_json, [&](std::ostream & out) {
+            if (direct) out.write(audio_parts.front().data(), (std::streamsize) audio_parts.front().size());
+            else multipart_write_tracks(out, request_parts, audio_parts, audio_output_format(request.output_format)->mime, latents);
+            finalize_metrics();
+        });
     }
-    yyjson_mut_doc_free(metrics_doc);
     job->status.store(JobStatus::DONE);
 }
 
@@ -764,10 +665,18 @@ static std::string g_agent_public_url;
 static std::mutex mtx_agent_jobs;
 static std::map<std::string, std::shared_ptr<AgentJob>> g_agent_jobs;
 
+static void agent_refresh(const std::shared_ptr<AgentJob> & agent) {
+    if (agent->state.load() == AgentState::QUEUED && agent->native &&
+        agent->native->status.load() == JobStatus::CANCELLED) {
+        agent->state.store(AgentState::CANCELLED);
+        agent->expires.store(yue_agent::now_seconds() + yue_agent::LINK_TTL);
+    }
+}
 static void agent_cleanup() {
     g_agent_artifacts->cleanup();
     std::lock_guard<std::mutex> lock(mtx_agent_jobs);
     for (auto it = g_agent_jobs.begin(); it != g_agent_jobs.end();) {
+        agent_refresh(it->second);
         auto expires = it->second->expires.load();
         if (expires && expires <= yue_agent::now_seconds()) it = g_agent_jobs.erase(it); else ++it;
     }
@@ -781,42 +690,39 @@ static std::string agent_submit(const Yue2Request & request) {
         std::lock_guard<std::mutex> lock(mtx_agent_jobs);
         size_t pending = 0;
         for (const auto & entry : g_agent_jobs) {
+            agent_refresh(entry.second);
             auto state = entry.second->state.load();
             if (state == AgentState::QUEUED || state == AgentState::GENERATING) ++pending;
         }
-        if (pending >= 8 || g_agent_jobs.size() >= 128)
-            throw std::runtime_error("Agent song queue is full; wait for current songs or expired handles");
-        agent->native = job_create();
-        g_agent_jobs.emplace(handle, agent);
-    }
-    // Retain native status for the existing idle/restart guards, including
-    // queued jobs. The opaque MCP handle never reveals that native job id.
-    fprintf(stderr, "[Server] Job %s: queued MCP song\n", agent->native->id.c_str());
-    work_push([agent, request, handle] {
-        agent->state.store(AgentState::GENERATING);
-        try {
-            run_job(agent->native, request, true);
-            auto status = agent->native->status.load();
+        if (pending >= 8 || g_agent_jobs.size() >= 128) {
+            g_queue->note_rejection();
+            throw yue_server::QueueFull("Agent song queue is full; retry after 5 seconds with exponential backoff and jitter");
+        }
+        agent->native = g_queue->submit("mcp", [agent, request, handle](std::shared_ptr<Job> job) {
+            agent->state.store(AgentState::GENERATING);
+            try {
+                run_job(job, request, true, 1, false, [&](const std::string & body, double duration) {
+                    // Publish directly to MCP storage: no second native audio copy.
+                    auto artifact = g_agent_artifacts->save(handle, request.output_format, body, duration);
+                    agent->expires.store(artifact.expires);
+            });
+            auto status = job->status.load();
             if (status == JobStatus::DONE) {
-                auto metrics = yue_agent::parse(agent->native->metrics_json);
-                double duration = metrics ? yyjson_get_num(yyjson_obj_get(yyjson_doc_get_root(metrics.get()), "audio_seconds")) : 0;
-                auto artifact = g_agent_artifacts->save(handle, request.output_format, agent->native->result_body, duration);
-                agent->expires.store(artifact.expires);
                 agent->state.store(AgentState::COMPLETE);
-                // Native history keeps its existing bounded result cache. Do
-                // not retain extra audio copies through hour-long MCP handles.
-                { std::lock_guard<std::mutex> lock(mtx_agent_jobs); agent->native.reset(); }
+                { std::lock_guard<std::mutex> completion_lock(mtx_agent_jobs); agent->native.reset(); }
                 return;
             }
             agent->state.store(status == JobStatus::CANCELLED ? AgentState::CANCELLED : AgentState::FAILED);
         } catch (const std::exception & e) {
             fprintf(stderr, "[Server] MCP song failed during generation or export: %s\n", e.what());
-            active_job_set(nullptr);
-            if (agent->native->status.load() == JobStatus::RUNNING) agent->native->status.store(JobStatus::FAILED);
+            job->status.store(JobStatus::FAILED);
             agent->state.store(AgentState::FAILED);
         }
         agent->expires.store(yue_agent::now_seconds() + yue_agent::LINK_TTL);
-    });
+        });
+        g_agent_jobs.emplace(handle, agent);
+        fprintf(stderr, "[Server] Job %s: queued MCP song\n", agent->native->id.c_str());
+    }
     yue_agent::Json j; j.text("job_id", handle); j.text("status", "queued"); j.integer("poll_after_seconds", 2);
     return j.dump();
 }
@@ -827,6 +733,7 @@ static std::string agent_status(const std::string & handle, bool cancel) {
     if (it == g_agent_jobs.end() || (it->second->expires.load() && it->second->expires.load() <= yue_agent::now_seconds()))
         throw std::invalid_argument("Song handle not found or expired");
     auto agent = it->second;
+    agent_refresh(agent);
     auto state = agent->state.load();
     if (state == AgentState::COMPLETE) {
         // Publication can complete between the transport's lookup and this
@@ -835,11 +742,14 @@ static std::string agent_status(const std::string & handle, bool cancel) {
         if (g_agent_artifacts->find(handle, artifact)) return artifact.metadata(g_agent_public_url);
         throw std::invalid_argument("Song download has expired or is unavailable");
     }
-    if (cancel && (state == AgentState::QUEUED || state == AgentState::GENERATING)) agent->native->cancel.store(true);
+    if (cancel && (state == AgentState::QUEUED || state == AgentState::GENERATING)) {
+        g_queue->cancel(agent->native->id); agent_refresh(agent); state = agent->state.load();
+    }
     yue_agent::Json j; j.text("job_id", handle); j.integer("poll_after_seconds", 2);
     j.text("status", state == AgentState::QUEUED ? "queued" : state == AgentState::GENERATING ? "generating" :
                      state == AgentState::CANCELLED ? "cancelled" : "failed");
     j.boolean("cancel_requested", agent->native->cancel.load());
+    j.integer("queue_position", (int64_t) g_queue->position(agent->native->id));
     if (state == AgentState::FAILED) j.text("message", "Song generation or export failed. Check server logs before retrying.");
     return j.dump();
 }
@@ -891,24 +801,33 @@ static void handle_music_api(const httplib::Request & req, httplib::Response & r
         api_error(res, 400, {message, "", "invalid_value"});
         return;
     }
-    auto job = job_create();
+    auto waiter = g_waiters.acquire();
+    if (!waiter) {
+        g_queue->note_rejection();
+        res.set_header("Retry-After", std::to_string(yue_server::RETRY_SECONDS));
+        api_error(res, 429, {"Synchronous generation slots are busy; retry with backoff.", "", "server_busy"}, "rate_limit_error");
+        return;
+    }
+    std::shared_ptr<Job> job;
+    try {
+        g_results->require_space();
+        job = g_queue->submit("api", [request, speed = parsed.speed, pcm = parsed.pcm](std::shared_ptr<Job> queued_job) {
+            run_job(queued_job, request, true, speed, pcm);
+        });
+    } catch (const yue_server::QueueFull & e) {
+        res.set_header("Retry-After", std::to_string(yue_server::RETRY_SECONDS));
+        api_error(res, 429, {e.what(), "", "queue_full"}, "rate_limit_error"); return;
+    } catch (const yue_server::StorageFull & e) {
+        api_error(res, 507, {e.what(), "", "storage_full"}, "server_error"); return;
+    }
+    fprintf(stderr, "[Server] Job %s: queued API song\n", job->id.c_str());
     res.set_header("X-Request-ID", job->id);
     res.set_header("X-YuE2-Job-ID", job->id);
-    work_push([job, request, speed = parsed.speed, pcm = parsed.pcm] { run_job(job, request, true, speed, pcm); });
-    const auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(g_api_timeout);
-    while (job->status.load() == JobStatus::RUNNING) {
-        if (req.is_connection_closed() || !g_svr->is_running()) {
-            job->cancel.store(true);
-            fprintf(stderr, "[API] Disconnected request cancelled job %s\n", job->id.c_str());
-            return;
-        }
-        if (std::chrono::steady_clock::now() >= deadline) {
-            job->cancel.store(true);
-            fprintf(stderr, "[API] Request deadline cancelled job %s\n", job->id.c_str());
-            api_error(res, 504, {"Generation exceeded the local API timeout. Use /synth for asynchronous jobs.", "", "generation_timeout"}, "timeout_error");
-            return;
-        }
-        std::this_thread::sleep_for(std::chrono::milliseconds(25));
+    auto waited = yue_server::wait_for_job(req, *g_queue, job, g_api_timeout, [] { return g_svr->is_running(); });
+    if (waited == yue_server::Wait::DISCONNECTED) return;
+    if (waited == yue_server::Wait::TIMEOUT) {
+        api_error(res, 504, {"Generation exceeded the local API timeout. Use /synth for asynchronous jobs.", "", "generation_timeout"}, "timeout_error");
+        return;
     }
     if (job->status.load() != JobStatus::DONE) {
         api_error(res, job->status.load() == JobStatus::CANCELLED ? 409 : 500,
@@ -920,10 +839,11 @@ static void handle_music_api(const httplib::Request & req, httplib::Response & r
     res.set_header("X-Audio-Channels", parsed.pcm ? "1" : "2");
     const char * extension = parsed.pcm ? "pcm" : audio_output_format(request.output_format)->extension;
     res.set_header("Content-Disposition", std::string("attachment; filename=\"song.") + extension + "\"");
-    res.set_content_provider(job->result_body.size(), job->result_mime,
-        [job](size_t offset, size_t length, httplib::DataSink & sink) {
-            return sink.write(job->result_body.data() + offset, length);
-        });
+    auto result = g_results->find(job->id);
+    if (!result) { api_error(res, 500, {"Result storage is unavailable.", "", "result_unavailable"}, "server_error"); return; }
+    // Keep this API slot through delivery instead of acquiring a second pool
+    // slot and potentially returning retryable 429 after generation succeeded.
+    yue_server::serve_result(res, result, g_downloads, waiter);
 }
 
 static std::string api_model_json() {
@@ -1048,9 +968,17 @@ int main(int argc, char ** argv) {
     }
 
     httplib::Server svr;
+    yue_server::configure_http(svr);
     g_svr = &svr;
     std::unique_ptr<yue_agent::Mcp> mcp;
     try {
+        yue_server::StorageLimits limits;
+        limits.ttl = (int64_t) runtime_limit("YUE2_RESULT_TTL_SECONDS", 86400, 2592000);
+        limits.bytes = runtime_limit("YUE2_RESULT_MAX_BYTES", limits.bytes, 1024ULL * 1024 * 1024 * 1024);
+        limits.files = (size_t) runtime_limit("YUE2_RESULT_MAX_FILES", limits.files, 10000);
+        const char * results = std::getenv("YUE2_RESULT_DIR");
+        g_results = std::make_unique<yue_server::Results>(results && *results ? results : "jobs", limits);
+        g_queue = std::make_unique<yue_server::Queue>((size_t) runtime_limit("YUE2_QUEUE_LIMIT", 8, 128));
         const char * output = std::getenv("YUE2_MCP_OUTPUT_DIR");
         g_agent_artifacts = std::make_unique<yue_agent::Artifacts>(output && *output ? output : "agent-artifacts");
         const char * public_url = std::getenv("YUE2_MCP_PUBLIC_URL");
@@ -1059,12 +987,11 @@ int main(int argc, char ** argv) {
         mcp = std::make_unique<yue_agent::Mcp>(*g_agent_artifacts,
             g_agent_public_url, port,
             std::string((const char *) SKILL_md, SKILL_md_len), YUE2_VERSION, agent_submit, agent_status);
-        mcp->attach(svr, api_authorized);
+        mcp->attach(svr, api_authorized, []() -> std::shared_ptr<void> { return g_downloads.acquire(); });
     } catch (const std::exception & e) {
-        fprintf(stderr, "[Server] FATAL: MCP initialization: %s\n", e.what());
+        fprintf(stderr, "[Server] FATAL: runtime initialization: %s\n", e.what());
         pipeline_free(&g_pipeline); store_free(g_pipeline.store); return 1;
     }
-    std::thread worker(worker_main);
     // File expiry and handle cleanup only. This thread never touches models,
     // the pipeline, or the GPU worker's native result fields.
     std::mutex maintenance_mutex;
@@ -1073,7 +1000,7 @@ int main(int argc, char ** argv) {
     std::thread maintenance([&] {
         std::unique_lock<std::mutex> lock(maintenance_mutex);
         while (!maintenance_cv.wait_for(lock, std::chrono::seconds(30), [&] { return maintenance_stop; })) {
-            try { agent_cleanup(); }
+            try { agent_cleanup(); g_results->cleanup(); }
             catch (const std::exception &) { fprintf(stderr, "[Server] Temporary export cleanup failed\n"); }
         }
     });
@@ -1115,9 +1042,7 @@ int main(int argc, char ** argv) {
     signal(SIGINT, on_signal);
     signal(SIGTERM, on_signal);
 
-    svr.Get("/health", [](const httplib::Request &, httplib::Response & res) {
-        res.set_content(json_string("status", "ok"), "application/json");
-    });
+    yue_server::attach_status_routes(svr, *g_queue, *g_results, g_waiters, g_downloads);
 
     svr.Get("/props", handle_props);
 
@@ -1133,9 +1058,7 @@ int main(int argc, char ** argv) {
         if (!validate(req.body, res, &request)) {
             return;
         }
-        auto job = job_create();
-        work_push([job, request] { run_job(job, request); });
-        res.set_content(json_string("id", job->id), "application/json");
+        submit_native(res, "synth", [request](std::shared_ptr<Job> job) { run_job(job, request); });
     });
 
     // POST /transcribe, multipart/form-data: a supported "audio" file part
@@ -1149,6 +1072,7 @@ int main(int argc, char ** argv) {
                 return;
             }
             bool                melody_only = req.form.has_field("melody_only");
+            auto slot = upload_slot(res); if (!slot) return;
             const std::string & file        = req.form.get_file("audio").content;
             int                 T = 0, sr = 0;
             float *             planar = audio_read_buf((const uint8_t *) file.data(), file.size(), &T, &sr);
@@ -1158,9 +1082,9 @@ int main(int argc, char ** argv) {
                 res.set_content(json_string("error", "cannot decode audio"), "application/json");
                 return;
             }
-            auto job = job_create();
-            work_push([job, audio, melody_only] { run_transcribe(job, audio, melody_only); });
-            res.set_content(json_string("id", job->id), "application/json");
+            submit_native(res, "transcribe", [audio = std::move(audio), melody_only](std::shared_ptr<Job> job) mutable {
+                run_transcribe(job, std::move(audio), melody_only);
+            });
         });
     }
 
@@ -1173,6 +1097,7 @@ int main(int argc, char ** argv) {
                 res.set_content(json_string("error", "multipart audio part required"), "application/json");
                 return;
             }
+            auto slot = upload_slot(res); if (!slot) return;
             const std::string & file = req.form.get_file("audio").content;
             int                 T = 0, sr = 0;
             float *             planar = audio_read_buf((const uint8_t *) file.data(), file.size(), &T, &sr);
@@ -1182,9 +1107,9 @@ int main(int argc, char ** argv) {
                 res.set_content(json_string("error", "cannot decode audio"), "application/json");
                 return;
             }
-            auto job = job_create();
-            work_push([job, audio] { run_tokenize(job, audio); });
-            res.set_content(json_string("id", job->id), "application/json");
+            submit_native(res, "tokenize", [audio = std::move(audio)](std::shared_ptr<Job> job) mutable {
+                run_tokenize(job, std::move(audio));
+            });
         });
     }
 
@@ -1211,6 +1136,7 @@ int main(int argc, char ** argv) {
             return;
         }
         if (has_audio) {
+            auto slot = upload_slot(res); if (!slot) return;
             const std::string & file = req.form.get_file("audio").content;
             int                 T = 0, sr = 0;
             float *             planar = audio_read_buf((const uint8_t *) file.data(), file.size(), &T, &sr);
@@ -1221,9 +1147,9 @@ int main(int argc, char ** argv) {
             }
             std::vector<float> audio(planar, planar + (size_t) 2 * T);
             free(planar);
-            auto job = job_create();
-            work_push([job, audio, T, sr] { run_vae_encode(job, audio, T, sr); });
-            res.set_content(json_string("id", job->id), "application/json");
+            submit_native(res, "vae_encode", [audio = std::move(audio), T, sr](std::shared_ptr<Job> job) mutable {
+                run_vae_encode(job, std::move(audio), T, sr);
+            });
         } else {
             const std::string & file    = req.form.get_file("src_latents").content;
             const size_t        frame   = (size_t) YUE2_LATENT_DIM * sizeof(float);
@@ -1239,50 +1165,10 @@ int main(int argc, char ** argv) {
             }
             std::vector<float> latents((size_t) T_lat * YUE2_LATENT_DIM);
             memcpy(latents.data(), file.data(), file.size());
-            auto job = job_create();
-            work_push([job, request, latents, T_lat] { run_vae_decode(job, request, latents, T_lat); });
-            res.set_content(json_string("id", job->id), "application/json");
+            submit_native(res, "vae_decode", [request, latents = std::move(latents), T_lat](std::shared_ptr<Job> job) mutable {
+                run_vae_decode(job, request, std::move(latents), T_lat);
+            });
         }
-    });
-
-    svr.Get("/job", [](const httplib::Request & req, httplib::Response & res) {
-        auto job = job_find(req.get_param_value("id"));
-        if (!job) {
-            res.status = 404;
-            res.set_content(json_string("error", "job not found"), "application/json");
-            return;
-        }
-        JobStatus status = job->status.load();
-        if (!req.has_param("result")) {
-            std::string body = json_string("status", job_status_str(status));
-            if (status == JobStatus::DONE && !job->metrics_json.empty()) {
-                body.pop_back();
-                body += ",\"metrics\":" + job->metrics_json + "}";
-            }
-            res.set_header("Cache-Control", "no-store");
-            res.set_content(body, "application/json");
-            return;
-        }
-        if (status != JobStatus::DONE) {
-            res.status = 404;
-            res.set_content(json_string("error", "result not ready"), "application/json");
-            return;
-        }
-        res.set_content(job->result_body, job->result_mime.c_str());
-    });
-
-    svr.Post("/job", [](const httplib::Request & req, httplib::Response & res) {
-        auto job = job_find(req.get_param_value("id"));
-        if (!job) {
-            res.status = 404;
-            res.set_content(json_string("error", "job not found"), "application/json");
-            return;
-        }
-        if (req.has_param("cancel")) {
-            job->cancel.store(true);
-            fprintf(stderr, "[Server] Cancel requested for job %s\n", job->id.c_str());
-        }
-        res.set_content(json_string("status", job_status_str(job->status.load())), "application/json");
     });
 
     auto serve_ui = [](const httplib::Request & req, httplib::Response & res) {
@@ -1308,12 +1194,7 @@ int main(int argc, char ** argv) {
         exit_code = 1;
     }
 
-    {
-        std::lock_guard<std::mutex> lock(mtx_work);
-        g_work_stop = true;
-    }
-    cv_work.notify_all();
-    worker.join();
+    g_queue->stop();
     { std::lock_guard<std::mutex> lock(maintenance_mutex); maintenance_stop = true; }
     maintenance_cv.notify_all(); maintenance.join();
     pipeline_free(&g_pipeline);

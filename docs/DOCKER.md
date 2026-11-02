@@ -13,10 +13,12 @@ builds the image; task start preserves upstream inference defaults.
 
 The [MCP music tools](MCP.md) share port 8087 at `/mcp`. They return temporary
 HTTP audio links rather than embedding audio in tool results. `task start`
-persists those exports in `data/results/studio/`, mounted at `/output`.
+persists all server results in `data/results/studio/`, mounted at `/output`.
 For registry containers, add a named output volume such as
 `--mount type=volume,source=yue2-output,target=/output`. Completed links retain
-their original one-hour expiry across restarts; running jobs do not survive.
+their original one-hour expiry across restarts. Native/API results default to
+24 hours, 10 GiB / 256 entries; running jobs do not survive. See [queue/storage
+settings](QUEUE.md) for limits, retry behavior and status endpoints.
 Set `YUE2_API_KEY` for Bearer protection on `/v1` and `/mcp`; the MCP guide
 documents public link origins and the existing native/Studio access boundary.
 
@@ -33,7 +35,7 @@ is maintained separately for the registry page.
 With the two external model files downloaded, PowerShell:
 
 ```powershell
-docker run -d --name yue2 --gpus all -p 127.0.0.1:8087:8087 --mount "type=bind,source=$($PWD.Path)\data\models,target=/models,readonly" hangrylabs/yue2:latest
+docker run -d --name yue2 --gpus all -p 127.0.0.1:8087:8087 --mount "type=bind,source=$($PWD.Path)\data\models,target=/models,readonly" --mount type=volume,source=yue2-output,target=/output hangrylabs/yue2:latest
 ```
 
 For GHCR, replace the image with `ghcr.io/hangry-labs/yue2:latest`. In Bash, use
@@ -56,7 +58,7 @@ docker build --build-arg CUDA_ARCHITECTURES=120a-real --build-arg BUILD_JOBS=4 -
 PowerShell, from the checkout with both model files present:
 
 ```powershell
-docker run -d --name yue2-dev --gpus all -p 127.0.0.1:8087:8087 --mount "type=bind,source=$($PWD.Path)\data\models,target=/models,readonly" yue2:dev
+docker run -d --name yue2-dev --gpus all -p 127.0.0.1:8087:8087 --mount "type=bind,source=$($PWD.Path)\data\models,target=/models,readonly" --mount type=volume,source=yue2-output,target=/output yue2:dev
 ```
 
 For Bash, use `--mount "type=bind,source=$(pwd)/data/models,target=/models,readonly"`.
@@ -109,7 +111,7 @@ For optional adapters, create a host `data/adapters/` directory alongside `data/
 Use this command when creating the container. PowerShell:
 
 ```powershell
-docker run -d --name yue2 --restart unless-stopped --gpus all -p 127.0.0.1:8087:8087 --mount "type=bind,source=$($PWD.Path)\data\models,target=/models,readonly" --mount "type=bind,source=$($PWD.Path)\data\adapters,target=/adapters,readonly" hangrylabs/yue2:latest
+docker run -d --name yue2 --restart unless-stopped --gpus all -p 127.0.0.1:8087:8087 --mount "type=bind,source=$($PWD.Path)\data\models,target=/models,readonly" --mount "type=bind,source=$($PWD.Path)\data\adapters,target=/adapters,readonly" --mount type=volume,source=yue2-output,target=/output hangrylabs/yue2:latest
 ```
 
 In Bash use `source=$(pwd)/data/models` and `source=$(pwd)/data/adapters` in the respective
@@ -164,7 +166,8 @@ explicitly to retain their original refinement setting.
 | Host data/models/ mounted at /models | Model files survive container replacement |
 | Host data/adapters/ mounted at /adapters by task start | Optional LoRA files |
 | Browser IndexedDB/localStorage | Songs, artifacts and form state |
-| Server memory | Jobs/results are cleared on restart |
+| Persistent /output mount | Native/API results survive until expiry (24 hours by default); MCP links last one hour |
+| Server memory | Active/queued work and small metadata only |
 | Host data/results/ | Baseline audio, requests and logs |
 
 The health check calls /health. It proves liveness, not a successful generation.

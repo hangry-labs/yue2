@@ -164,7 +164,7 @@ tasks:
     desc: Prepare the baseline request without using Docker or a GPU
     cmds: ['"{{.PYTHON}}" tests/benchmarks/test1.py --prepare-only --lm-seed "{{.LM_SEED}}" --seed "{{.SEED}}"']
   check:cpu:
-    desc: Build all native targets and check executable startup inside Docker
+    desc: Build native targets and test codecs, APIs, queue limits and result storage in Docker
     cmds: ['"{{.PYTHON}}" scripts/dev.py cpu-check']
   vendor:verify:
     desc: Compatibility alias for deps:verify

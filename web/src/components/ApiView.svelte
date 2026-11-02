@@ -208,8 +208,9 @@
 				</li>
 			</ol>
 			<p class="field-help">
-				Cancel with <code>POST /job?id=ID&amp;cancel=1</code>. A container restart clears server
-				jobs and results.
+				Cancel with <code>POST /job?id=ID&amp;cancel=1</code>. Completed results survive restarts on
+				the output volume until expiry (24 hours by default). Active and queued work does not
+				resume.
 			</p>
 		</section>
 	</div>
@@ -217,7 +218,9 @@
 		<h3>Discovery and tools</h3>
 		<dl>
 			<dt><code>GET /health</code></dt>
-			<dd>Service liveness</dd>
+			<dd>Service liveness, queue capacity and result storage usage</dd>
+			<dt><code>GET /status</code><br /><code>GET /system/queue</code></dt>
+			<dd>Queue counts and limits, active work, retry guidance and volume usage</dd>
 			<dt><code>GET /props</code></dt>
 			<dd>Configured models, capabilities, output formats and request defaults</dd>
 			<dt><code>GET /logs</code></dt>

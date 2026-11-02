@@ -90,7 +90,8 @@ RUN --mount=type=cache,id=yue2-native-cpu,target=/build,sharing=locked \
     && python3 /smoke_binaries.py /build \
     && python3 tests/audio/check_formats.py /build/audio-formats-check \
     && python3 tests/api/check_requests.py /build/music-api-check \
-    && python3 tests/mcp/check_protocol.py /build/mcp-check
+    && python3 tests/mcp/check_protocol.py /build/mcp-check \
+    && python3 tests/server/check_runtime.py /build/server-check
 
 # A digest-pinned registry artifact can replace the source dependency stage.
 FROM ${GGML_DEPS_IMAGE} AS selected-ggml

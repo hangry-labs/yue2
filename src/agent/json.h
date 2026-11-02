@@ -5,6 +5,7 @@
 #include <string>
 
 namespace yue_agent {
+struct RetryableError : std::runtime_error { using std::runtime_error::runtime_error; };
 using ReadDoc = std::unique_ptr<yyjson_doc, decltype(&yyjson_doc_free)>;
 inline ReadDoc parse(const std::string & text) { return ReadDoc(yyjson_read(text.data(), text.size(), 0), yyjson_doc_free); }
 inline std::string str(yyjson_val * v) { return yyjson_is_str(v) ? std::string(yyjson_get_str(v), yyjson_get_len(v)) : ""; }

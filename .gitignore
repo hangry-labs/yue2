@@ -13,6 +13,7 @@ tests/parity/*.log
 /data/
 # Default temporary MCP exports when running the native server from this root.
 /agent-artifacts/
+/jobs/
 # Legacy paths stay ignored until existing checkouts migrate.
 /checkpoints/
 /models/

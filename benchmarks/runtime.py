@@ -195,11 +195,20 @@ def require_idle_dev(info):
     if not bindings:
         raise ValueError('Cannot inspect active jobs: development server has no host port')
     base = 'http://127.0.0.1:' + bindings[0]['HostPort']
+    try:
+        state = http_json(base, '/status')
+        if 'queue' in state:
+            if state['queue']['pending']:
+                raise RuntimeError('A development generation is active; finish it before benchmarking')
+            return
+    except HTTPError as error:
+        if error.code != 404:
+            raise
     logs = command(['docker', 'logs', info['Id']], stderr=subprocess.STDOUT)
     ids = set(re.findall(r'\[Server\] (?:[^\n:]*? )?[Jj]ob ([0-9a-f]+):', logs))
     for identity in ids:
         try:
-            if http_json(base, '/job?id=' + identity)['status'] == 'running':
+            if http_json(base, '/job?id=' + identity)['status'] in ('queued', 'running'):
                 raise RuntimeError('A development generation is active; finish it before benchmarking')
         except HTTPError as error:
             if error.code != 404:

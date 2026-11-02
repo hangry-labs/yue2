@@ -16,6 +16,8 @@ data
 models
 checkpoints
 adapters
+jobs
+agent-artifacts
 **/node_modules
 web/dist
 **/__pycache__

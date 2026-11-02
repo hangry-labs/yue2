@@ -271,6 +271,11 @@ class Mcp {
                     auto data = tool(name, args);
                     j.json("structuredContent", data); content.text("type", "text"); content.text("text", data);
                     j.boolean("isError", false);
+                } catch (const RetryableError & e) {
+                    Json retry; retry.text("code", "queue_full"); retry.text("message", e.what());
+                    retry.integer("retry_after_seconds", 5);
+                    j.json("structuredContent", retry.dump()); content.text("type", "text"); content.text("text", retry.dump());
+                    j.boolean("isError", true); res.set_header("Retry-After", "5");
                 } catch (const std::exception & e) {
                     content.text("type", "text"); content.text("text", e.what()); j.boolean("isError", true);
                 }
@@ -295,7 +300,8 @@ public:
             hosts_.insert(authority); origins_.insert("http://" + authority);
         }
     }
-    void attach(httplib::Server & svr, std::function<bool(const httplib::Request &, httplib::Response &)> auth) {
+    void attach(httplib::Server & svr, std::function<bool(const httplib::Request &, httplib::Response &)> auth,
+                std::function<std::shared_ptr<void>()> download_slot = {}) {
         svr.Post("/mcp", [this, auth](const httplib::Request & req, httplib::Response & res) {
             if (guard(req, res) && auth(req, res)) post(req, res);
         });
@@ -307,15 +313,17 @@ public:
         svr.Get(SKILL_PATH, [this](const httplib::Request &, httplib::Response & res) {
             res.set_header("Cache-Control", "no-cache"); res.set_content(skill_, "text/markdown; charset=utf-8");
         });
-        svr.Get(R"(/artifacts/([0-9a-f]{64})/song\.(opus|flac))", [this](const httplib::Request & req, httplib::Response & res) {
+        svr.Get(R"(/artifacts/([0-9a-f]{64})/song\.(opus|flac))", [this, download_slot](const httplib::Request & req, httplib::Response & res) {
             res.set_header("Cache-Control", "no-store"); res.set_header("X-Content-Type-Options", "nosniff");
             Artifact a;
             if (!artifacts_.find(req.matches[1], a) || a.format != req.matches[2]) { res.status = 404; return; }
+            auto slot = download_slot ? download_slot() : std::shared_ptr<void>{};
+            if (download_slot && !slot) { res.status = 429; res.set_header("Retry-After", "5"); return; }
             auto file = std::make_shared<std::ifstream>(artifacts_.path(a), std::ios::binary);
             if (!*file) { res.status = 404; return; }
             res.set_header("Content-Disposition", "attachment; filename=\"song." + a.format + "\"");
             res.set_header("Accept-Ranges", "bytes");
-            res.set_content_provider(a.size, a.mime(), [file](size_t offset, size_t length, httplib::DataSink & sink) {
+            res.set_content_provider(a.size, a.mime(), [file, slot](size_t offset, size_t length, httplib::DataSink & sink) {
                 std::array<char, 64 * 1024> buffer{};
                 file->clear(); file->seekg((std::streamoff) offset);
                 auto count = std::min(length, buffer.size()); file->read(buffer.data(), (std::streamsize) count);

@@ -41,13 +41,13 @@ published, moving development tag `latest`:
 **Bash:**
 
 ```bash
-docker run -d --name yue2 --restart unless-stopped --gpus all -p 127.0.0.1:8087:8087 --mount "type=bind,source=$(pwd)/data/models,target=/models,readonly" hangrylabs/yue2:latest
+docker run -d --name yue2 --restart unless-stopped --gpus all -p 127.0.0.1:8087:8087 --mount "type=bind,source=$(pwd)/data/models,target=/models,readonly" --mount type=volume,source=yue2-output,target=/output hangrylabs/yue2:latest
 ```
 
 **PowerShell:**
 
 ```powershell
-docker run -d --name yue2 --restart unless-stopped --gpus all -p 127.0.0.1:8087:8087 --mount "type=bind,source=$($PWD.Path)\data\models,target=/models,readonly" hangrylabs/yue2:latest
+docker run -d --name yue2 --restart unless-stopped --gpus all -p 127.0.0.1:8087:8087 --mount "type=bind,source=$($PWD.Path)\data\models,target=/models,readonly" --mount type=volume,source=yue2-output,target=/output hangrylabs/yue2:latest
 ```
 
 Open **http://localhost:8087**, enter style tags and lyrics, then select
@@ -120,11 +120,14 @@ archive, not this runtime image.
 | Host `data/models/` at `/models`, read-only | Required models survive container replacement |
 | Optional host `data/adapters/` at `/adapters`, read-only | Local LoRA adapters |
 | Browser IndexedDB/localStorage | Saved songs, audio, latents and form settings |
-| Server memory | Jobs/results disappear when the server restarts |
+| Persistent `/output` volume | Native/API results for 24 hours; MCP links for one hour |
+| Server memory | Active/queued work and small metadata; no retained result bodies |
 
 Download songs you want to keep. A model mount does not back up browser data;
-a different browser or service address has a separate library. Server generation
-does not automatically write songs into a host folder.
+a different browser or service address has a separate library. Completed server
+results are written to the output volume and survive replacement until expiry.
+Native retention defaults to 10 GiB / 256 results; a full queue returns 429 with
+`Retry-After: 5`. See [queue and storage settings](https://github.com/hangry-labs/yue2/blob/master/docs/QUEUE.md).
 
 Defaults are a **24,576-token context**, automatic backend selection and strict
 model eviction between stages. Requests default to **8 flow-matching steps**,

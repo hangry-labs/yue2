@@ -54,6 +54,8 @@
           "401": {"$ref": "#/components/responses/Error"},
           "404": {"$ref": "#/components/responses/Error"},
           "409": {"$ref": "#/components/responses/Error"},
+          "429": {"$ref": "#/components/responses/Busy"},
+          "507": {"$ref": "#/components/responses/Error"},
           "500": {"$ref": "#/components/responses/Error"},
           "504": {"$ref": "#/components/responses/Error"}
         }
@@ -72,6 +74,8 @@
           "401": {"$ref": "#/components/responses/Error"},
           "404": {"$ref": "#/components/responses/Error"},
           "409": {"$ref": "#/components/responses/Error"},
+          "429": {"$ref": "#/components/responses/Busy"},
+          "507": {"$ref": "#/components/responses/Error"},
           "500": {"$ref": "#/components/responses/Error"},
           "504": {"$ref": "#/components/responses/Error"}
         }
@@ -96,7 +100,7 @@
       "operationId": "submitNativeMusic", "summary": "Submit a native asynchronous generation job",
       "description": "Retains native batching, replay metadata, scores and latents. GPU jobs remain serial.",
       "requestBody": {"required": true, "content": {"application/json": {"schema": {"$ref": "#/components/schemas/NativeRequest"}}}},
-      "responses": {"200": {"$ref": "#/components/responses/Job"}, "400": {"description": "Native error object with an error string"}}
+      "responses": {"200": {"$ref": "#/components/responses/Job"}, "429": {"$ref": "#/components/responses/NativeBusy"}, "507": {"description": "Result volume is full"}, "413": {"description": "Payload exceeds 64 MiB"}, "400": {"description": "Native error object with an error string"}}
     }},
     "/job": {
       "get": {
@@ -105,7 +109,7 @@
           {"name": "id", "in": "query", "required": true, "schema": {"type": "string"}},
           {"name": "result", "in": "query", "description": "Presence requests the result instead of status", "schema": {"type": "integer", "enum": [1]}}
         ],
-        "responses": {"200": {"description": "Status JSON, or result: native synthesis multipart audio/replay/latents; VAE or compatibility jobs return raw audio/latents; transcription/tokenization return JSON", "content": {"application/json": {"schema": {"type": "object"}}, "multipart/mixed": {"schema": {"type": "string", "format": "binary"}}, "application/octet-stream": {"schema": {"type": "string", "format": "binary"}}}}, "404": {"description": "Job/result unavailable"}}
+        "responses": {"200": {"description": "Status JSON, or result: native synthesis multipart audio/replay/latents; VAE or compatibility jobs return raw audio/latents; transcription/tokenization return JSON", "content": {"application/json": {"schema": {"type": "object"}}, "multipart/mixed": {"schema": {"type": "string", "format": "binary"}}, "application/octet-stream": {"schema": {"type": "string", "format": "binary"}}}}, "206": {"description": "Partial result bytes"}, "429": {"$ref": "#/components/responses/NativeBusy"}, "416": {"description": "Unsatisfiable byte range"}, "404": {"description": "Job/result unavailable or expired"}}
       },
       "post": {
         "operationId": "cancelJob", "summary": "Request cooperative cancellation",
@@ -123,21 +127,23 @@
           "audio": {"type": "string", "format": "binary"}, "src_latents": {"type": "string", "format": "binary", "description": "Time-major f32 [T,64]"},
           "request": {"type": "string", "format": "binary", "description": "Optional native request JSON file controlling output"}
         }, "oneOf": [{"required": ["audio"], "not": {"required": ["src_latents"]}}, {"required": ["src_latents"], "not": {"required": ["audio"]}}]
-      }}}}, "responses": {"200": {"$ref": "#/components/responses/Job"}, "400": {"description": "Invalid upload"}}
+      }}}}, "responses": {"200": {"$ref": "#/components/responses/Job"}, "429": {"$ref": "#/components/responses/NativeBusy"}, "507": {"description": "Result volume is full"}, "413": {"description": "Payload exceeds 64 MiB"}, "400": {"description": "Invalid upload"}}
     }},
     "/transcribe": {"post": {
       "operationId": "submitScoreTranscription", "summary": "Optional music-to-ABC transcription; not lyric ASR",
       "description": "Route exists only when the optional transcriber is configured; inspect /props capabilities.",
       "requestBody": {"required": true, "content": {"multipart/form-data": {"schema": {"type": "object", "required": ["audio"], "properties": {"audio": {"type": "string", "format": "binary"}, "melody_only": {"type": "string", "description": "Presence requests melody-only ABC"}}}}}},
-      "responses": {"200": {"$ref": "#/components/responses/Job"}, "400": {"description": "Invalid upload"}, "404": {"description": "Optional model unavailable"}}
+      "responses": {"200": {"$ref": "#/components/responses/Job"}, "429": {"$ref": "#/components/responses/NativeBusy"}, "507": {"description": "Result volume is full"}, "413": {"description": "Payload exceeds 64 MiB"}, "400": {"description": "Invalid upload"}, "404": {"description": "Optional model unavailable"}}
     }},
     "/tokenize": {"post": {
       "operationId": "submitTokenization", "summary": "Optional audio-to-semantic-token encoding",
       "description": "Route exists only when the optional tokenizer is configured; inspect /props capabilities.",
       "requestBody": {"required": true, "content": {"multipart/form-data": {"schema": {"type": "object", "required": ["audio"], "properties": {"audio": {"type": "string", "format": "binary"}}}}}},
-      "responses": {"200": {"$ref": "#/components/responses/Job"}, "400": {"description": "Invalid upload"}, "404": {"description": "Optional model unavailable"}}
+      "responses": {"200": {"$ref": "#/components/responses/Job"}, "429": {"$ref": "#/components/responses/NativeBusy"}, "507": {"description": "Result volume is full"}, "413": {"description": "Payload exceeds 64 MiB"}, "400": {"description": "Invalid upload"}, "404": {"description": "Optional model unavailable"}}
     }},
-    "/health": {"get": {"operationId": "health", "summary": "Liveness, not model warmup/readiness", "responses": {"200": {"description": "status=ok"}}}},
+    "/health": {"get": {"operationId": "health", "summary": "Liveness, queue capacity and volume usage; remains healthy when saturated", "responses": {"200": {"$ref": "#/components/responses/RuntimeStatus"}}}},
+    "/status": {"get": {"operationId": "runtimeStatus", "summary": "Aggregate runtime status without prompts or job handles", "responses": {"200": {"$ref": "#/components/responses/RuntimeStatus"}}}},
+    "/system/queue": {"get": {"operationId": "queueStatus", "summary": "Shared queue counts, limits, rejections and result volume usage", "responses": {"200": {"$ref": "#/components/responses/RuntimeStatus"}}}},
     "/props": {"get": {"operationId": "properties", "summary": "Defaults, models, capabilities and output formats", "responses": {"200": {"description": "Native service configuration"}}}},
     "/system/gpu": {"get": {"operationId": "gpuTelemetry", "summary": "On-request device telemetry and bounded history", "responses": {"200": {"description": "GPU telemetry or unavailability details"}}}},
     "/logs": {"get": {"operationId": "logs", "summary": "Global native stderr stream", "responses": {"200": {"description": "Server-sent log events", "content": {"text/event-stream": {"schema": {"type": "string"}}}}}}},
@@ -145,7 +151,7 @@
     "/openapi.json": {"get": {"operationId": "apiSchema", "summary": "This OpenAPI document", "responses": {"200": {"description": "OpenAPI 3.1", "content": {"application/json": {"schema": {"type": "object"}}}}}}}
   },
   "components": {
-    "securitySchemes": {"BearerAuth": {"type": "http", "scheme": "bearer", "description": "Required on /v1 only when YUE2_API_KEY is configured. This is a local key, not an OpenAI account credential."}},
+    "securitySchemes": {"BearerAuth": {"type": "http", "scheme": "bearer", "description": "Required on /v1 and /mcp when YUE2_API_KEY is configured. This is a local key, not an OpenAI account credential."}},
     "schemas": {
       "NativeRequest": {
         "type": "object", "additionalProperties": true,
@@ -191,6 +197,17 @@
       }}}}
     },
     "responses": {
+      "RuntimeStatus": {"description": "Uncached liveness plus queue, result-storage and HTTP limits. See docs/QUEUE.md. Queue saturation does not change HTTP 200.", "content": {"application/json": {"schema": {"type": "object", "required": ["status", "queue", "results", "http"], "properties": {
+        "status": {"const": "ok"},
+        "queue": {"type": "object", "required": ["limit", "pending", "active", "queued", "available", "accepting"], "properties": {
+          "limit": {"type": "integer", "minimum": 1}, "pending": {"type": "integer", "minimum": 0}, "active": {"type": "integer", "minimum": 0, "maximum": 1},
+          "queued": {"type": "integer", "minimum": 0}, "available": {"type": "integer", "minimum": 0}, "accepting": {"type": "boolean"},
+          "retry_after_seconds": {"type": "integer"}, "rejected": {"type": "integer"}, "completed": {"type": "integer"}, "failed": {"type": "integer"}, "cancelled": {"type": "integer"}, "active_operation": {"type": "string"}
+        }}, "results": {"type": "object", "description": "Disk-backed native results: counts, bytes, limits, ttl_seconds and full; no file paths or content"},
+        "http": {"type": "object", "description": "Fixed HTTP worker, waiter, download, log stream and upload limits"}
+      }}}}},
+      "Busy": {"description": "Submission refused before job creation. Wait, then retry with backoff and jitter.", "headers": {"Retry-After": {"schema": {"type": "integer", "const": 5}}}, "content": {"application/json": {"schema": {"$ref": "#/components/schemas/Error"}}}},
+      "NativeBusy": {"description": "Queue or bounded transfer/upload slots are full. No new job was accepted.", "headers": {"Retry-After": {"schema": {"type": "integer", "const": 5}}}},
       "Audio": {"description": "Complete audio file. Normal exports remain 48 kHz stereo; explicit pcm is raw 24 kHz mono PCM16LE. No multipart envelope.",
         "headers": {
           "X-Request-ID": {"schema": {"type": "string"}}, "X-YuE2-Job-ID": {"schema": {"type": "string"}, "description": "Native job ID for inspection/cancellation"},

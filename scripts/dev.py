@@ -16,7 +16,13 @@ import ggml_release
 import storage
 
 ROOT = Path(__file__).resolve().parents[1]
-API_ENV_KEYS = ('YUE2_API_KEY', 'YUE2_API_TIMEOUT_SECONDS', 'YUE2_MCP_PUBLIC_URL', 'YUE2_MCP_OUTPUT_DIR')
+API_ENV_DEFAULTS = {
+    'YUE2_API_KEY': '', 'YUE2_API_TIMEOUT_SECONDS': '600',
+    'YUE2_MCP_PUBLIC_URL': '', 'YUE2_MCP_OUTPUT_DIR': '',
+    'YUE2_QUEUE_LIMIT': '8', 'YUE2_RESULT_DIR': '', 'YUE2_RESULT_TTL_SECONDS': '86400',
+    'YUE2_RESULT_MAX_BYTES': '10737418240', 'YUE2_RESULT_MAX_FILES': '256',
+}
+API_ENV_KEYS = tuple(API_ENV_DEFAULTS)
 
 
 def api_environment(existing=None):
@@ -112,13 +118,24 @@ def build_dependency(dry=False):
 
 def active_jobs(container, port):
     """Do not replace a live server while it is computing or has queued work."""
+    try:
+        with urllib.request.urlopen(f'http://127.0.0.1:{port}/status', timeout=5) as response:
+            state = json.load(response)
+        if 'queue' in state:
+            if state['queue']['pending']:
+                raise RuntimeError('A generation is active; finish or cancel it before task start')
+            return
+    except urllib.error.HTTPError as error:
+        if error.code != 404:
+            raise
+    # Older images do not expose aggregate status; retain the log-based guard.
     logs = subprocess.run(['docker', 'logs', container], capture_output=True,
                           encoding='utf-8', errors='replace', check=True)
     ids = dict.fromkeys(re.findall(r'\[Server\] (?:[^\n:]*? )?[Jj]ob ([0-9a-f]+):', logs.stdout + logs.stderr))
     for job in ids:
         try:
             with urllib.request.urlopen(f'http://127.0.0.1:{port}/job?id={job}', timeout=5) as response:
-                if json.load(response)['status'] == 'running':
+                if json.load(response)['status'] in ('queued', 'running'):
                     raise RuntimeError('A generation is active; finish or cancel it before task start')
         except urllib.error.HTTPError as error:
             if error.code != 404:
@@ -221,8 +238,7 @@ def main():
                                    else r.get('DeviceIDs') == selected.split(',')) for r in requests)
                 configured = dict(item.split('=', 1) for item in info['Config'].get('Env', []) if '=' in item)
                 correct_api = all(configured.get(key, default) == server_env.get(key, default)
-                                  for key, default in (('YUE2_API_KEY', ''), ('YUE2_API_TIMEOUT_SECONDS', '600'),
-                                                       ('YUE2_MCP_PUBLIC_URL', ''), ('YUE2_MCP_OUTPUT_DIR', '')))
+                                  for key, default in API_ENV_DEFAULTS.items())
                 if (info['Image'] == image_info['Id'] and info['State']['Running']
                         and info['Config']['Cmd'] == image_info['Config']['Cmd']
                         and bindings == [binding] and correct_mounts and correct_gpu and correct_api):

@@ -41,13 +41,13 @@ use the published, moving development tag `latest`.
 **Bash:**
 
 ```bash
-docker run -d --name yue2 --restart unless-stopped --gpus all -p 127.0.0.1:8087:8087 --mount "type=bind,source=$(pwd)/data/models,target=/models,readonly" hangrylabs/yue2:latest
+docker run -d --name yue2 --restart unless-stopped --gpus all -p 127.0.0.1:8087:8087 --mount "type=bind,source=$(pwd)/data/models,target=/models,readonly" --mount type=volume,source=yue2-output,target=/output hangrylabs/yue2:latest
 ```
 
 **PowerShell:**
 
 ```powershell
-docker run -d --name yue2 --restart unless-stopped --gpus all -p 127.0.0.1:8087:8087 --mount "type=bind,source=$($PWD.Path)\data\models,target=/models,readonly" hangrylabs/yue2:latest
+docker run -d --name yue2 --restart unless-stopped --gpus all -p 127.0.0.1:8087:8087 --mount "type=bind,source=$($PWD.Path)\data\models,target=/models,readonly" --mount type=volume,source=yue2-output,target=/output hangrylabs/yue2:latest
 ```
 
 Open **[http://localhost:8087](http://localhost:8087)**, enter style tags and
@@ -70,7 +70,7 @@ Model terms are separate from the application's MIT license; see [License](#lice
 - A browser library with search, favorites and prompt reuse.
 - Local LoRA adapters and VAE audio/latent encoding and decoding.
 - Asynchronous HTTP jobs with progress logs and cancellation.
-- Model availability and live NVIDIA GPU charts in System.
+- Queue capacity, persistent result usage, model availability and live NVIDIA GPU charts in System.
 
 Recording transcription and audio tokenization require additional models and
 server arguments. They are optional and are not included in the default
@@ -140,13 +140,14 @@ and prepared [Docker Hub overview](docs/dockerhub.md).
 | Optional host `data/adapters/` mounted at `/adapters` | LoRA files; see the [Docker guide](docs/DOCKER.md#runtime-settings) |
 | Browser IndexedDB | Saved song cards, audio and latent artifacts |
 | Browser localStorage | Form settings and pending-job state |
-| Server memory | Jobs and results; cleared on restart |
-| Optional persistent `/output` mount | MCP audio links and metadata; expire one hour after completion |
+| Server memory | Active/queued jobs and small metadata; no retained audio bodies |
+| Persistent `/output` mount | Native/API results and replay metadata (24 hours); MCP links (one hour) |
 
 Export songs you want to keep. The model mount does not back up browser storage;
 using a different browser or service address opens a separate browser library.
-MCP exports are saved temporarily; ordinary Studio/native requests retain their
-existing storage behavior. See [agent tools and persistence](docs/MCP.md).
+All completed server results use the output volume and survive restarts until
+expiry. Defaults are 10 GiB / 256 native results; live results are not evicted
+early. See [queue limits and storage](docs/QUEUE.md) and [agent tools](docs/MCP.md).
 
 ### Runtime Settings
 
@@ -194,6 +195,8 @@ acoustic latents for each track. `song.multipart` preserves that response; it is
 not an MP3 file. Use the browser for individual downloads or parse the parts in
 your client. To cancel, send `POST /job?id=JOB_ID&cancel=1`.
 
+`GET /status` and `GET /system/queue` report shared queue capacity and result storage.
+Excess submissions return 429 with `Retry-After: 5`; see [retry behavior](docs/QUEUE.md).
 `GET /props` describes configuration and capabilities; `GET /health` reports
 liveness, `GET /logs` streams progress, and `GET /system/gpu` reports GPU
 telemetry. See the [API and CLI reference](docs/ARCHITECTURE.md#endpoints).
