@@ -6,7 +6,7 @@
 
 # Hangry Labs YuE2
 
-Versión de desarrollo **v0.1.0-snapshot**. Consulta el [historial](#version-history).
+Versión **v1.0.0**. Consulta el [historial](#version-history).
 
 Genera canciones en tu GPU a partir de letras y una dirección musical. Un único
 contenedor Docker ofrece estudio en el navegador, API HTTP, MCP y audio estéreo
@@ -160,10 +160,11 @@ Contacto: [contact@hangrylabs.app](mailto:contact@hangrylabs.app).
 <details markdown="1">
 <summary><strong>Historial de versiones</strong></summary>
 
-### v0.1.0-snapshot
+### v1.0.0
 
-Versión de desarrollo con estudio local, API nativa y compatible con OpenAI, MCP,
+Primera versión estable con estudio local, API nativa y compatible con OpenAI, MCP,
 interfaz multilingüe, modelos externos y dependencias CUDA verificadas.
-Todavía no se ha publicado una versión estable de la aplicación.
+Preparada para su publicación. Las imágenes con versión estarán disponibles
+tras publicarse; el inicio rápido utiliza la etiqueta actualizable `latest`.
 
 </details>

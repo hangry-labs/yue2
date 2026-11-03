@@ -6,7 +6,7 @@
 
 # Hangry Labs YuE2
 
-Wersja rozwojowa **v0.1.0-snapshot**. Zobacz [historię wersji](#version-history).
+Wersja **v1.0.0**. Zobacz [historię wersji](#version-history).
 
 Twórz piosenki lokalnie na podstawie tekstu i opisu muzycznego. Jeden kontener
 Docker udostępnia studio w przeglądarce, API HTTP, MCP i dźwięk stereo 48 kHz.
@@ -155,10 +155,11 @@ Kontakt: [contact@hangrylabs.app](mailto:contact@hangrylabs.app).
 <details markdown="1">
 <summary><strong>Historia wersji</strong></summary>
 
-### v0.1.0-snapshot
+### v1.0.0
 
-Wersja rozwojowa: lokalne studio, natywne i zgodne z OpenAI API, MCP,
+Pierwsza stabilna wersja: lokalne studio, natywne i zgodne z OpenAI API, MCP,
 wielojęzyczny interfejs, zewnętrzne wagi i zweryfikowane zależności CUDA.
-Stabilnego wydania aplikacji jeszcze nie opublikowano.
+Przygotowana do wydania. Wersjonowane obrazy kontenerów będą dostępne po
+publikacji; szybki start korzysta z aktualizowanego tagu `latest`.
 
 </details>

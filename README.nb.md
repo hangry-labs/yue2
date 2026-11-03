@@ -6,7 +6,7 @@
 
 # Hangry Labs YuE2
 
-Utviklingsversjon **v0.1.0-snapshot**. Se [versjonshistorikken](#version-history).
+Versjon **v1.0.0**. Se [versjonshistorikken](#version-history).
 
 Lag sanger lokalt fra sangtekst og musikalsk retning. Én Docker-container gir
 deg et nettleserstudio, HTTP-API-er, MCP og 48 kHz stereolyd. Prosjektet bygger
@@ -155,10 +155,11 @@ Kontakt: [contact@hangrylabs.app](mailto:contact@hangrylabs.app).
 <details markdown="1">
 <summary><strong>Versjonshistorikk</strong></summary>
 
-### v0.1.0-snapshot
+### v1.0.0
 
-Utviklingsversjon med lokalt studio, native/OpenAI-kompatible API-er, MCP,
+Første stabile versjon med lokalt studio, native/OpenAI-kompatible API-er, MCP,
 flerspråklig grensesnitt, eksterne modeller og verifiserte CUDA-avhengigheter.
-En stabil programutgivelse er ennå ikke publisert.
+Klargjort for utgivelse. Versjonerte containerbilder blir tilgjengelige etter
+publisering; hurtigstarten bruker den løpende `latest`-taggen.
 
 </details>

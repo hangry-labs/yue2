@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
     inputs:
       image_tag:
-        description: Optional existing stable Git tag, such as v0.1.0
+        description: Optional existing stable Git tag, such as v1.0.0
         type: string
         required: false
       checkout_ref:

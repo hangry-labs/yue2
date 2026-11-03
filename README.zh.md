@@ -6,7 +6,7 @@
 
 # Hangry Labs YuE2
 
-开发版本 **v0.1.0-snapshot**。参见[版本历史](#version-history)。
+版本 **v1.0.0**。参见[版本历史](#version-history)。
 
 根据歌词和音乐风格描述，在自己的GPU上生成歌曲。一个Docker容器提供浏览器工作室、
 HTTP API、MCP和48 kHz立体声输出。项目基于
@@ -147,9 +147,9 @@ Hangry Labs维护UI、API、打包和验证。项目代码采用[MIT许可](LICE
 <details markdown="1">
 <summary><strong>版本历史</strong></summary>
 
-### v0.1.0-snapshot
+### v1.0.0
 
-开发版包含本地工作室、原生／OpenAI兼容API、MCP、多语言界面、外部模型和已验证CUDA依赖。
-尚未发布应用的稳定版本。
+首个稳定版本包含本地工作室、原生／OpenAI兼容API、MCP、多语言界面、外部模型和已验证CUDA依赖。
+已准备好发布。带版本号的容器镜像将在发布后提供；快速入门使用持续更新的 `latest` 标签。
 
 </details>

@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Hangry Labs YuE2 music API",
-    "version": "0.1.0",
+    "version": "1.0.0",
     "description": "Local music generation on one serial FIFO compute worker. /v1/audio/music is a YuE2 extension; /v1/audio/speech provides OpenAI client transport compatibility and generates songs. /mcp exposes restricted agent tools with guide-first generation and one-hour HTTP downloads. Ordinary audio stays 48 kHz stereo. Explicit pcm export is 24 kHz mono signed PCM16LE. Optional Bearer authentication covers /v1 and /mcp; native and Studio routes retain their existing local access policy."
   },
   "servers": [{"url": "/"}],

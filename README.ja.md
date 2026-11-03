@@ -6,7 +6,7 @@
 
 # Hangry Labs YuE2
 
-開発版 **v0.1.0-snapshot**。[バージョン履歴](#version-history)もご覧ください。
+バージョン **v1.0.0**。[バージョン履歴](#version-history)もご覧ください。
 
 歌詞と曲のスタイルから、自分のGPUで楽曲を生成します。1つのDockerコンテナーに
 ブラウザースタジオ、HTTP API、MCP、48 kHzステレオ出力をまとめています。
@@ -152,9 +152,11 @@ Hangry LabsはUI、API、パッケージ化、検証を担当します。プロ�
 <details markdown="1">
 <summary><strong>バージョン履歴</strong></summary>
 
-### v0.1.0-snapshot
+### v1.0.0
 
 ローカルスタジオ、ネイティブ／OpenAI互換API、MCP、多言語UI、外部モデル、
-検証済みCUDA依存ライブラリを含む開発版です。安定したアプリ版は未公開です。
+検証済みCUDA依存ライブラリを含む初の安定版です。
+リリースに向けて準備済みです。バージョン付きコンテナイメージは公開後に利用できます。
+クイックスタートでは随時更新される `latest` タグを使用します。
 
 </details>

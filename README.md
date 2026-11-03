@@ -12,7 +12,7 @@
 [Project website](https://hangry-labs.github.io/yue2/) ·
 [Documentation](https://hangry-labs.github.io/yue2/docs/)
 
-Development version **v0.1.0-snapshot**. See the [version history](#version-history).
+Version **v1.0.0**. See the [version history](#version-history).
 
 Local song generation from style tags and lyrics in a Docker container, with a
 browser studio, HTTP API and stereo 48 kHz audio in Opus, MP3, FLAC, WAV and more.
@@ -292,16 +292,21 @@ See the [documentation index](docs/README.md) for user and developer guides.
 ## Version History
 
 <details markdown="1">
-<summary><strong>Current development changes</strong></summary>
+<summary><strong>v1.0.0 · First stable release</strong></summary>
 
-### v0.1.0-snapshot
+### v1.0.0
 
-Current development version; a stable application release has not been recorded.
+Prepared for the first stable application release. Versioned container images
+will be available after publication; the quick start uses the rolling `latest` tag.
 
 - Package the C++20/GGML song engine and standalone studio for CUDA in Docker.
-- Add the Hangry Labs Create, Library, API and System views with GPU telemetry.
+- Add Create, Library, API and System views with GPU telemetry and six interface languages.
+- Provide native HTTP jobs, OpenAI-compatible music/speech transport and restricted MCP song tools.
+- Bound the generation queue and persist completed results with configurable retention.
+- Support FFmpeg audio import/export and an Opus listening gallery with reusable prompts.
+- Retry malformed generated scores and offer two acoustic variations by default, up to three.
 - Keep weights external, with pinned model downloads and mandatory image checks.
-- Add a repeatable 8-step generation baseline and verified reusable CUDA libraries.
+- Add 8-step defaults, speed/VRAM/lyric benchmarks and verified reusable CUDA libraries.
 - Configure publication of the same image to Docker Hub and GHCR.
 
 </details>
