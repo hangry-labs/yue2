@@ -25,11 +25,11 @@ The first two commands inspect the lock and optionally warm the dependency cache
 The lock in `docker/ggml-deps.json` records the versioned asset URL, exact download
 size, archive SHA-256 and dependency input key. The previous unpatched
 [GGML 0.28.0 dependency release](https://github.com/hangry-labs/yue2/releases/tag/ggml-deps-cc43a4cc92197996f17c)
-is retained for rollback. The shared-mask fix requires a newly built artifact;
-while its archive is unset, local Task builds reuse the matching local dependency
-image and fresh local machines explicitly build from source. Application CI fails
-early with upload/pinning instructions, avoiding an accidental long source build.
-Publish the verified replacement and pin its download before running CI.
+is retained for rollback. The reviewed shared-mask fix is included in the pinned
+[replacement dependency prerelease](https://github.com/hangry-labs/yue2/releases/tag/ggml-deps-f196a196c06e115de93a).
+Local Task builds and application CI verify and consume that same public archive.
+Application CI requires a published dependency pin before starting Docker, avoiding
+an accidental long source build when a replacement is being prepared.
 Configured archives use a specific asset, never the latest-release endpoint. The adjacent
 uploaded `.sha256` file is useful for manual downloads; builds trust the checksum
 committed in the lock rather than fetching a replacement checksum from the server.
