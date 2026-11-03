@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { msg } from '../lib/i18n.svelte.js';
 	import { app } from '../lib/state.svelte.js';
 	import { SSE_RECONNECT_MS, LOG_MAX_LINES } from '../lib/config.js';
 	import { ChevronDown, ChevronRight } from '@lucide/svelte';
@@ -10,7 +11,7 @@
 		let timer = 0;
 
 		function connect() {
-			es = new EventSource('logs');
+			es = new EventSource('/logs');
 			es.onmessage = (e: MessageEvent) => {
 				lines.push(e.data);
 				if (lines.length > LOG_MAX_LINES) lines.splice(0, lines.length - LOG_MAX_LINES);
@@ -43,7 +44,7 @@
 		{:else}
 			<ChevronRight size={14} />
 		{/if}
-		<span class="card-label">Server logs</span>
+		<span class="card-label">{msg('Server logs')}</span>
 	</button>
 	{#if app.logsOpen}
 		<pre class="log-body">{lines.join('\n')}</pre>

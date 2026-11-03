@@ -6,6 +6,8 @@
 
 # Hangry Labs YuE2
 
+[English](https://hangry-labs.github.io/yue2/?lang=en) · [Norsk bokmål](https://hangry-labs.github.io/yue2/README.nb.html?lang=nb) · [Polski](https://hangry-labs.github.io/yue2/README.pl.html?lang=pl) · [日本語](https://hangry-labs.github.io/yue2/README.ja.html?lang=ja) · [简体中文](https://hangry-labs.github.io/yue2/README.zh.html?lang=zh) · [Español](https://hangry-labs.github.io/yue2/README.es.html?lang=es)
+
 **[Listen to generated songs](https://hangry-labs.github.io/yue2/examples/)** ·
 [Project website](https://hangry-labs.github.io/yue2/) ·
 [Documentation](https://hangry-labs.github.io/yue2/docs/)
@@ -16,6 +18,10 @@ asynchronous HTTP API and stereo 48 kHz audio in Opus, MP3, FLAC, WAV and more.
 Write lyrics, describe the music and generate on your own GPU. Keep the audio,
 edit the ABC score or reuse the semantic tokens and acoustic latents.
 **No model weights are included in this image.**
+
+The studio supports English, Norwegian Bokmål, Polish, Japanese, Simplified Chinese
+and Spanish. The header selector remembers the interface language without changing
+lyrics, musical direction or active jobs. UI language and singing language are independent.
 
 ## Quick Start
 

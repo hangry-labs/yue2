@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { msg } from '../lib/i18n.svelte.js';
 	import { audioExtension } from '../lib/config.js';
 	import {
 		Play,
@@ -293,8 +294,11 @@
 		<button
 			class="icon-btn play-btn"
 			onclick={toggle}
-			title={playing ? 'Stop' : 'Play'}
-			aria-label={`${playing ? 'Stop' : 'Play'} ${song.name}`}
+			title={playing ? msg('Stop') : msg('Play')}
+			aria-label={msg('{action} {name}', {
+				action: msg(playing ? 'Stop' : 'Play'),
+				name: song.name
+			})}
 		>
 			{#if playing}
 				<Square size={14} />
@@ -304,13 +308,13 @@
 		</button>
 		<span class="card-name">{song.name}</span>
 		<Menu items={actionItems}>
-			{#snippet trigger()}<ChevronDown size={14} /> Menu{/snippet}
+			{#snippet trigger()}<ChevronDown size={14} /> {msg('Menu')}{/snippet}
 		</Menu>
 		<button
 			class="icon-btn"
 			onclick={toggleFavorite}
-			title={song.favorite ? 'Unfavorite' : 'Favorite'}
-			aria-label={song.favorite ? `Unfavorite ${song.name}` : `Favorite ${song.name}`}
+			title={song.favorite ? msg('Unfavorite') : msg('Favorite')}
+			aria-label={msg(song.favorite ? 'Unfavorite {name}' : 'Favorite {name}', { name: song.name })}
 		>
 			<Heart size={14} fill={song.favorite ? 'currentColor' : 'none'} />
 		</button>
@@ -327,7 +331,7 @@
 	<div class="card-footer">
 		<span class="format-badge">{song.format.toUpperCase()}</span>
 		{#if song.latents}
-			<span class="format-badge">VAE</span>
+			<span class="format-badge">{msg('VAE')}</span>
 		{/if}
 		<span class="timecode">{fmtPos(time)} / {fmtDur(dur)}</span>
 		<div class="card-actions">
@@ -339,27 +343,30 @@
 					disabled={!song.request.semantic_tokens && !app.props?.capabilities?.tokenize}
 					onchange={toggleSrc}
 					title={song.request.semantic_tokens
-						? 'Use a section of this song to start a continuation'
-						: 'Audio tokenization requires the optional tokenizer model'}
-				/> Continuation source</label
+						? msg('Use a section of this song to start a continuation')
+						: msg('Audio tokenization requires the optional tokenizer model')}
+				/>
+				{msg('Continuation source')}</label
 			>
 			<SettingHelp
-				title="Continuation source"
-				text="Select this song as the opening of a continuation, then choose an excerpt on its waveform. The next generation continues that musical material. Turn this off or choose New song for an independent composition."
+				title={msg('Continuation source')}
+				text={msg(
+					'Select this song as the opening of a continuation, then choose an excerpt on its waveform. The next generation continues that musical material. Turn this off or choose New song for an independent composition.'
+				)}
 			/>
 		</div>
 	</div>
 </div>
 
-<Dialog bind:open={confirmDeleteOpen} title="Delete this track?" onConfirm={doRemove} />
+<Dialog bind:open={confirmDeleteOpen} title={msg('Delete this track?')} onConfirm={doRemove} />
 
 <Dialog
 	bind:open={confirmDeleteNonFavOpen}
-	title="Delete non-favorites?"
+	title={msg('Delete non-favorites?')}
 	onConfirm={doRemoveNonFavorites}
 />
 
-<Dialog bind:open={renameOpen} title="Rename song" onConfirm={doRename}>
+<Dialog bind:open={renameOpen} title={msg('Rename song')} onConfirm={doRename}>
 	{#snippet body()}
 		<input type="text" class="rename-input" bind:value={renameValue} />
 	{/snippet}

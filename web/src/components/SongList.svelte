@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { msg } from '../lib/i18n.svelte.js';
 	import { app } from '../lib/state.svelte.js';
 	import { ui } from '../lib/ui.svelte.js';
 	import { AudioLines, Library, Sparkles } from '@lucide/svelte';
@@ -18,20 +19,19 @@
 
 <div class="library-heading">
 	<h2 class="section-heading">
-		{#if library}<Library size={18} /> Song library{:else}<AudioLines size={18} /> Your songs{/if}<span
-			>{app.songs.length}</span
-		>
+		{#if library}<Library size={18} /> {msg('Song library')}{:else}<AudioLines size={18} />
+			{msg('Your songs')}{/if}<span>{app.songs.length}</span>
 	</h2>
-	<span class="storage-note">Saved in this browser</span>
+	<span class="storage-note">{msg('Saved in this browser')}</span>
 </div>
 {#if library && app.songs.length}
 	<div class="library-tools">
 		<input
 			type="search"
-			aria-label="Search songs"
-			placeholder="Search songs…"
+			aria-label={msg('Search songs')}
+			placeholder={msg('Search songs…')}
 			bind:value={query}
-		/><label><input type="checkbox" bind:checked={favorites} /> Favorites only</label>
+		/><label><input type="checkbox" bind:checked={favorites} /> {msg('Favorites only')}</label>
 	</div>
 {/if}
 <div class="song-list">
@@ -44,16 +44,19 @@
 			{:else}
 				<img class="empty-mascot" src={productMascot} alt="" width="140" height="140" />
 			{/if}
-			<h3>{app.songs.length ? 'No matching songs' : 'A little quiet in here'}</h3>
+			<h3>{app.songs.length ? msg('No matching songs') : msg('A little quiet in here')}</h3>
 			<p>
 				{app.songs.length
-					? 'Try another search or turn off the favorites filter.'
-					: 'Your generated and imported songs will appear here. Play, download and return to any take.'}
+					? msg('Try another search or turn off the favorites filter.')
+					: msg(
+							'Your generated and imported songs will appear here. Play, download and return to any take.'
+						)}
 			</p>
 			{#if !app.songs.length}<button
 					type="button"
 					class="secondary-button"
-					onclick={() => (ui.examplesOpen = true)}><Sparkles size={15} /> Explore examples</button
+					onclick={() => (ui.examplesOpen = true)}
+					><Sparkles size={15} /> {msg('Explore examples')}</button
 				>{/if}
 		</div>
 	{/each}

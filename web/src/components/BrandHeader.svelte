@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { msg } from '../lib/i18n.svelte.js';
+	import { language, LOCALES, setLocale } from '../lib/i18n.svelte.js';
 	import { tick } from 'svelte';
 	import {
 		Activity,
@@ -48,9 +50,9 @@
 			href="https://hangrylabs.app/"
 			target="_blank"
 			rel="noreferrer"
-			aria-label="Hangry Labs home"
+			aria-label={msg('Hangry Labs home')}
 		>
-			<span class="powered-label">Powered by</span><img
+			<span class="powered-label">{msg('Powered by')}</span><img
 				src={labsLogo}
 				alt="Hangry Labs"
 				width="80"
@@ -60,22 +62,36 @@
 		<a
 			class="brand-contact"
 			href="mailto:contact@hangrylabs.app"
-			aria-label="Contact Hangry Labs at contact@hangrylabs.app"
+			aria-label={msg('Contact Hangry Labs at {email}', { email: 'contact@hangrylabs.app' })}
 		>
 			<Mail size={18} /><span class="contact-copy"
-				><span>Contact us:</span><strong>contact@hangrylabs.app</strong></span
+				><span>{msg('Contact us:')}</span><strong>contact@hangrylabs.app</strong></span
 			>
 		</a>
 	</div>
 	<img class="compact-mark" src={musicMark} alt="YuE2" width="44" height="44" />
-	<nav class="brand-nav" aria-label="Application links">
+	<nav class="brand-nav" aria-label={msg('Application links')}>
 		<button class="primary-link" type="button" onclick={() => (ui.examplesOpen = true)}
-			><Sparkles size={15} /> Examples</button
+			><Sparkles size={15} /> {msg('Examples')}</button
 		>
-		<button type="button" onclick={() => (ui.view = 'api')}><BookOpen size={15} /> API docs</button>
+		<button type="button" onclick={() => (ui.view = 'api')}
+			><BookOpen size={15} /> {msg('API docs')}</button
+		>
 		<button type="button" onclick={() => (ui.view = 'system')}
-			><AudioLines size={15} /> Models</button
+			><AudioLines size={15} /> {msg('Models')}</button
 		>
+		<label class="locale-picker">
+			<span class="sr-only">{msg('Interface language')}</span>
+			<select
+				aria-label={msg('Interface language')}
+				value={language.code}
+				onchange={(event) => setLocale(event.currentTarget.value)}
+			>
+				{#each LOCALES as locale}<option value={locale.code} lang={locale.code}
+						>{locale.name}</option
+					>{/each}
+			</select>
+		</label>
 		<a href="https://github.com/hangry-labs/yue2" target="_blank" rel="noreferrer"
 			><Github size={15} /> GitHub</a
 		>
@@ -87,13 +103,15 @@
 	</div>
 	<div class="runtime-badge" class:ready={!!app.props} role="status" aria-live="polite">
 		<Activity size={20} class={app.generating ? 'pulse' : ''} />
-		<div class="runtime-copy"><strong>{status}</strong><span title={model}>{model}</span></div>
+		<div class="runtime-copy">
+			<strong>{msg(status)}</strong><span title={model}>{msg(model)}</span>
+		</div>
 		<a
 			class="runtime-version"
 			href="https://github.com/hangry-labs/yue2/releases"
 			target="_blank"
 			rel="noreferrer"
-			title="YuE2 releases">v{version}</a
+			title={msg('YuE2 releases')}>{msg('v')}{version}</a
 		>
 	</div>
 	<button
@@ -101,8 +119,8 @@
 		type="button"
 		aria-controls="brand-hero"
 		aria-expanded={!ui.collapsed}
-		aria-label={ui.collapsed ? 'Expand header' : 'Collapse header'}
-		title={ui.collapsed ? 'Expand header' : 'Collapse header'}
+		aria-label={ui.collapsed ? msg('Expand header') : msg('Collapse header')}
+		title={ui.collapsed ? msg('Expand header') : msg('Collapse header')}
 		onclick={toggle}
 	>
 		{#if ui.collapsed}<ChevronDown size={16} />{:else}<ChevronUp size={16} />{/if}

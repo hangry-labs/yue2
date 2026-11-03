@@ -9,6 +9,7 @@ stylesheets:
   - /examples/gallery.css
 scripts:
   - /examples/catalog.js
+  - /examples/locales.js
   - /examples/player.js
 ---
 {% capture gallery %}{% include_relative index.html %}{% endcapture %}

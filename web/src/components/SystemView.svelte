@@ -1,75 +1,82 @@
 <script lang="ts">
+	import { msg } from '../lib/i18n.svelte.js';
 	import { Settings2, Boxes, ShieldCheck, Check, Minus } from '@lucide/svelte';
 	import { app } from '../lib/state.svelte.js';
 	import GpuMonitor from './GpuMonitor.svelte';
 	import LogCard from './LogCard.svelte';
 	import QueueMonitor from './QueueMonitor.svelte';
 	let { active }: { active: boolean } = $props();
-	const filename = (path?: string) => path?.split(/[/\\]/).pop() || 'Unavailable';
+	const filename = (path?: string) => path?.split(/[/\\]/).pop() || msg('Unavailable');
 </script>
 
 <div class="system-view">
 	<div class="page-heading">
-		<h2 class="section-heading"><Settings2 size={20} /> System</h2>
-		<p>Local runtime, models and GPU activity.</p>
+		<h2 class="section-heading"><Settings2 size={20} /> {msg('System')}</h2>
+		<p>{msg('Local runtime, models and GPU activity.')}</p>
 	</div>
 	<div class="system-grid">
 		<div class="system-controls">
 			<section class="surface">
-				<h3 class="section-heading"><Boxes size={17} /> Runtime and models</h3>
+				<h3 class="section-heading"><Boxes size={17} /> {msg('Runtime and models')}</h3>
 				<div class="service-state" class:connected={!!app.props}>
-					{app.props ? 'Service connected' : 'Service unavailable'}
+					{app.props ? msg('Service connected') : msg('Service unavailable')}
 				</div>
 				<p class="field-help">
-					Models load on demand for each generation stage. A connected service does not mean the
-					weights are resident in VRAM.
+					{msg(
+						'Models load on demand for each generation stage. A connected service does not mean the weights are resident in VRAM.'
+					)}
 				</p>
 				<dl>
-					<dt>Song model</dt>
+					<dt>{msg('Song model')}</dt>
 					<dd>{filename(app.props?.model)}</dd>
-					<dt>Audio VAE</dt>
+					<dt>{msg('Audio VAE')}</dt>
 					<dd>{filename(app.props?.vae)}</dd>
-					<dt>Audio output</dt>
-					<dd>{app.props ? `${app.props.sample_rate / 1000} kHz stereo` : 'Unavailable'}</dd>
-					<dt>Version</dt>
+					<dt>{msg('Audio output')}</dt>
+					<dd>{app.props ? `${app.props.sample_rate / 1000} kHz stereo` : msg('Unavailable')}</dd>
+					<dt>{msg('Version')}</dt>
 					<dd>{app.props?.version || __YUE2_VERSION__}</dd>
 				</dl>
 				<p class="field-help">
-					Model choice and GPU allocation are configured when the container starts. Weights are
-					mounted read-only from your machine.
+					{msg(
+						'Model choice and GPU allocation are configured when the container starts. Weights are mounted read-only from your machine.'
+					)}
 				</p>
 			</section>
 			<QueueMonitor {active} />
 			<section class="surface">
-				<h3>Available tools</h3>
+				<h3>{msg('Available tools')}</h3>
 				<ul class="capabilities">
-					<li><Check size={15} /> Song generation and VAE</li>
+					<li><Check size={15} /> {msg('Song generation and VAE')}</li>
 					<li class:unavailable={!app.props?.capabilities?.transcribe}>
 						{#if app.props?.capabilities?.transcribe}<Check size={15} />{:else}<Minus
 								size={15}
-							/>{/if} Score transcription
+							/>{/if}
+						{msg('Score transcription')}
 						<span
 							>{app.props?.capabilities?.transcribe
-								? 'Enabled'
-								: 'Additional models required'}</span
+								? msg('Enabled')
+								: msg('Additional models required')}</span
 						>
 					</li>
 					<li class:unavailable={!app.props?.capabilities?.tokenize}>
 						{#if app.props?.capabilities?.tokenize}<Check size={15} />{:else}<Minus
 								size={15}
-							/>{/if} Audio tokenization
+							/>{/if}
+						{msg('Audio tokenization')}
 						<span
-							>{app.props?.capabilities?.tokenize ? 'Enabled' : 'Additional models required'}</span
+							>{app.props?.capabilities?.tokenize
+								? msg('Enabled')
+								: msg('Additional models required')}</span
 						>
 					</li>
 				</ul>
 			</section>
 			<section class="surface">
-				<h3 class="section-heading"><ShieldCheck size={17} /> Your machine, your music</h3>
+				<h3 class="section-heading"><ShieldCheck size={17} /> {msg('Your machine, your music')}</h3>
 				<p class="field-help">
-					Generation runs locally. Songs and prompts already saved by the studio remain in this
-					browser. Download the songs you want to keep. Model licenses apply separately from the
-					application.
+					{msg(
+						'Generation runs locally. Songs and prompts already saved by the studio remain in this browser. Download the songs you want to keep. Model licenses apply separately from the application.'
+					)}
 				</p>
 			</section>
 		</div>

@@ -48,6 +48,11 @@ recordings are intentional versioned examples; personal generations still belong
 in the browser library or ignored `data/results/`. Gallery regeneration is an
 explicit `task examples-generate` action and requires the local GPU.
 
+The studio, website, README and documentation introductions support six interface
+languages. See [localization](LOCALIZATION.md) when changing visible text,
+accessible labels or settings help. User lyrics and API values keep their
+original content in every locale.
+
 `task examples-convert` verifies or refreshes the gallery's single Ogg Opus export
 per song without a GPU. Verification rejects duplicate public audio exports.
 `task audio-convert -- input.wav output.flac --format flac` uses the shared

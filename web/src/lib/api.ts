@@ -15,7 +15,7 @@ async function submitJob(url: string, init: RequestInit): Promise<string> {
 // POST /synth: submit the full pipeline request, returns job ID.
 // format fills output_format so the UI selector drives the encoding.
 export function synthSubmit(req: Yue2Request, format: string): Promise<string> {
-	return submitJob('synth', {
+	return submitJob('/synth', {
 		method: 'POST',
 		headers: { 'Content-Type': 'application/json' },
 		body: JSON.stringify({ ...req, output_format: format })
@@ -30,12 +30,12 @@ export function transcribeSubmit(audio: Blob, melodyOnly: boolean): Promise<stri
 	if (melodyOnly) {
 		form.append('melody_only', '1');
 	}
-	return submitJob('transcribe', { method: 'POST', body: form });
+	return submitJob('/transcribe', { method: 'POST', body: form });
 }
 
 // GET /job?id=X&result=1: fetch a transcribe result, the score it heard.
 export async function jobResultTranscribe(id: string): Promise<{ abc: string }> {
-	const res = await fetch(`job?id=${encodeURIComponent(id)}&result=1`);
+	const res = await fetch(`/job?id=${encodeURIComponent(id)}&result=1`);
 	if (!res.ok) throw new Error(`${res.status} Result not ready`);
 	return res.json();
 }
@@ -44,12 +44,12 @@ export async function jobResultTranscribe(id: string): Promise<{ abc: string }> 
 export function tokenizeSubmit(audio: Blob): Promise<string> {
 	const form = new FormData();
 	form.append('audio', audio, 'input.audio');
-	return submitJob('tokenize', { method: 'POST', body: form });
+	return submitJob('/tokenize', { method: 'POST', body: form });
 }
 
 // GET /job?id=X&result=1: fetch a tokenize result, the semantic codes it heard.
 export async function jobResultTokenize(id: string): Promise<{ codes: string }> {
-	const res = await fetch(`job?id=${encodeURIComponent(id)}&result=1`);
+	const res = await fetch(`/job?id=${encodeURIComponent(id)}&result=1`);
 	if (!res.ok) throw new Error(`${res.status} Result not ready`);
 	return res.json();
 }
@@ -61,7 +61,7 @@ export async function jobResultTokenize(id: string): Promise<{ codes: string }> 
 export function vaeEncode(audio: Blob): Promise<string> {
 	const form = new FormData();
 	form.append('audio', audio, 'src.audio');
-	return submitJob('vae', { method: 'POST', body: form });
+	return submitJob('/vae', { method: 'POST', body: form });
 }
 
 export function vaeDecode(latents: Blob, request: Yue2Request, format: string): Promise<string> {
@@ -72,20 +72,20 @@ export function vaeDecode(latents: Blob, request: Yue2Request, format: string): 
 		new Blob([JSON.stringify({ ...request, output_format: format })], { type: 'application/json' }),
 		'request.json'
 	);
-	return submitJob('vae', { method: 'POST', body: form });
+	return submitJob('/vae', { method: 'POST', body: form });
 }
 
 // GET /job?id=X&result=1 of a /vae job: the raw latents of an encode or the
 // audio of a decode, a single body either way
 export async function jobResultBlob(id: string): Promise<Blob> {
-	const res = await fetch(`job?id=${encodeURIComponent(id)}&result=1`);
+	const res = await fetch(`/job?id=${encodeURIComponent(id)}&result=1`);
 	if (!res.ok) throw new Error(`${res.status} Result not ready`);
 	return res.blob();
 }
 
 // GET /job?id=X: poll job status
 export async function jobStatus(id: string): Promise<string> {
-	const res = await fetch(`job?id=${encodeURIComponent(id)}`, {
+	const res = await fetch(`/job?id=${encodeURIComponent(id)}`, {
 		signal: AbortSignal.timeout(FETCH_TIMEOUT_MS)
 	});
 	if (!res.ok) throw new Error(`${res.status} Job not found`);
@@ -133,7 +133,7 @@ export interface JobTrack {
 // multipart/mixed, per track one JSON replay request part, one audio part
 // and one application/octet-stream latent part, in song-major order.
 export async function jobResultTracks(id: string): Promise<JobTrack[]> {
-	const res = await fetch(`job?id=${encodeURIComponent(id)}&result=1`);
+	const res = await fetch(`/job?id=${encodeURIComponent(id)}&result=1`);
 	if (!res.ok) throw new Error(`${res.status} Result not ready`);
 	const ct = res.headers.get('Content-Type') || '';
 	const match = ct.match(/boundary=([^\s;]+)/);
@@ -213,12 +213,12 @@ function parseMultipartParts(buf: Uint8Array, boundary: string): Blob[] {
 
 // POST /job?id=X&cancel=1: cancel a specific job
 export async function cancelJob(id: string): Promise<void> {
-	await fetch(`job?id=${encodeURIComponent(id)}&cancel=1`, { method: 'POST' });
+	await fetch(`/job?id=${encodeURIComponent(id)}&cancel=1`, { method: 'POST' });
 }
 
 // GET /props: server config (2s timeout)
 export async function props(): Promise<Yue2Props> {
-	const res = await fetch('props', {
+	const res = await fetch('/props', {
 		signal: AbortSignal.timeout(FETCH_TIMEOUT_MS)
 	});
 	if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);

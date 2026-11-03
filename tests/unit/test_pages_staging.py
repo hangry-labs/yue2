@@ -52,6 +52,15 @@ class PagesStagingTests(unittest.TestCase):
             self.build()
         self.assertEqual((destination / 'README.md').read_text(), 'Overview')
 
+    def test_translated_overviews_are_staged_but_unapproved_root_readmes_are_not(self):
+        self.initialize_git()
+        for name in ('README.md', 'README.nb.md', 'README.pl.md', 'README.ja.md', 'README.zh.md', 'README.es.md', 'README.private.md'):
+            (self.root / name).write_text('Public translation', encoding='utf-8')
+        destination = self.build()
+        for code in ('nb', 'pl', 'ja', 'zh', 'es'):
+            self.assertTrue((destination / f'README.{code}.md').is_file())
+        self.assertFalse((destination / 'README.private.md').exists())
+
     def test_benchmark_docs_are_public_but_harness_code_and_raw_runs_are_not(self):
         self.initialize_git()
         folder = self.root / 'benchmarks'

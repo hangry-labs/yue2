@@ -30,8 +30,48 @@ defaults:
     values:
       layout: default
       lang: en
+  - scope:
+      path: README.nb.md
+    values:
+      lang: nb
+  - scope:
+      path: README.pl.md
+    values:
+      lang: pl
+  - scope:
+      path: README.ja.md
+    values:
+      lang: ja
+  - scope:
+      path: README.zh.md
+    values:
+      lang: zh
+  - scope:
+      path: README.es.md
+    values:
+      lang: es
+  - scope:
+      path: docs/README.nb.md
+    values:
+      lang: nb
+  - scope:
+      path: docs/README.pl.md
+    values:
+      lang: pl
+  - scope:
+      path: docs/README.ja.md
+    values:
+      lang: ja
+  - scope:
+      path: docs/README.zh.md
+    values:
+      lang: zh
+  - scope:
+      path: docs/README.es.md
+    values:
+      lang: es
 hangry:
-  languages: [en]
+  languages: [en, nb, pl, ja, zh, es]
   asset_root: /site/theme/assets/hangry-pages
   favicon: /web/src/assets/yue2_favicon.webp
   examples_path: /examples/

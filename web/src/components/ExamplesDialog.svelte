@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { msg } from '../lib/i18n.svelte.js';
 	import { Sparkles, X, ArrowUpRight } from '@lucide/svelte';
 	import { ui } from '../lib/ui.svelte.js';
 	import { app } from '../lib/state.svelte.js';
@@ -28,32 +29,32 @@
 	aria-labelledby="examples-heading"
 >
 	<div class="dialog-heading">
-		<h2 id="examples-heading"><Sparkles size={20} /> Find a starting point</h2>
+		<h2 id="examples-heading"><Sparkles size={20} /> {msg('Find a starting point')}</h2>
 		<button
 			type="button"
 			class="secondary-button"
-			aria-label="Close examples"
+			aria-label={msg('Close examples')}
 			onclick={() => (ui.examplesOpen = false)}><X size={18} /></button
 		>
 	</div>
 	<div class="example-intro">
 		<img src={productLogo} alt="" width="110" height="110" />
 		<p>
-			Choose an upstream example, then make it yours. This replaces the title, style, lyrics and
-			score. New song composes a fresh take; choose Use ABC score to use the example tune. Your
-			generation settings stay unchanged.
+			{msg(
+				'Choose an upstream example, then make it yours. This replaces the title, style, lyrics and score. New song composes a fresh take; choose Use ABC score to use the example tune. Your generation settings stay unchanged.'
+			)}
 		</p>
 	</div>
 	<p class="listening-link">
 		<a href="https://hangry-labs.github.io/yue2/examples/" target="_blank" rel="noreferrer"
-			>Listen to generated songs <ArrowUpRight size={14} /></a
+			>{msg('Listen to generated songs')} <ArrowUpRight size={14} /></a
 		>
 	</p>
-	<label for="example-search">Search examples</label><input
+	<label for="example-search">{msg('Search examples')}</label><input
 		id="example-search"
 		type="search"
 		bind:value={query}
-		placeholder="Search by title, genre or voice…"
+		placeholder={msg('Search by title, genre or voice…')}
 	/>
 	<div class="example-grid">
 		{#each matches as ex}
@@ -66,7 +67,7 @@
 					class="example-style">{ex.request.style}</span
 				></button
 			>
-		{:else}<p>No examples match this search.</p>{/each}
+		{:else}<p>{msg('No examples match this search.')}</p>{/each}
 	</div>
 </dialog>
 

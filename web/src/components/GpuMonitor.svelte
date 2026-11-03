@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { msg } from '../lib/i18n.svelte.js';
 	import { onMount } from 'svelte';
 	import { Activity, Cpu } from '@lucide/svelte';
 	import type { GpuSample, GpuSnapshot } from '../lib/gpu.js';
@@ -51,7 +52,7 @@
 		const controller = new AbortController();
 		async function poll() {
 			try {
-				const res = await fetch('system/gpu', {
+				const res = await fetch('/system/gpu', {
 					cache: 'no-store',
 					signal: AbortSignal.any([controller.signal, AbortSignal.timeout(4000)])
 				});
@@ -90,31 +91,31 @@
 
 <section class="surface gpu-monitor">
 	<div class="monitor-heading">
-		<h2 class="section-heading"><Activity size={19} /> GPU monitor</h2>
-		<div class="window-picker" aria-label="History window" role="group">
+		<h2 class="section-heading"><Activity size={19} /> {msg('GPU monitor')}</h2>
+		<div class="window-picker" aria-label={msg('History window')} role="group">
 			<button
 				type="button"
 				class:chosen={windowSeconds === 60}
 				aria-pressed={windowSeconds === 60}
-				onclick={() => (windowSeconds = 60)}>1 min</button
+				onclick={() => (windowSeconds = 60)}>{msg('1 min')}</button
 			><button
 				type="button"
 				class:chosen={windowSeconds === 600}
 				aria-pressed={windowSeconds === 600}
-				onclick={() => (windowSeconds = 600)}>10 min</button
+				onclick={() => (windowSeconds = 600)}>{msg('10 min')}</button
 			>
 		</div>
 	</div>
 	<p class="field-help">
 		{stale
-			? 'Connection interrupted. Last valid readings are retained.'
-			: 'Live while System is visible. No background sampling when you leave.'}
+			? msg('Connection interrupted. Last valid readings are retained.')
+			: msg('Live while System is visible. No background sampling when you leave.')}
 	</p>
 	{#each gpus as gpu}
 		<div class="gpu-heading">
 			<Cpu size={18} />
 			<h3>{gpu.name}</h3>
-			<span>GPU {gpu.index}</span>
+			<span>{msg('GPU')} {gpu.index}</span>
 		</div>
 		<div class="metric-grid">
 			{#each metrics as metric}
@@ -134,20 +135,25 @@
 		</div>
 		<div class="gpu-details">
 			<span
-				>VRAM {gpu.memory_total_mb == null
+				>{msg('VRAM')}
+				{gpu.memory_total_mb == null
 					? 'N/A'
 					: `${(gpu.memory_total_mb / 1024).toFixed(1)} GiB`}</span
-			><span>State {gpu.performance_state == null ? 'N/A' : `P${gpu.performance_state}`}</span><span
-				>PCIe {gpu.pcie_generation == null
+			><span
+				>{msg('State')} {gpu.performance_state == null ? 'N/A' : `P${gpu.performance_state}`}</span
+			><span
+				>{msg('PCIe')}
+				{gpu.pcie_generation == null
 					? 'N/A'
 					: `Gen ${gpu.pcie_generation} ×${gpu.pcie_width ?? '?'}`}</span
 			><span
-				>Power limit {gpu.power_limit_w == null ? 'N/A' : `${gpu.power_limit_w.toFixed(0)} W`}</span
+				>{msg('Power limit')}
+				{gpu.power_limit_w == null ? 'N/A' : `${gpu.power_limit_w.toFixed(0)} W`}</span
 			>
 		</div>
 	{:else}<div class="gpu-empty">
-			<Cpu size={28} /><strong>GPU telemetry unavailable</strong>
-			<p>{message}</p>
+			<Cpu size={28} /><strong>{msg('GPU telemetry unavailable')}</strong>
+			<p>{msg(message)}</p>
 		</div>{/each}
 </section>
 

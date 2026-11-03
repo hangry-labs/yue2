@@ -32,9 +32,11 @@ audio playback, seeking, volume/mute, pause-previous and request downloads.
 ## Content and theme
 
 `_config.yml` owns the title, production origin, `/yue2` base path, navigation,
-source branch and exclusions. Only English is enabled because the checkout has
-an English README. Add actual translated Markdown before enabling other site
-languages; a translated navigation label is not a translated document.
+source branch and exclusions. English, Norwegian Bokmål, Polish, Japanese,
+Simplified Chinese and Spanish have translated READMEs and documentation
+introductions. Detailed technical guides retain English text with an explicit
+fallback notice. See [localization](LOCALIZATION.md) for catalogs, locale routes
+and the distinction between interface language and original song content.
 
 The Apache-2.0 theme lives in `site/theme/`, retaining its license. It provides
 the common header, responsive section sidebar, language router, readable tables,

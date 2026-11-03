@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { msg } from '../lib/i18n.svelte.js';
 	import type { Snippet } from 'svelte';
 	import DialogButton from './DialogButton.svelte';
 	let {
@@ -54,8 +55,9 @@
 	<div class="dialog-title">{title}</div>
 	{#if body}<div class="dialog-body">{@render body()}</div>{/if}
 	<div class="dialog-footer">
-		{#if actions}{@render actions(cancel)}{:else}<DialogButton onclick={cancel}>Cancel</DialogButton
-			><DialogButton onclick={confirm}>OK</DialogButton>{/if}
+		{#if actions}{@render actions(cancel)}{:else}<DialogButton onclick={cancel}
+				>{msg('Cancel')}</DialogButton
+			><DialogButton onclick={confirm}>{msg('OK')}</DialogButton>{/if}
 	</div>
 </dialog>
 

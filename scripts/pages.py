@@ -50,7 +50,8 @@ def main():
         run([sys.executable, 'scripts/verify_gallery.py'])
         run([sys.executable, 'scripts/check_pages.py'])
         run(['docker', 'run', '--rm', '--mount', f'type=bind,source={ROOT},target=/workspace,readonly',
-             '--workdir', '/workspace', 'node:24-bookworm-slim', 'node', '--test', 'tests/site/router.test.mjs'])
+             '--workdir', '/workspace', 'node:24-bookworm-slim', 'node', '--test',
+             'tests/site/router.test.mjs', 'tests/site/gallery-localization.test.mjs'])
     if args.action == 'preview':
         stop()
         run(['docker', 'run', '-d', '--name', NAME, '--label', LABEL + '=yue2-pages',

@@ -5,6 +5,12 @@ permalink: /docs/
 ---
 # Documentation
 
+[English](README.md) · [Norsk bokmål](README.nb.md) · [Polski](README.pl.md) · [日本語](README.ja.md) · [简体中文](README.zh.md) · [Español](README.es.md)
+
+The overview, documentation introductions and application are available in six
+interface languages. Detailed technical references currently remain in English;
+the website keeps your selected language and labels that fallback explicitly.
+
 Start with the [project quick start](../README.md#quick-start) to run the CUDA
 container with external models.
 
@@ -20,6 +26,7 @@ container with external models.
 | [Queue and result storage](QUEUE.md) | Shared backlog limits, retries, status, volume retention and load tests |
 | [Agent music tools](MCP.md) | MCP connection, songwriting skill, restricted controls and one-hour audio links |
 | [LoRA adapters](ADAPTERS.md) | Supported adapter files, placement and loading |
+| [Languages and localization](LOCALIZATION.md) | Studio locales, translated READMEs, gallery text and technical-reference fallback |
 | [API and engine reference](ARCHITECTURE.md) | Request fields, job responses, CLI tools and engine internals |
 
 ## Developing And Maintaining

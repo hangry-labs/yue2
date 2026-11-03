@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { msg } from '../lib/i18n.svelte.js';
+	import { language } from '../lib/i18n.svelte.js';
 	import { onMount } from 'svelte';
 	import { ListOrdered, HardDrive } from '@lucide/svelte';
 	import type { RuntimeStatus } from '../lib/types.js';
@@ -19,7 +21,7 @@
 		const controller = new AbortController();
 		async function poll() {
 			try {
-				const response = await fetch('system/queue', {
+				const response = await fetch('/system/queue', {
 					cache: 'no-store',
 					signal: AbortSignal.any([controller.signal, AbortSignal.timeout(4000)])
 				});
@@ -45,44 +47,51 @@
 </script>
 
 <section class="surface queue-monitor">
-	<h3 class="section-heading"><ListOrdered size={17} /> Generation queue</h3>
+	<h3 class="section-heading"><ListOrdered size={17} /> {msg('Generation queue')}</h3>
 	<p class="field-help" role="status">
-		{#if stale}Queue status unavailable. Last readings may be out of date.
-		{:else if status}{status.queue.accepting ? 'Ready for requests' : 'Queue full — retry shortly'}
-		{:else}Connecting to the local queue…{/if}
+		{#if stale}{msg(
+				'Queue status unavailable. Last readings may be out of date.'
+			)}{:else if status}{status.queue.accepting
+				? msg('Ready for requests')
+				: msg('Queue full — retry shortly')}
+		{:else}{msg('Connecting to the local queue…')}{/if}
 	</p>
 	{#if status}
 		<dl>
-			<dt>Generating</dt>
+			<dt>{msg('Generating')}</dt>
 			<dd>{status.queue.active} / 1</dd>
-			<dt>Waiting</dt>
+			<dt>{msg('Waiting')}</dt>
 			<dd>{status.queue.queued}</dd>
-			<dt>Capacity</dt>
-			<dd>{status.queue.pending} / {status.queue.limit} jobs</dd>
-			<dt>Available</dt>
-			<dd>{status.queue.available} slots</dd>
-			<dt>Rejected</dt>
-			<dd>{status.queue.rejected} since startup</dd>
+			<dt>{msg('Capacity')}</dt>
+			<dd>{status.queue.pending} / {status.queue.limit} {msg('jobs')}</dd>
+			<dt>{msg('Available')}</dt>
+			<dd>{status.queue.available} {msg('slots')}</dd>
+			<dt>{msg('Rejected')}</dt>
+			<dd>{status.queue.rejected} {msg('since startup')}</dd>
 		</dl>
 		<p class="field-help">
-			Studio, API and agent requests share one queue. A full queue asks callers to retry after {status
-				.queue.retry_after_seconds} seconds.
+			{msg(
+				'Studio, API and agent requests share one queue. A full queue asks callers to retry after'
+			)}
+			{status.queue.retry_after_seconds}
+			{msg('seconds.')}
 		</p>
-		<h3 class="section-heading storage-heading"><HardDrive size={17} /> Server results</h3>
+		<h3 class="section-heading storage-heading"><HardDrive size={17} /> {msg('Server results')}</h3>
 		<dl>
-			<dt>Saved results</dt>
+			<dt>{msg('Saved results')}</dt>
 			<dd>{status.results.files} / {status.results.limit_files}</dd>
-			<dt>Volume usage</dt>
+			<dt>{msg('Volume usage')}</dt>
 			<dd>{bytes(status.results.bytes)} / {bytes(status.results.limit_bytes)}</dd>
-			<dt>Retention</dt>
-			<dd>{(status.results.ttl_seconds / 3600).toLocaleString()} hours</dd>
+			<dt>{msg('Retention')}</dt>
+			<dd>{(status.results.ttl_seconds / 3600).toLocaleString(language.code)} {msg('hours')}</dd>
 		</dl>
 		<p class="field-help">
-			Completed Studio and API results are saved on the output volume and survive restarts until
-			expiry. Browser library copies are separate. Agent download links last one hour.
+			{msg(
+				'Completed Studio and API results are saved on the output volume and survive restarts until expiry. Browser library copies are separate. Agent download links last one hour.'
+			)}
 		</p>
 		{#if status.results.full}<p class="storage-full" role="status">
-				Result storage is full. New results will need space or a higher storage limit.
+				{msg('Result storage is full. New results will need space or a higher storage limit.')}
 			</p>{/if}
 	{/if}
 </section>

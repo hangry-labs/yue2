@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { msg } from '../lib/i18n.svelte.js';
 	import { BookOpen, Copy, ExternalLink } from '@lucide/svelte';
 	import { toast } from '../lib/state.svelte.js';
 	const request = JSON.stringify(
@@ -57,184 +58,204 @@
 <div class="api-view">
 	<div class="page-heading">
 		<div>
-			<h2 class="section-heading"><BookOpen size={20} /> Local music API</h2>
-			<p>Use the same generation engine from your own tools.</p>
+			<h2 class="section-heading"><BookOpen size={20} /> {msg('Local music API')}</h2>
+			<p>{msg('Use the same generation engine from your own tools.')}</p>
 		</div>
 		<a
 			class="secondary-button"
 			href="https://github.com/hangry-labs/yue2/blob/master/docs/ARCHITECTURE.md"
 			target="_blank"
-			rel="noreferrer"><ExternalLink size={14} /> Full reference</a
+			rel="noreferrer"><ExternalLink size={14} /> {msg('Full reference')}</a
 		>
 	</div>
 	<div class="api-grid">
 		<section class="surface">
-			<h3>Music generation</h3>
+			<h3>{msg('Music generation')}</h3>
 			<p class="field-help">
-				POST /v1/audio/music returns one audio file directly. Music stays at 48 kHz stereo. Requests
-				share the same serial queue as the studio.
+				{msg(
+					'POST /v1/audio/music returns one audio file directly. Music stays at 48 kHz stereo. Requests share the same serial queue as the studio.'
+				)}
 			</p>
 			<div class="code-heading">
-				<span>Bash / curl</span><button
+				<span>{msg('Bash / curl')}</span><button
 					class="secondary-button"
 					type="button"
-					onclick={() => copy(musicCommand)}><Copy size={14} /> Copy</button
+					onclick={() => copy(musicCommand)}><Copy size={14} /> {msg('Copy')}</button
 				>
 			</div>
 			<pre><code>{musicCommand}</code></pre>
 			<p class="field-help">
-				Use FLAC or WAV for lossless exports. MP3 remains the default when a format is omitted.
+				{msg(
+					'Use FLAC or WAV for lossless exports. MP3 remains the default when a format is omitted.'
+				)}
 			</p>
 		</section>
 		<section class="surface">
-			<h3>OpenAI-compatible clients</h3>
+			<h3>{msg('OpenAI-compatible clients')}</h3>
 			<p class="field-help">
-				POST /v1/audio/speech uses the same music engine. Input is lyrics; instructions describes
-				the music. Voice aliases are approximate vocal hints.
+				{msg(
+					'POST /v1/audio/speech uses the same music engine. Input is lyrics; instructions describes the music. Voice aliases are approximate vocal hints.'
+				)}
 			</p>
 			<pre><code>{python}</code></pre>
 			<p class="field-help">
-				The complete song is generated before delivery. The streaming-response helper downloads the
-				result; live generation and speech SSE events are unavailable. Explicit PCM export uses 24
-				kHz mono PCM16LE.
+				{msg(
+					'The complete song is generated before delivery. The streaming-response helper downloads the result; live generation and speech SSE events are unavailable. Explicit PCM export uses 24 kHz mono PCM16LE.'
+				)}
 			</p>
 		</section>
 	</div>
 	<section class="surface routes">
-		<h3>API discovery and access</h3>
+		<h3>{msg('API discovery and access')}</h3>
 		<p class="field-help">
-			<a href="/openapi.json" target="_blank" rel="noreferrer">Download OpenAPI schema</a>. GET
-			/v1/models lists YuE2. The native asynchronous routes below retain scores, replay data,
-			latents and batch output.
+			<a href="/openapi.json" target="_blank" rel="noreferrer">{msg('Download OpenAPI schema')}</a
+			>{msg(
+				'. GET /v1/models lists YuE2. The native asynchronous routes below retain scores, replay data, latents and batch output.'
+			)}
 		</p>
 		<p class="field-help">
-			Set YUE2_API_KEY to require a local Bearer key on /v1 and /mcp routes. Add an Authorization
-			header to curl or replace local in the Python example with that key. Studio/native routes
-			retain their existing local access policy.
+			{msg(
+				'Set YUE2_API_KEY to require a local Bearer key on /v1 and /mcp routes. Add an Authorization header to curl or replace local in the Python example with that key. Studio/native routes retain their existing local access policy.'
+			)}
 		</p>
 	</section>
 	<div class="api-grid">
 		<section class="surface">
-			<h3>Music tools for agents</h3>
+			<h3>{msg('Music tools for agents')}</h3>
 			<p class="field-help">
-				Connect an MCP client over Streamable HTTP. Retrieve skill first, write or prepare a full
-				song, then generate and poll for a download link. The same serial queue serves agents and
-				Studio.
+				{msg(
+					'Connect an MCP client over Streamable HTTP. Retrieve skill first, write or prepare a full song, then generate and poll for a download link. The same serial queue serves agents and Studio.'
+				)}
 			</p>
 			<div class="code-heading">
-				<span>MCP connection</span><button
+				<span>{msg('MCP connection')}</span><button
 					class="secondary-button"
 					type="button"
-					onclick={() => copy(mcpConfig)}><Copy size={14} /> Copy</button
+					onclick={() => copy(mcpConfig)}><Copy size={14} /> {msg('Copy')}</button
 				>
 			</div>
 			<pre><code>{mcpConfig}</code></pre>
 			<p class="field-help">
-				Client configuration varies. If a local API key is configured, add its Bearer Authorization
-				header to the connection.
+				{msg(
+					'Client configuration varies. If a local API key is configured, add its Bearer Authorization header to the connection.'
+				)}
 			</p>
 		</section>
 		<section class="surface">
-			<h3>Read, create, collect</h3>
+			<h3>{msg('Read, create, collect')}</h3>
 			<ol>
 				<li>
-					<code>skill</code><span>Read the guide and keep its guide token.</span>
+					<code>skill</code><span>{msg('Read the guide and keep its guide token.')}</span>
 				</li>
 				<li>
 					<code>generate_song</code><span
-						>Supply full-song lyrics and musical style; optionally duration, BPM hint and Opus or
-						FLAC. Defaults to 150 seconds.</span
+						>{msg(
+							'Supply full-song lyrics and musical style; optionally duration, BPM hint and Opus or FLAC. Defaults to 150 seconds.'
+						)}</span
 					>
 				</li>
 				<li>
 					<code>get_song</code><span
-						>Poll every two seconds. Download or share the completed HTTP link.</span
+						>{msg('Poll every two seconds. Download or share the completed HTTP link.')}</span
 					>
 				</li>
 				<li>
-					<code>cancel_song</code><span>Cancel a queued or generating song using its handle.</span>
+					<code>cancel_song</code><span
+						>{msg('Cancel a queued or generating song using its handle.')}</span
+					>
 				</li>
 			</ol>
 			<p class="field-help">
-				Links expire one hour after completion. Audio stays 48 kHz stereo and is never embedded in
-				tool responses. Agents have no runtime settings or quality controls.
+				{msg(
+					'Links expire one hour after completion. Audio stays 48 kHz stereo and is never embedded in tool responses. Agents have no runtime settings or quality controls.'
+				)}
 			</p>
 			<p class="field-help">
-				<a href="/skills/songwriting/SKILL.md" target="_blank" rel="noreferrer">Read the skill</a>
+				<a href="/skills/songwriting/SKILL.md" target="_blank" rel="noreferrer"
+					>{msg('Read the skill')}</a
+				>
 				·
 				<a
 					href="https://github.com/hangry-labs/yue2/blob/master/docs/MCP.md"
 					target="_blank"
-					rel="noreferrer">MCP reference</a
+					rel="noreferrer">{msg('MCP reference')}</a
 				>
 			</p>
 		</section>
 	</div>
 	<div class="api-grid">
 		<section class="surface">
-			<h3>Generate a song</h3>
+			<h3>{msg('Generate a song')}</h3>
 			<p class="field-help">
-				Submit a request, poll its job, then download the result. Generation stays on the machine
-				running this container.
+				{msg(
+					'Submit a request, poll its job, then download the result. Generation stays on the machine running this container.'
+				)}
 			</p>
 			<div class="code-heading">
-				<span>Bash / curl</span><button
+				<span>{msg('Bash / curl')}</span><button
 					class="secondary-button"
 					type="button"
-					onclick={() => copy()}><Copy size={14} /> Copy</button
+					onclick={() => copy()}><Copy size={14} /> {msg('Copy')}</button
 				>
 			</div>
 			<pre><code>{command}</code></pre>
 			<p class="field-help">
-				The example explicitly uses 8 flow-matching steps. Omitted settings use the server defaults.
+				{msg(
+					'The example explicitly uses 8 flow-matching steps. Omitted settings use the server defaults.'
+				)}
 			</p>
 		</section>
 		<section class="surface">
-			<h3>Follow the job</h3>
+			<h3>{msg('Follow the job')}</h3>
 			<ol>
 				<li>
-					<code>POST /synth</code><span>Returns <code>{'{"id":"…"}'}</code> immediately.</span>
+					<code>POST /synth</code><span
+						>{msg('Returns')} <code>{'{"id":"…"}'}</code> {msg('immediately.')}</span
+					>
 				</li>
 				<li>
 					<code>GET /job?id=ID</code><span
-						>Poll until the status is <code>done</code>. Handle <code>failed</code> and
+						>{msg('Poll until the status is')} <code>done</code>{msg('. Handle')}
+						<code>failed</code>
+						{msg('and')}
 						<code>cancelled</code>.</span
 					>
 				</li>
 				<li>
 					<code>GET /job?id=ID&amp;result=1</code><span
-						>Returns multipart audio, replay JSON and VAE latents.</span
+						>{msg('Returns multipart audio, replay JSON and VAE latents.')}</span
 					>
 				</li>
 			</ol>
 			<p class="field-help">
-				Cancel with <code>POST /job?id=ID&amp;cancel=1</code>. Completed results survive restarts on
-				the output volume until expiry (24 hours by default). Active and queued work does not
-				resume.
+				{msg('Cancel with')} <code>POST /job?id=ID&amp;cancel=1</code>{msg(
+					'. Completed results survive restarts on the output volume until expiry (24 hours by default). Active and queued work does not resume.'
+				)}
 			</p>
 		</section>
 	</div>
 	<section class="surface routes">
-		<h3>Discovery and tools</h3>
+		<h3>{msg('Discovery and tools')}</h3>
 		<dl>
 			<dt><code>GET /health</code></dt>
-			<dd>Service liveness, queue capacity and result storage usage</dd>
+			<dd>{msg('Service liveness, queue capacity and result storage usage')}</dd>
 			<dt><code>GET /status</code><br /><code>GET /system/queue</code></dt>
-			<dd>Queue counts and limits, active work, retry guidance and volume usage</dd>
+			<dd>{msg('Queue counts and limits, active work, retry guidance and volume usage')}</dd>
 			<dt><code>GET /props</code></dt>
-			<dd>Configured models, capabilities, output formats and request defaults</dd>
+			<dd>{msg('Configured models, capabilities, output formats and request defaults')}</dd>
 			<dt><code>GET /logs</code></dt>
-			<dd>Live server logs via server-sent events</dd>
+			<dd>{msg('Live server logs via server-sent events')}</dd>
 			<dt><code>GET /system/gpu</code></dt>
-			<dd>Demand-driven NVIDIA telemetry</dd>
+			<dd>{msg('Demand-driven NVIDIA telemetry')}</dd>
 			<dt><code>POST /vae</code></dt>
-			<dd>Audio and latent encoding / decoding</dd>
+			<dd>{msg('Audio and latent encoding / decoding')}</dd>
 			<dt><code>POST /transcribe</code><br /><code>POST /tokenize</code></dt>
-			<dd>Optional models required; check System for availability</dd>
+			<dd>{msg('Optional models required; check System for availability')}</dd>
 		</dl>
 		<p class="field-help">
-			This is YuE2's native asynchronous API. Keep the published port on localhost unless you
-			intentionally configure remote access.
+			{msg(
+				"This is YuE2's native asynchronous API. Keep the published port on localhost unless you intentionally configure remote access."
+			)}
 		</p>
 	</section>
 </div>

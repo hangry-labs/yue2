@@ -1,9 +1,12 @@
 <script lang="ts">
+	import { feedback } from '../lib/i18n.svelte.js';
 	import { app } from '../lib/state.svelte.js';
 </script>
 
 {#if app.toast}
-	<div class="toast" role="status" aria-live="polite" class:ok={app.toastOk}>{app.toast}</div>
+	<div class="toast" role="status" aria-live="polite" class:ok={app.toastOk}>
+		{feedback(app.toast)}
+	</div>
 {/if}
 
 <style>

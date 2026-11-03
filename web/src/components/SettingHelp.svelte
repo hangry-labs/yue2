@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { msg } from '../lib/i18n.svelte.js';
 	import { Info } from '@lucide/svelte';
 	let { title, text }: { title: string; text: string } = $props();
 	const id = $props.id();
@@ -17,7 +18,7 @@
 <button
 	type="button"
 	class="setting-help"
-	aria-label={`About ${title}`}
+	aria-label={msg('About {title}', { title })}
 	popovertarget={id}
 	bind:this={trigger}><Info size={14} aria-hidden="true" /></button
 >
@@ -26,7 +27,7 @@
 	popover
 	class="help-panel"
 	role="note"
-	aria-label={`${title} help`}
+	aria-label={msg('{title} help', { title })}
 	bind:this={panel}
 	onbeforetoggle={position}
 	ontoggle={position}

@@ -27,6 +27,8 @@ class Document(HTMLParser):
             self.ids.add(attrs['id'])
         if tag == 'body':
             self.page_source = attrs.get('data-page-path')
+        if tag == 'html':
+            self.language = attrs.get('lang')
         if tag == 'script' and attrs.get('id'):
             self.script = attrs['id']
             self.scripts[self.script] = ''
@@ -54,6 +56,11 @@ def verify(root=ROOT):
     for name in required:
         if not (output / name).is_file():
             raise ValueError(f'Missing rendered route: {name}')
+    for code in ('nb', 'pl', 'ja', 'zh', 'es'):
+        for route in (f'README.{code}.html', f'docs/{code}/index.html'):
+            path = output / route
+            if not path.is_file() or Document(path.read_text(encoding='utf-8')).language != code:
+                raise ValueError(f'Missing translated page or incorrect HTML language: {route}')
     forbidden = {'.ai', '.git', '.idea', 'AGENTS.md', 'data', 'node_modules', '__pycache__',
                  'Gemfile', 'Gemfile.lock', 'Dockerfile', 'Taskfile.yml', 'CMakeLists.txt'}
     for path in output.rglob('*'):

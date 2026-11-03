@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { msg } from './lib/i18n.svelte.js';
 	import { Music2, Library, Code2, Settings2, ShieldCheck } from '@lucide/svelte';
 	import { app, toast } from './lib/state.svelte.js';
 	import { ui, type View } from './lib/ui.svelte.js';
@@ -61,9 +62,9 @@
 	}
 </script>
 
-<a class="skip-link" href="#workspace">Skip to workspace</a>
+<a class="skip-link" href="#workspace">{msg('Skip to workspace')}</a>
 <BrandHeader />
-<div class="app-tabs" role="tablist" aria-label="Music studio views">
+<div class="app-tabs" role="tablist" aria-label={msg('Music studio views')}>
 	{#each tabs as tab}
 		<button
 			id={`tab-${tab.id}`}
@@ -79,12 +80,12 @@
 			onkeydown={tabKeys}
 		>
 			<tab.icon size={16} />
-			{tab.label}
+			{msg(tab.label)}
 			{#if tab.id === 'library' && app.songs.length}<span class="tab-count">{app.songs.length}</span
 				>{/if}
 		</button>
 	{/each}
-	<span class="tabs-note"><ShieldCheck size={14} /> Local generation</span>
+	<span class="tabs-note"><ShieldCheck size={14} /> {msg('Local generation')}</span>
 </div>
 <main id="workspace" tabindex="-1">
 	<!-- Keep authoring and playback mounted across views, including active jobs. -->
@@ -106,8 +107,8 @@
 	</div>
 </main>
 <footer class="app-footer">
-	<span>YuE2 by MAP · Native engine by yue2.cpp</span><span
-		>48 kHz stereo · Weights stay on your machine</span
+	<span>{msg('YuE2 by MAP · Native engine by yue2.cpp')}</span><span
+		>{msg('48 kHz stereo · Weights stay on your machine')}</span
 	>
 </footer>
 <ExamplesDialog />

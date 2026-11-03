@@ -7,7 +7,7 @@ try {
 	/* Storage is optional. */
 }
 export const ui = $state({
-	view: (location.pathname === '/docs'
+	view: (/\/docs\/?$/.test(location.pathname)
 		? 'api'
 		: ['create', 'library', 'api', 'system'].includes(restored?.view ?? '')
 			? restored.view

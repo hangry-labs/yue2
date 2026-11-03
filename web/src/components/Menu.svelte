@@ -14,6 +14,7 @@
 </script>
 
 <script lang="ts">
+	import { msg } from '../lib/i18n.svelte.js';
 	import type { Snippet } from 'svelte';
 
 	let {
@@ -71,7 +72,7 @@
 					onclick={() => select(item)}
 				>
 					{#if Icon}<Icon size={14} />{/if}
-					{item.label}
+					{msg(item.label)}
 				</button>
 			{/each}
 		</div>

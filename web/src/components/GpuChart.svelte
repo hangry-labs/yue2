@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { msg } from '../lib/i18n.svelte.js';
+	import { language } from '../lib/i18n.svelte.js';
 	let {
 		label,
 		unit,
@@ -24,7 +26,7 @@
 		samples.length ? samples.reduce((sum, p) => sum + p.value, 0) / samples.length : 0
 	);
 	let ceiling = $derived(Math.max(maximum || peak * 1.15, 1));
-	const fmt = (value: number) => value.toLocaleString(undefined, { maximumFractionDigits: 1 });
+	const fmt = (value: number) => value.toLocaleString(language.code, { maximumFractionDigits: 1 });
 	const x = (timestamp: number) =>
 		Math.max(
 			0,
@@ -48,20 +50,30 @@
 <div
 	class="metric-chart"
 	role="group"
-	aria-label={`${label} chart`}
+	aria-label={msg('{label} chart', { label: msg(label) })}
 	onpointermove={move}
 	onpointerleave={() => (hover = null)}
 >
 	<div class="metric-heading">
-		<span>{label}</span><strong>{fmt(current)}<small>{unit}</small></strong>
+		<span>{msg(label)}</span><strong>{fmt(current)}<small>{unit}</small></strong>
 	</div>
 	<svg
 		viewBox="0 0 400 82"
 		preserveAspectRatio="none"
 		role="img"
-		aria-label={`${label}: ${fmt(current)} ${unit}, average ${fmt(average)}, peak ${fmt(peak)} over ${windowSeconds} seconds`}
+		aria-label={msg(
+			'{label}: {value} {unit}, average {average}, peak {peak} over {seconds} seconds',
+			{
+				label: msg(label),
+				value: fmt(current),
+				unit,
+				average: fmt(average),
+				peak: fmt(peak),
+				seconds: windowSeconds
+			}
+		)}
 	>
-		<title>{label} history</title><path d="M0 8H400M0 41H400M0 74H400" class="grid" />
+		<title>{msg(label)} {msg('history')}</title><path d="M0 8H400M0 41H400M0 74H400" class="grid" />
 		{#if samples.length}<polygon
 				points={`${x(samples[0].timestamp)},74 ${line} ${x(samples.at(-1)!.timestamp)},74`}
 				class="area"
@@ -78,8 +90,11 @@
 	</svg>
 	<div class="metric-footer">
 		{#if selected}<span
-				>{new Date(selected.timestamp).toLocaleTimeString()} · {fmt(selected.value)} {unit}</span
-			>{:else}<span>Avg {fmt(average)} {unit}</span><span>Peak {fmt(peak)} {unit}</span>{/if}
+				>{new Date(selected.timestamp).toLocaleTimeString(language.code)} · {fmt(selected.value)}
+				{unit}</span
+			>{:else}<span>{msg('Avg')} {fmt(average)} {unit}</span><span
+				>{msg('Peak')} {fmt(peak)} {unit}</span
+			>{/if}
 	</div>
 </div>
 

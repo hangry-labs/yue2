@@ -11,27 +11,27 @@
 <body class="gallery-standalone">
   <header class="standalone-header">
     <a href="https://hangrylabs.app/"><img src="../web/src/assets/hangrylabs_logo.webp" width="42" height="42" alt="Hangry Labs"></a>
-    <nav aria-label="Project"><a href="https://hangry-labs.github.io/yue2/">Overview</a><a href="https://hangry-labs.github.io/yue2/docs/">Documentation</a><a href="https://github.com/hangry-labs/yue2">GitHub ↗</a></nav>
+    <nav data-gallery-aria="Project" aria-label="Project"><a data-gallery-text="Overview" href="https://hangry-labs.github.io/yue2/">Overview</a><a data-gallery-text="Documentation" href="https://hangry-labs.github.io/yue2/docs/">Documentation</a><a href="https://github.com/hangry-labs/yue2">GitHub ↗</a></nav>
   </header>
   <main class="song-gallery">
     <div class="gallery-body">
     <section class="gallery-hero" aria-labelledby="gallery-heading">
       <div>
-        <p class="eyebrow">YuE2 listening room</p>
-        <h1 id="gallery-heading">From words to music.</h1>
-        <p class="gallery-intro">Original lyrics, a little musical direction, and a local GPU.
+        <p class="eyebrow" data-gallery-text="YuE2 listening room">YuE2 listening room</p>
+        <h1 id="gallery-heading" data-gallery-text="From words to music.">From words to music.</h1>
+        <p class="gallery-intro" data-gallery-text="Original lyrics, a little musical direction, and a local GPU. Listen to the results, explore the recipes, and try a prompt on your own machine.">Original lyrics, a little musical direction, and a local GPU.
           Listen to the results, explore the recipes, and try a prompt on your own machine.</p>
-        <div class="gallery-badges"><span>8 steps</span><span>48 kHz stereo</span><span>Generated locally</span></div>
-        <p class="hero-links"><a href="README.md">About these recordings</a><a href="definitions.json" download>Download all prompts ↗</a></p>
+        <div class="gallery-badges"><span data-gallery-text="8 steps">8 steps</span><span data-gallery-text="48 kHz stereo">48 kHz stereo</span><span data-gallery-text="Generated locally">Generated locally</span></div>
+        <p class="hero-links"><a href="README.md" data-gallery-text="About these recordings">About these recordings</a><a href="definitions.json" download data-gallery-text="Download all prompts ↗">Download all prompts ↗</a></p>
       </div>
       <img class="gallery-logo" src="../web/src/assets/yue2_logo.webp" alt="Hangry Labs YuE2" width="1254" height="1254">
     </section>
-    <section class="listening-controls" aria-label="Listening controls">
-      <div class="style-filters" role="group" aria-label="Filter by musical style"></div>
-      <div class="volume-control"><label>Lyrics <select data-language aria-label="Filter by lyric language"></select></label><button type="button" data-mute aria-label="Mute audio">Sound on</button><label>Volume <input type="range" data-volume aria-label="Listening volume" min="0" max="1" step="0.01" value="0.7"></label></div>
+    <section class="listening-controls" data-gallery-aria="Listening controls" aria-label="Listening controls">
+      <div class="style-filters" role="group" data-gallery-aria="Filter by musical style" aria-label="Filter by musical style"></div>
+      <div class="volume-control"><label><span data-gallery-text="Lyrics">Lyrics</span> <select data-language data-gallery-aria="Filter by lyric language" aria-label="Filter by lyric language"></select></label><button type="button" data-mute aria-label="Mute audio">Sound on</button><label><span data-gallery-text="Volume">Volume</span> <input type="range" data-volume data-gallery-aria="Listening volume" aria-label="Listening volume" min="0" max="1" step="0.01" value="0.7"></label><label data-locale-picker><span data-gallery-text="Interface language">Interface language</span> <select data-ui-language aria-label="Interface language"></select></label></div>
     </section>
     <div class="gallery-status"><p data-count>Loading recordings…</p><p data-playing role="status" aria-live="polite">Choose a song to listen.</p></div>
-    <section class="song-grid" aria-label="Generated songs"></section>
+    <section class="song-grid" data-gallery-aria="Generated songs" aria-label="Generated songs"></section>
     <template id="song-card-template">
       <article class="song-card">
         <div class="song-heading"><p class="eyebrow" data-category></p><span class="duration" data-duration></span></div>
@@ -41,30 +41,33 @@
           <div class="song-timeline"><svg class="waveform" viewBox="0 0 384 48" preserveAspectRatio="none" aria-hidden="true"></svg><input type="range" data-seek min="0" max="100" step="0.1" value="0" disabled><div class="time-row"><span data-position>0:00</span><span data-length></span></div></div>
           <audio preload="none"></audio>
         </div>
-        <details class="song-recipe"><summary>Lyrics, prompt &amp; downloads</summary>
-          <h3>Musical direction</h3><p data-style></p>
-          <h3>Lyrics</h3><pre class="lyrics" data-lyrics></pre>
+        <details class="song-recipe"><summary data-gallery-text="Lyrics, prompt &amp; downloads">Lyrics, prompt &amp; downloads</summary>
+          <h3 data-gallery-text="Musical direction">Musical direction</h3><p data-style></p>
+          <h3 data-gallery-text="Lyrics">Lyrics</h3><pre class="lyrics" data-lyrics></pre>
           <dl class="recipe-facts"></dl>
-          <div class="recipe-actions"><button type="button" data-copy>Copy request</button><a data-recipe download>Prompt JSON</a><a data-opus download>Download Opus</a><a data-replay download>Replay JSON</a></div>
-          <p class="recipe-tip">Open the prompt JSON in your local studio for a new take. The replay JSON also contains this recording’s score and audio codes.</p>
+          <div class="recipe-actions"><button type="button" data-copy data-gallery-text="Copy request">Copy request</button><a data-recipe download data-gallery-text="Prompt JSON">Prompt JSON</a><a data-opus download data-gallery-text="Download Opus">Download Opus</a><a data-replay download data-gallery-text="Replay JSON">Replay JSON</a></div>
+          <p class="recipe-tip" data-gallery-text="Open the prompt JSON in your local studio for a new take. The replay JSON also contains this recording’s score and audio codes.">Open the prompt JSON in your local studio for a new take. The replay JSON also contains this recording’s score and audio codes.</p>
         </details>
       </article>
     </template>
     <section class="gallery-howto" aria-labelledby="try-heading">
-      <div><p class="eyebrow">Make it your own</p><h2 id="try-heading">Start with a prompt. Find your sound.</h2></div>
-      <ol><li>Download a song’s <strong>Prompt JSON</strong>.</li><li>In your local YuE2 studio, select <strong>Open</strong> and choose the file.</li><li>Edit the lyrics or musical direction. Leave seeds blank for a fresh take, then generate.</li></ol>
-      <a class="gallery-cta" href="../README.md#quick-start">Run the local studio ↗</a>
+      <div><p class="eyebrow" data-gallery-text="Make it your own">Make it your own</p><h2 id="try-heading" data-gallery-text="Start with a prompt. Find your sound.">Start with a prompt. Find your sound.</h2></div>
+      <ol><li data-gallery-text="Download a song's Prompt JSON.">Download a song's Prompt JSON.</li><li data-gallery-text="In your local YuE2 studio, select Open and choose the file.">In your local YuE2 studio, select Open and choose the file.</li><li data-gallery-text="Edit the lyrics or musical direction. Leave seeds blank for a fresh take, then generate.">Edit the lyrics or musical direction. Leave seeds blank for a fresh take, then generate.</li></ol>
+      <a class="gallery-cta" data-gallery-text="Run the local studio ↗" href="../README.md#quick-start">Run the local studio ↗</a>
     </section>
     <footer class="gallery-notes">
-      <p>These recordings were generated with YuE2 from original demo lyrics and text prompts, without uploaded reference recordings. Genre and voice descriptions are requests to the model, not guarantees. They are listening examples, not a performance benchmark.</p>
-      <p>The <a href="https://huggingface.co/m-a-p/YuE2-3B">upstream model card</a> lists English and Chinese. Japanese and Spanish recordings here are experimental language requests. Automatic excerpt checks are encouraging; full-song pronunciation and lyric accuracy have not been reviewed by fluent listeners. See the <a href="README.md">language notes</a>. The documentation remains in English.</p>
-      <p>Model terms apply separately from the application’s MIT license. See <a href="../docs/MODELS.md">model sources and terms</a>. <a href="assets/manifest.json" download>Download provenance manifest</a> · <a href="README.md">Generation guide</a></p>
+      <p data-gallery-text="These songs use original demo lyrics and text prompts, with no uploaded reference recordings. Genre and voice descriptions are model hints. Listening examples do not establish benchmark results.">These songs use original demo lyrics and text prompts, with no uploaded reference recordings. Genre and voice descriptions are model hints. Listening examples do not establish benchmark results.</p>
+      <p data-gallery-text="The publisher lists English and Chinese. Japanese and Spanish requests here are experimental. Full-song pronunciation and lyric fidelity have not been reviewed by fluent listeners. Interface language never changes the original lyrics, direction or recordings.">The publisher lists English and Chinese. Japanese and Spanish requests here are experimental. Full-song pronunciation and lyric fidelity have not been reviewed by fluent listeners. Interface language never changes the original lyrics, direction or recordings.</p>
+      <p><a href="https://huggingface.co/m-a-p/YuE2-3B" data-gallery-text="Upstream model card">Upstream model card</a> · <a href="README.md" data-gallery-text="Language notes">Language notes</a></p>
+      <p data-gallery-text="Model terms apply separately from the application's MIT license. Detailed technical references currently remain in English.">Model terms apply separately from the application's MIT license. Detailed technical references currently remain in English.</p>
+      <p><a href="../docs/MODELS.md" data-gallery-text="Model sources and terms">Model sources and terms</a> · <a href="assets/manifest.json" download data-gallery-text="Download provenance manifest">Download provenance manifest</a> · <a href="README.md" data-gallery-text="Generation guide">Generation guide</a></p>
     </footer>
     <p class="sr-only" data-copy-status role="status" aria-live="polite"></p>
     <noscript><p>Enable JavaScript to use the players, or download the <a href="assets/manifest.json">recording manifest</a> and its linked Opus files.</p></noscript>
     </div>
   </main>
   <script src="catalog.js"></script>
+  <script src="locales.js"></script>
   <script src="player.js"></script>
 </body>
 </html>

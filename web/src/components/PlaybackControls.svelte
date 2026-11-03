@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { msg } from '../lib/i18n.svelte.js';
 	import { untrack } from 'svelte';
 	import { Volume2, VolumeX } from '@lucide/svelte';
 	import { app } from '../lib/state.svelte.js';
@@ -13,12 +14,14 @@
 	}
 </script>
 
-<section class="playback-controls" aria-label="Playback controls">
+<section class="playback-controls" aria-label={msg('Playback controls')}>
 	<div class="playback-heading">
-		<label for="playback-volume">Playback volume</label>
+		<label for="playback-volume">{msg('Playback volume')}</label>
 		<SettingHelp
-			title="Playback volume"
-			text="Listening level in this browser. At 100%, a single track plays at its original level. Several tracks playing together share headroom to reduce clipping. Downloads and generation settings are unaffected."
+			title={msg('Playback volume')}
+			text={msg(
+				'Listening level in this browser. At 100%, a single track plays at its original level. Several tracks playing together share headroom to reduce clipping. Downloads and generation settings are unaffected.'
+			)}
 		/>
 		<output for="playback-volume">{percentage}%</output>
 	</div>
@@ -26,7 +29,7 @@
 		<button
 			type="button"
 			class="icon-btn"
-			aria-label={app.volume === 0 ? 'Unmute playback' : 'Mute playback'}
+			aria-label={app.volume === 0 ? msg('Unmute playback') : msg('Mute playback')}
 			aria-pressed={app.volume === 0}
 			onclick={toggleMute}
 		>
@@ -38,7 +41,7 @@
 			min="0"
 			max="1"
 			step="0.01"
-			aria-label="Playback volume"
+			aria-label={msg('Playback volume')}
 			aria-valuetext={`${percentage}%`}
 			bind:value={app.volume}
 		/>

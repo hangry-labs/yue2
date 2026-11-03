@@ -2,6 +2,10 @@
   <img src="web/src/assets/yue2_logo_horizontal.webp" alt="Hangry Labs YuE2 logo" width="900">
 </p>
 
+<p align="center"><strong>English</strong> · <a href="README.nb.md">Norsk bokmål</a> · <a href="README.pl.md">Polski</a> · <a href="README.ja.md">日本語</a> · <a href="README.zh.md">简体中文</a> · <a href="README.es.md">Español</a></p>
+
+<p align="center"><a href="https://hangry-labs.github.io/yue2/examples/?lang=en"><strong>🎧 Listen to generated songs</strong></a></p>
+
 # Hangry Labs YuE2
 
 **[Listen to generated songs](https://hangry-labs.github.io/yue2/examples/)** ·
@@ -25,18 +29,9 @@ Use Docker with NVIDIA GPU support and a driver compatible with the CUDA 12.9.1
 runtime. The tested machine has an **RTX 5070 Ti with 16 GB VRAM**; other GPU
 configurations have not been qualified.
 
-**Download the models first.** Create a local `data/models/` folder and save these
-two files there, keeping their filenames. Downloads total approximately 4.34 GB.
-The links use the pinned publisher revision in the [model manifest](docker/models.json),
-which also contains their SHA-256 checksums.
-
-| Download | Purpose | Size |
-| --- | --- | --- |
-| [YuE2-3B-Q8_0.gguf](https://huggingface.co/Serveurperso/YuE2-GGUF/resolve/e630f2b8f6aedf8254c3186438633c1b5eeaf80a/YuE2-3B-Q8_0.gguf) | Song generation backbone | 3.81 GB |
-| [YuE2-Vae-F32.gguf](https://huggingface.co/Serveurperso/YuE2-GGUF/resolve/e630f2b8f6aedf8254c3186438633c1b5eeaf80a/YuE2-Vae-F32.gguf) | Audio encoder/decoder | 530 MB |
-
-From the directory containing `data/models/`, start the container. These commands
-use the published, moving development tag `latest`.
+**One-time setup:** put the [two model files](#model-downloads) in `data/models/`.
+Then start the studio with one command from the directory containing that folder.
+These commands use the published, moving development tag `latest`.
 
 **Bash:**
 
@@ -55,6 +50,22 @@ lyrics, then select **Generate**. No host compiler or Python is needed to run
 the published image. The container includes the studio and native tools;
 **model weights stay outside the image and are not downloaded by the server**.
 Generation can run offline once the image and models are present.
+
+<details markdown="1">
+<summary><strong>First run: model downloads and checksums</strong></summary>
+
+<a id="model-downloads"></a>
+
+Create `data/models/` and save these two files there, keeping their filenames.
+Downloads total approximately 4.34 GB. The links use the pinned publisher
+revision in the [model manifest](docker/models.json), which includes SHA-256 checksums.
+
+| Download | Purpose | Size |
+| --- | --- | --- |
+| [YuE2-3B-Q8_0.gguf](https://huggingface.co/Serveurperso/YuE2-GGUF/resolve/e630f2b8f6aedf8254c3186438633c1b5eeaf80a/YuE2-3B-Q8_0.gguf) | Song generation backbone | 3.81 GB |
+| [YuE2-Vae-F32.gguf](https://huggingface.co/Serveurperso/YuE2-GGUF/resolve/e630f2b8f6aedf8254c3186438633c1b5eeaf80a/YuE2-Vae-F32.gguf) | Audio encoder/decoder | 530 MB |
+
+</details>
 
 For automatic model download and checksum verification from a checkout, use
 `task models`. To build locally, see [Local Development](#local-development).
@@ -77,6 +88,13 @@ server arguments. They are optional and are not included in the default
 downloads. See [Models](docs/MODELS.md).
 
 ## Browser UI
+
+Choose English, Norwegian Bokmål, Polish, Japanese, Simplified Chinese or Spanish
+in the header. Direct links are `/en`, `/nb`, `/pl`, `/ja`, `/zh` and `/es`.
+The browser remembers your choice; switching preserves lyrics, direction,
+settings, saved songs and active work. Interface language does not select the
+singing language or translate your lyrics. Describe the singing language in
+musical direction and supply the words you want sung.
 
 <p align="center">
   <a href="assets/screenshots/create-ui.webp">

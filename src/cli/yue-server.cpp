@@ -1185,6 +1185,8 @@ int main(int argc, char ** argv) {
         res.set_content(std::string((const char *) index_html_gz, index_html_gz_len), "text/html");
     };
     svr.Get("/", serve_ui);
+    // Locale pages serve the same offline bundle; switching locale never reloads a job.
+    svr.Get("/(en|nb|pl|ja|zh|es)(/docs)?/?", serve_ui);
     svr.Get("/docs", serve_ui);
     svr.Get("/docs/", [](const httplib::Request &, httplib::Response & res) { res.set_redirect("/docs"); });
 

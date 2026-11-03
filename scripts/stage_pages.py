@@ -40,7 +40,8 @@ def stage(root=ROOT):
             raise ValueError('Pages inputs must be ordinary files inside the checkout.')
         if source.is_file():
             public_roots = ('docs/', 'assets/', 'examples/', 'site/theme/', 'web/src/assets/')
-            public_files = {'README.md', '_config.yml', '404.md', 'LICENSE', 'THIRD_PARTY_NOTICES.md'}
+            public_files = {'README.md', 'README.nb.md', 'README.pl.md', 'README.ja.md', 'README.zh.md', 'README.es.md',
+                            '_config.yml', '404.md', 'LICENSE', 'THIRD_PARTY_NOTICES.md'}
             benchmark_doc = name.startswith('benchmarks/') and (
                 name.endswith('.md') or name in ('benchmarks/BASELINE.json', 'benchmarks/corpus.json',
                     'benchmarks/long-music/BASELINE.json', 'benchmarks/fixtures/long-music.txt',

@@ -67,6 +67,7 @@ import {LANGUAGE_NAMES, MESSAGES, chooseLanguage, createRouter} from './i18n.mjs
         } else if (relative && current) anchor.href = original.href;
       }
     }
+    document.dispatchEvent(new CustomEvent('hangry:language', {detail:{language}}));
     return true;
   }
   for (const code of languages) { const option = new Option(LANGUAGE_NAMES[code] || code,code); option.lang = code; selector.append(option); }
