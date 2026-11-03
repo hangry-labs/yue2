@@ -24,18 +24,18 @@ HTTP API、MCP和48 kHz立体声输出。项目基于
 **Bash：**
 
 ```bash
-docker run -d --name yue2 --restart unless-stopped --gpus all -p 127.0.0.1:8087:8087 --mount "type=bind,source=$(pwd)/data/models,target=/models,readonly" --mount type=volume,source=yue2-output,target=/output hangrylabs/yue2:latest
+docker run -d --name yue2 --restart unless-stopped --gpus all -p 127.0.0.1:8087:8087 --mount "type=bind,source=$(pwd)/data/models,target=/models,readonly" --mount type=volume,source=yue2-output,target=/output hangrylabs/yue2:v1.0.0@sha256:446bd69099513f8b1d762656d455826872b7221ab232aa05e907f3ada90c9b34
 ```
 
 **PowerShell：**
 
 ```powershell
-docker run -d --name yue2 --restart unless-stopped --gpus all -p 127.0.0.1:8087:8087 --mount "type=bind,source=$($PWD.Path)\data\models,target=/models,readonly" --mount type=volume,source=yue2-output,target=/output hangrylabs/yue2:latest
+docker run -d --name yue2 --restart unless-stopped --gpus all -p 127.0.0.1:8087:8087 --mount "type=bind,source=$($PWD.Path)\data\models,target=/models,readonly" --mount type=volume,source=yue2-output,target=/output hangrylabs/yue2:v1.0.0@sha256:446bd69099513f8b1d762656d455826872b7221ab232aa05e907f3ada90c9b34
 ```
 
 打开**[http://localhost:8087](http://localhost:8087)**，输入歌词与音乐风格，点击“生成歌曲”。
-主机无需安装Python或编译器。`latest`为持续更新的开发标签。
-相同镜像也可从`ghcr.io/hangry-labs/yue2:latest`获取。
+主机无需安装Python或编译器。上述命令固定稳定版 `v1.0.0`；`latest` 继续跟踪开发版本。
+相同稳定版镜像也可从 `ghcr.io/hangry-labs/yue2:v1.0.0@sha256:446bd69099513f8b1d762656d455826872b7221ab232aa05e907f3ada90c9b34` 获取。
 
 <details markdown="1">
 <summary><strong>首次使用：下载模型</strong></summary>
@@ -150,6 +150,7 @@ Hangry Labs维护UI、API、打包和验证。项目代码采用[MIT许可](LICE
 ### v1.0.0
 
 首个稳定版本包含本地工作室、原生／OpenAI兼容API、MCP、多语言界面、外部模型和已验证CUDA依赖。
-已准备好发布。带版本号的容器镜像将在发布后提供；快速入门使用持续更新的 `latest` 标签。
+已于2026年11月3日发布。参见[发行说明](https://github.com/hangry-labs/yue2/releases/tag/v1.0.0)。
+快速入门固定稳定版标签及经过验证的OCI摘要。
 
 </details>

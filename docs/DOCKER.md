@@ -32,17 +32,23 @@ application image. For model downloads and Bash/PowerShell quick starts, see
 the [README](../README.md#quick-start). The [Docker Hub overview](dockerhub.md)
 is maintained separately for the registry page.
 
+The first stable release is [v1.0.0](https://github.com/hangry-labs/yue2/releases/tag/v1.0.0).
+Both registries expose the verified top-level OCI index
+`sha256:446bd69099513f8b1d762656d455826872b7221ab232aa05e907f3ada90c9b34`.
+
 With the two external model files downloaded, PowerShell:
 
 ```powershell
-docker run -d --name yue2 --gpus all -p 127.0.0.1:8087:8087 --mount "type=bind,source=$($PWD.Path)\data\models,target=/models,readonly" --mount type=volume,source=yue2-output,target=/output hangrylabs/yue2:latest
+docker run -d --name yue2 --gpus all -p 127.0.0.1:8087:8087 --mount "type=bind,source=$($PWD.Path)\data\models,target=/models,readonly" --mount type=volume,source=yue2-output,target=/output hangrylabs/yue2:v1.0.0@sha256:446bd69099513f8b1d762656d455826872b7221ab232aa05e907f3ada90c9b34
 ```
 
-For GHCR, replace the image with `ghcr.io/hangry-labs/yue2:latest`. In Bash, use
+For GHCR, replace the image with
+`ghcr.io/hangry-labs/yue2:v1.0.0@sha256:446bd69099513f8b1d762656d455826872b7221ab232aa05e907f3ada90c9b34`.
+In Bash, use
 `--mount "type=bind,source=$(pwd)/data/models,target=/models,readonly"`. The models are
 not included or downloaded by the server. `task models` prepares them. The
-rolling `latest` image follows development; stable release commands should use
-the version tag and the top-level OCI digest verified on both registries.
+rolling `latest` image follows development; the stable command pins the version
+tag and the top-level OCI digest verified on both registries.
 
 See [publication and visibility](RELEASING.md) for the first GHCR package's public
 access setting and the workflow's post-upload digest checks.
@@ -111,7 +117,7 @@ For optional adapters, create a host `data/adapters/` directory alongside `data/
 Use this command when creating the container. PowerShell:
 
 ```powershell
-docker run -d --name yue2 --restart unless-stopped --gpus all -p 127.0.0.1:8087:8087 --mount "type=bind,source=$($PWD.Path)\data\models,target=/models,readonly" --mount "type=bind,source=$($PWD.Path)\data\adapters,target=/adapters,readonly" --mount type=volume,source=yue2-output,target=/output hangrylabs/yue2:latest
+docker run -d --name yue2 --restart unless-stopped --gpus all -p 127.0.0.1:8087:8087 --mount "type=bind,source=$($PWD.Path)\data\models,target=/models,readonly" --mount "type=bind,source=$($PWD.Path)\data\adapters,target=/adapters,readonly" --mount type=volume,source=yue2-output,target=/output hangrylabs/yue2:v1.0.0@sha256:446bd69099513f8b1d762656d455826872b7221ab232aa05e907f3ada90c9b34
 ```
 
 In Bash use `source=$(pwd)/data/models` and `source=$(pwd)/data/adapters` in the respective

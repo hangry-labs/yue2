@@ -31,18 +31,18 @@ configurations have not been qualified.
 
 **One-time setup:** put the [two model files](#model-downloads) in `data/models/`.
 Then start the studio with one command from the directory containing that folder.
-These commands use the published, moving development tag `latest`.
+These commands pin the published stable `v1.0.0` image and its verified OCI digest.
 
 **Bash:**
 
 ```bash
-docker run -d --name yue2 --restart unless-stopped --gpus all -p 127.0.0.1:8087:8087 --mount "type=bind,source=$(pwd)/data/models,target=/models,readonly" --mount type=volume,source=yue2-output,target=/output hangrylabs/yue2:latest
+docker run -d --name yue2 --restart unless-stopped --gpus all -p 127.0.0.1:8087:8087 --mount "type=bind,source=$(pwd)/data/models,target=/models,readonly" --mount type=volume,source=yue2-output,target=/output hangrylabs/yue2:v1.0.0@sha256:446bd69099513f8b1d762656d455826872b7221ab232aa05e907f3ada90c9b34
 ```
 
 **PowerShell:**
 
 ```powershell
-docker run -d --name yue2 --restart unless-stopped --gpus all -p 127.0.0.1:8087:8087 --mount "type=bind,source=$($PWD.Path)\data\models,target=/models,readonly" --mount type=volume,source=yue2-output,target=/output hangrylabs/yue2:latest
+docker run -d --name yue2 --restart unless-stopped --gpus all -p 127.0.0.1:8087:8087 --mount "type=bind,source=$($PWD.Path)\data\models,target=/models,readonly" --mount type=volume,source=yue2-output,target=/output hangrylabs/yue2:v1.0.0@sha256:446bd69099513f8b1d762656d455826872b7221ab232aa05e907f3ada90c9b34
 ```
 
 Open **[http://localhost:8087](http://localhost:8087)**, enter style tags and
@@ -139,13 +139,14 @@ One CUDA image is published to both registries:
 | Tag | Meaning | Models |
 | --- | --- | --- |
 | `latest` | Moving development build from `master` | External read-only mount |
-| `vX.Y.Z` | Matching stable version, when released | External read-only mount |
+| `v1.0.0` | First stable application release | External read-only mount |
 
-For GHCR, replace `hangrylabs/yue2:latest` in the quick start with
-`ghcr.io/hangry-labs/yue2:latest`. No stable application release is documented
-yet. Stable quick starts will use the version tag and verified top-level OCI
-digest after publication. The `ggml-deps-*` GitHub Release contains build
-libraries, not a runnable song-generation image.
+For GHCR, replace the image in the quick start with
+`ghcr.io/hangry-labs/yue2:v1.0.0@sha256:446bd69099513f8b1d762656d455826872b7221ab232aa05e907f3ada90c9b34`.
+Both registries expose the same verified top-level OCI index. See the
+[v1.0.0 release](https://github.com/hangry-labs/yue2/releases/tag/v1.0.0) for image
+references and qualification results. The `ggml-deps-*` GitHub Releases contain
+build libraries, not runnable song-generation images.
 
 See the [Docker guide](docs/DOCKER.md), [publication rules](docs/RELEASING.md)
 and prepared [Docker Hub overview](docs/dockerhub.md).
@@ -296,8 +297,8 @@ See the [documentation index](docs/README.md) for user and developer guides.
 
 ### v1.0.0
 
-Prepared for the first stable application release. Versioned container images
-will be available after publication; the quick start uses the rolling `latest` tag.
+First stable application release, published on November 3, 2026. See the
+[release notes](https://github.com/hangry-labs/yue2/releases/tag/v1.0.0).
 
 - Package the C++20/GGML song engine and standalone studio for CUDA in Docker.
 - Add Create, Library, API and System views with GPU telemetry and six interface languages.

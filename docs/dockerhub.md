@@ -42,18 +42,18 @@ Alternatively, run `task models` from a project checkout to download and verify
 them automatically. See the [model guide](https://github.com/hangry-labs/yue2/blob/master/docs/MODELS.md).
 
 From the directory containing `data/models/`, run one of these commands using the
-published, moving development tag `latest`:
+published stable `v1.0.0` image, pinned to its verified OCI digest:
 
 **Bash:**
 
 ```bash
-docker run -d --name yue2 --restart unless-stopped --gpus all -p 127.0.0.1:8087:8087 --mount "type=bind,source=$(pwd)/data/models,target=/models,readonly" --mount type=volume,source=yue2-output,target=/output hangrylabs/yue2:latest
+docker run -d --name yue2 --restart unless-stopped --gpus all -p 127.0.0.1:8087:8087 --mount "type=bind,source=$(pwd)/data/models,target=/models,readonly" --mount type=volume,source=yue2-output,target=/output hangrylabs/yue2:v1.0.0@sha256:446bd69099513f8b1d762656d455826872b7221ab232aa05e907f3ada90c9b34
 ```
 
 **PowerShell:**
 
 ```powershell
-docker run -d --name yue2 --restart unless-stopped --gpus all -p 127.0.0.1:8087:8087 --mount "type=bind,source=$($PWD.Path)\data\models,target=/models,readonly" --mount type=volume,source=yue2-output,target=/output hangrylabs/yue2:latest
+docker run -d --name yue2 --restart unless-stopped --gpus all -p 127.0.0.1:8087:8087 --mount "type=bind,source=$($PWD.Path)\data\models,target=/models,readonly" --mount type=volume,source=yue2-output,target=/output hangrylabs/yue2:v1.0.0@sha256:446bd69099513f8b1d762656d455826872b7221ab232aa05e907f3ada90c9b34
 ```
 
 Open **http://localhost:8087**, enter style tags and lyrics, then select
@@ -111,13 +111,14 @@ There is one CUDA runtime image, with the same build published to both registrie
 | Tag | Meaning |
 | --- | --- |
 | `latest` | Moving development build from `master` |
-| `vX.Y.Z` | Matching stable application release, when published |
+| `v1.0.0` | First stable application release |
 
-Replace the image in the quick start with `ghcr.io/hangry-labs/yue2:latest` to
-use GHCR. A stable application release has not been recorded; the quick start
-deliberately follows development. Stable commands will include verified OCI
-index digests after release. The `ggml-deps-*` GitHub Release is a build-library
-archive, not this runtime image.
+To use GHCR, replace the image in the quick start with
+`ghcr.io/hangry-labs/yue2:v1.0.0@sha256:446bd69099513f8b1d762656d455826872b7221ab232aa05e907f3ada90c9b34`.
+Both registries expose the same verified top-level OCI index. See the
+[v1.0.0 release](https://github.com/hangry-labs/yue2/releases/tag/v1.0.0) for image
+references and qualification results. The `ggml-deps-*` GitHub Releases are
+build-library archives, not this runtime image.
 
 ## Persistent Data And Runtime Settings
 

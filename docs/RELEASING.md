@@ -5,6 +5,23 @@ The publishing workflow targets one weight-free CUDA runtime image in both regis
 - Docker Hub: `hangrylabs/yue2`
 - GitHub Container Registry: `ghcr.io/hangry-labs/yue2`
 
+## Current stable release
+
+[v1.0.0](https://github.com/hangry-labs/yue2/releases/tag/v1.0.0) was published on
+November 3, 2026 from commit `a8df40ba3e7d2a5417a2645f8ef91f72a9022fc9`.
+[Workflow 41702398585](https://github.com/hangry-labs/yue2/actions/runs/41702398585)
+verified matching registry indexes and public pull access:
+
+```text
+hangrylabs/yue2:v1.0.0@sha256:446bd69099513f8b1d762656d455826872b7221ab232aa05e907f3ada90c9b34
+ghcr.io/hangry-labs/yue2:v1.0.0@sha256:446bd69099513f8b1d762656d455826872b7221ab232aa05e907f3ada90c9b34
+```
+
+The release assets include `images.json` with immutable references and
+`validation.json` with the qualification summary. Model weights are external.
+
+## Publication history and policy
+
 The workflow builds a single image with external weights and uses `master`
 as its default branch.
 The first application publication completed successfully in

@@ -24,19 +24,20 @@ Z katalogu zawierającego `data/` uruchom jedną komendę:
 **Bash:**
 
 ```bash
-docker run -d --name yue2 --restart unless-stopped --gpus all -p 127.0.0.1:8087:8087 --mount "type=bind,source=$(pwd)/data/models,target=/models,readonly" --mount type=volume,source=yue2-output,target=/output hangrylabs/yue2:latest
+docker run -d --name yue2 --restart unless-stopped --gpus all -p 127.0.0.1:8087:8087 --mount "type=bind,source=$(pwd)/data/models,target=/models,readonly" --mount type=volume,source=yue2-output,target=/output hangrylabs/yue2:v1.0.0@sha256:446bd69099513f8b1d762656d455826872b7221ab232aa05e907f3ada90c9b34
 ```
 
 **PowerShell:**
 
 ```powershell
-docker run -d --name yue2 --restart unless-stopped --gpus all -p 127.0.0.1:8087:8087 --mount "type=bind,source=$($PWD.Path)\data\models,target=/models,readonly" --mount type=volume,source=yue2-output,target=/output hangrylabs/yue2:latest
+docker run -d --name yue2 --restart unless-stopped --gpus all -p 127.0.0.1:8087:8087 --mount "type=bind,source=$($PWD.Path)\data\models,target=/models,readonly" --mount type=volume,source=yue2-output,target=/output hangrylabs/yue2:v1.0.0@sha256:446bd69099513f8b1d762656d455826872b7221ab232aa05e907f3ada90c9b34
 ```
 
 Otwórz **[http://localhost:8087](http://localhost:8087)**, wpisz tekst i opis muzyki,
 a następnie wybierz **Generuj piosenkę**. Python ani kompilator na hoście nie są potrzebne.
-`latest` to ruchomy tag rozwojowy. Ten sam obraz jest dostępny jako
-`ghcr.io/hangry-labs/yue2:latest`.
+Komendy przypinają stabilną wersję `v1.0.0`. `latest` nadal śledzi rozwój.
+Ten sam stabilny obraz jest dostępny jako
+`ghcr.io/hangry-labs/yue2:v1.0.0@sha256:446bd69099513f8b1d762656d455826872b7221ab232aa05e907f3ada90c9b34`.
 
 <details markdown="1">
 <summary><strong>Pierwsze uruchomienie: pobieranie modeli</strong></summary>
@@ -159,7 +160,7 @@ Kontakt: [contact@hangrylabs.app](mailto:contact@hangrylabs.app).
 
 Pierwsza stabilna wersja: lokalne studio, natywne i zgodne z OpenAI API, MCP,
 wielojęzyczny interfejs, zewnętrzne wagi i zweryfikowane zależności CUDA.
-Przygotowana do wydania. Wersjonowane obrazy kontenerów będą dostępne po
-publikacji; szybki start korzysta z aktualizowanego tagu `latest`.
+Opublikowana 3 listopada 2026. Zobacz [opis wydania](https://github.com/hangry-labs/yue2/releases/tag/v1.0.0).
+Szybki start przypina stabilną wersję i zweryfikowany skrót OCI.
 
 </details>

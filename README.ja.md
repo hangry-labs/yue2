@@ -24,18 +24,19 @@ NVIDIA GPUに対応したDockerと、CUDA 12.9.1互換ドライバーが必要�
 **Bash：**
 
 ```bash
-docker run -d --name yue2 --restart unless-stopped --gpus all -p 127.0.0.1:8087:8087 --mount "type=bind,source=$(pwd)/data/models,target=/models,readonly" --mount type=volume,source=yue2-output,target=/output hangrylabs/yue2:latest
+docker run -d --name yue2 --restart unless-stopped --gpus all -p 127.0.0.1:8087:8087 --mount "type=bind,source=$(pwd)/data/models,target=/models,readonly" --mount type=volume,source=yue2-output,target=/output hangrylabs/yue2:v1.0.0@sha256:446bd69099513f8b1d762656d455826872b7221ab232aa05e907f3ada90c9b34
 ```
 
 **PowerShell：**
 
 ```powershell
-docker run -d --name yue2 --restart unless-stopped --gpus all -p 127.0.0.1:8087:8087 --mount "type=bind,source=$($PWD.Path)\data\models,target=/models,readonly" --mount type=volume,source=yue2-output,target=/output hangrylabs/yue2:latest
+docker run -d --name yue2 --restart unless-stopped --gpus all -p 127.0.0.1:8087:8087 --mount "type=bind,source=$($PWD.Path)\data\models,target=/models,readonly" --mount type=volume,source=yue2-output,target=/output hangrylabs/yue2:v1.0.0@sha256:446bd69099513f8b1d762656d455826872b7221ab232aa05e907f3ada90c9b34
 ```
 
 **[http://localhost:8087](http://localhost:8087)**を開き、歌詞とスタイルを入力して
 「曲を生成」を選びます。ホスト側にPythonやコンパイラーは不要です。
-`latest`は更新される開発タグです。同じイメージを`ghcr.io/hangry-labs/yue2:latest`からも取得できます。
+上のコマンドは安定版 `v1.0.0` を固定します。`latest` は開発版を追跡します。
+同じ安定版は `ghcr.io/hangry-labs/yue2:v1.0.0@sha256:446bd69099513f8b1d762656d455826872b7221ab232aa05e907f3ada90c9b34` からも取得できます。
 
 <details markdown="1">
 <summary><strong>初回の準備：モデルのダウンロード</strong></summary>
@@ -156,7 +157,7 @@ Hangry LabsはUI、API、パッケージ化、検証を担当します。プロ�
 
 ローカルスタジオ、ネイティブ／OpenAI互換API、MCP、多言語UI、外部モデル、
 検証済みCUDA依存ライブラリを含む初の安定版です。
-リリースに向けて準備済みです。バージョン付きコンテナイメージは公開後に利用できます。
-クイックスタートでは随時更新される `latest` タグを使用します。
+2026年11月3日公開。[リリースノート](https://github.com/hangry-labs/yue2/releases/tag/v1.0.0)をご覧ください。
+クイックスタートは安定版タグと検証済みOCIダイジェストを固定します。
 
 </details>

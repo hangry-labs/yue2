@@ -24,19 +24,20 @@ en `data/models/`. Desde el directorio que contiene `data/`, ejecuta una de esta
 **Bash:**
 
 ```bash
-docker run -d --name yue2 --restart unless-stopped --gpus all -p 127.0.0.1:8087:8087 --mount "type=bind,source=$(pwd)/data/models,target=/models,readonly" --mount type=volume,source=yue2-output,target=/output hangrylabs/yue2:latest
+docker run -d --name yue2 --restart unless-stopped --gpus all -p 127.0.0.1:8087:8087 --mount "type=bind,source=$(pwd)/data/models,target=/models,readonly" --mount type=volume,source=yue2-output,target=/output hangrylabs/yue2:v1.0.0@sha256:446bd69099513f8b1d762656d455826872b7221ab232aa05e907f3ada90c9b34
 ```
 
 **PowerShell:**
 
 ```powershell
-docker run -d --name yue2 --restart unless-stopped --gpus all -p 127.0.0.1:8087:8087 --mount "type=bind,source=$($PWD.Path)\data\models,target=/models,readonly" --mount type=volume,source=yue2-output,target=/output hangrylabs/yue2:latest
+docker run -d --name yue2 --restart unless-stopped --gpus all -p 127.0.0.1:8087:8087 --mount "type=bind,source=$($PWD.Path)\data\models,target=/models,readonly" --mount type=volume,source=yue2-output,target=/output hangrylabs/yue2:v1.0.0@sha256:446bd69099513f8b1d762656d455826872b7221ab232aa05e907f3ada90c9b34
 ```
 
 Abre **[http://localhost:8087](http://localhost:8087)**, escribe la letra y el estilo,
 y pulsa **Generar canción**. No necesitas Python ni compilador en el equipo.
-`latest` es una etiqueta móvil de desarrollo. El mismo contenedor está disponible
-en `ghcr.io/hangry-labs/yue2:latest`.
+Los comandos fijan la versión estable `v1.0.0`; `latest` sigue el desarrollo.
+La misma imagen estable está disponible en
+`ghcr.io/hangry-labs/yue2:v1.0.0@sha256:446bd69099513f8b1d762656d455826872b7221ab232aa05e907f3ada90c9b34`.
 
 <details markdown="1">
 <summary><strong>Primera ejecución: descargar los modelos</strong></summary>
@@ -164,7 +165,7 @@ Contacto: [contact@hangrylabs.app](mailto:contact@hangrylabs.app).
 
 Primera versión estable con estudio local, API nativa y compatible con OpenAI, MCP,
 interfaz multilingüe, modelos externos y dependencias CUDA verificadas.
-Preparada para su publicación. Las imágenes con versión estarán disponibles
-tras publicarse; el inicio rápido utiliza la etiqueta actualizable `latest`.
+Publicada el 3 de noviembre de 2026. Consulta las [notas de la versión](https://github.com/hangry-labs/yue2/releases/tag/v1.0.0).
+El inicio rápido fija la versión estable y su resumen OCI verificado.
 
 </details>

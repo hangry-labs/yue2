@@ -24,19 +24,20 @@ Last ned [de to modellfilene](#model-downloads) én gang til `data/models/`, og 
 **Bash:**
 
 ```bash
-docker run -d --name yue2 --restart unless-stopped --gpus all -p 127.0.0.1:8087:8087 --mount "type=bind,source=$(pwd)/data/models,target=/models,readonly" --mount type=volume,source=yue2-output,target=/output hangrylabs/yue2:latest
+docker run -d --name yue2 --restart unless-stopped --gpus all -p 127.0.0.1:8087:8087 --mount "type=bind,source=$(pwd)/data/models,target=/models,readonly" --mount type=volume,source=yue2-output,target=/output hangrylabs/yue2:v1.0.0@sha256:446bd69099513f8b1d762656d455826872b7221ab232aa05e907f3ada90c9b34
 ```
 
 **PowerShell:**
 
 ```powershell
-docker run -d --name yue2 --restart unless-stopped --gpus all -p 127.0.0.1:8087:8087 --mount "type=bind,source=$($PWD.Path)\data\models,target=/models,readonly" --mount type=volume,source=yue2-output,target=/output hangrylabs/yue2:latest
+docker run -d --name yue2 --restart unless-stopped --gpus all -p 127.0.0.1:8087:8087 --mount "type=bind,source=$($PWD.Path)\data\models,target=/models,readonly" --mount type=volume,source=yue2-output,target=/output hangrylabs/yue2:v1.0.0@sha256:446bd69099513f8b1d762656d455826872b7221ab232aa05e907f3ada90c9b34
 ```
 
 Åpne **[http://localhost:8087](http://localhost:8087)**, skriv sangtekst og
 musikalsk retning, og velg **Generer sang**. Du trenger ikke Python eller
-kompilator på vertsmaskinen. `latest` er en rullerende utviklingsversjon.
-Samme bilde finnes som `ghcr.io/hangry-labs/yue2:latest`.
+kompilator på vertsmaskinen. Kommandoene låser den stabile `v1.0.0`-utgivelsen.
+`latest` følger utviklingen. Samme stabile bilde finnes som
+`ghcr.io/hangry-labs/yue2:v1.0.0@sha256:446bd69099513f8b1d762656d455826872b7221ab232aa05e907f3ada90c9b34`.
 
 <details markdown="1">
 <summary><strong>Første gang: last ned modellene</strong></summary>
@@ -159,7 +160,7 @@ Kontakt: [contact@hangrylabs.app](mailto:contact@hangrylabs.app).
 
 Første stabile versjon med lokalt studio, native/OpenAI-kompatible API-er, MCP,
 flerspråklig grensesnitt, eksterne modeller og verifiserte CUDA-avhengigheter.
-Klargjort for utgivelse. Versjonerte containerbilder blir tilgjengelige etter
-publisering; hurtigstarten bruker den løpende `latest`-taggen.
+Publisert 3. november 2026. Se [utgivelsesnotatene](https://github.com/hangry-labs/yue2/releases/tag/v1.0.0).
+Hurtigstarten låser den stabile versjonen og den verifiserte OCI-digesten.
 
 </details>
