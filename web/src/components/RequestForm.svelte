@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { onMount, type Snippet } from 'svelte';
-	import { parse as yamlParse, stringify as yamlStringify } from 'yaml';
+	import { parse as yamlParse } from 'yaml';
+	import { stringifyYamlRequest } from '../lib/yaml.js';
 	import { RotateCcw, Download, FolderOpen, X } from '@lucide/svelte';
 	import { app, toast, setRequest, setInputMode } from '../lib/state.svelte.js';
 	import { example, applyExample } from '../lib/example.js';
@@ -132,7 +133,13 @@
 
 	function saveAs(format: 'json' | 'yaml') {
 		const req = buildRequest();
-		const text = format === 'json' ? JSON.stringify(req, null, 2) : yamlStringify(req);
+		let text: string;
+		try {
+			text = format === 'json' ? JSON.stringify(req, null, 2) : stringifyYamlRequest(req);
+		} catch {
+			toast('Could not preserve this request in YAML. Try saving as JSON.');
+			return;
+		}
 		const mime = format === 'json' ? 'application/json' : 'application/x-yaml';
 		const blob = new Blob([text], { type: mime });
 		const url = URL.createObjectURL(blob);
