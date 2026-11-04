@@ -51,7 +51,7 @@ def assess(case, trace):
         'completion_observed': bool(received),
         'real_link_in_final': bool(received) and any(s['url'] in final for s in received),
         'no_early_finish': bool(received) or not generations,
-        'requested_duration': song.get('duration_seconds', 150) == case.get('duration_seconds'),
+        'requested_duration': song.get('duration_seconds', 300) == case.get('duration_seconds', 300),
         'allowed_arguments_only': all(set(e['arguments']) <= {'guide_token', 'lyrics', 'direction', 'duration_seconds', 'tempo_bpm', 'format'} for e in generations),
     }
     if trace.get('inspection_only') and case['kind'] != 'lyrics_only':
@@ -170,7 +170,7 @@ async def run_case(client, tools, instructions, case, args, output):
                         raise ValueError('This qualification case permits one generated song; do not submit duplicates')
                     if name == 'get_song':
                         job = arguments.get('job_id', '')
-                        delay = max(0, 2 - (time.monotonic() - last_poll.get(job, 0)))
+                        delay = max(0, 30 - (time.monotonic() - last_poll.get(job, 0)))
                         # Host scheduling only; report it rather than attributing
                         # an actual timed wait to the model.
                         event['host_poll_wait_seconds'] = delay
@@ -182,7 +182,9 @@ async def run_case(client, tools, instructions, case, args, output):
                     event['result'] = data if data is not None else text
                     event['error'] = bool(result.is_error)
                     if not result.is_error and isinstance(data, dict):
-                        if name == 'generate_song': jobs.add(data['job_id'])
+                        if name == 'generate_song':
+                            jobs.add(data['job_id'])
+                            last_poll[data['job_id']] = time.monotonic()
                         if name in ('get_song', 'cancel_song') and data.get('status') in ('complete', 'failed', 'cancelled'):
                             terminal.add(data['job_id'])
                         if name == 'get_song' and data.get('status') == 'complete':

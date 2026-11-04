@@ -37,7 +37,9 @@ int main() {
         check(r.steps == 8 && r.seed == -1 && r.lm_seed == -1 && r.lm_batch_size == 1 &&
               r.synth_batch_size == 1 && r.abc.empty() && r.adapters.empty() && r.semantic_tokens.empty(), "fresh normal quality");
         auto default_args = parse(R"({"lyrics":"words","direction":"style"})");
-        check(song_request(yyjson_doc_get_root(default_args.get())).duration == 150, "agent full-song default");
+        auto default_request = song_request(yyjson_doc_get_root(default_args.get()));
+        check(default_request.duration == 300 && default_request.lyrics == "words", "five-minute ceiling preserves short lyrics");
+        check(r.duration == 30, "explicit duration ceiling preserved");
         {
             Artifacts bounded(root / "bounded");
             auto first = token(); bounded.save(first, "opus", "retained", 30);
@@ -61,7 +63,7 @@ int main() {
                 check(resolved_seeds.emplace(request.lm_seed, request.seed).second, "every take resolves fresh seeds");
                 auto id = token();
                 artifacts.save(id, request.output_format, "sample-audio-bytes-0123456789", request.duration);
-                Json j; j.text("job_id", id); j.text("status", "queued"); return j.dump();
+                Json j; j.text("job_id", id); j.text("status", "queued"); j.integer("poll_after_seconds", POLL_AFTER_SECONDS); return j.dump();
             }, [](const std::string &, bool) -> std::string { throw std::invalid_argument("Song handle not found or expired"); });
         mcp.attach(server, [](const httplib::Request & req, httplib::Response & res) {
             if (req.get_header_value("Authorization") == "Bearer fixture-key") return true;

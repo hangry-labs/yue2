@@ -9,6 +9,15 @@ spec.loader.exec_module(agent)
 
 
 class SongwritingAssessmentTests(unittest.TestCase):
+    def test_no_requested_length_uses_five_minute_ceiling_when_omitted(self):
+        case, trace = self.fixture()
+        case.pop('duration_seconds')
+        arguments = trace['events'][1]['arguments']
+        arguments.pop('duration_seconds')
+        self.assertTrue(agent.assess(case, trace)['checks']['requested_duration'])
+        arguments['duration_seconds'] = 150
+        self.assertFalse(agent.assess(case, trace)['checks']['requested_duration'])
+
     def fixture(self):
         case = {'kind': 'supplied', 'duration_seconds': 30, 'supplied_lyrics': 'One small light\nThrough the night\nWe will stay\nFind our way'}
         lyrics = '[Verse]\nOne small light\nThrough the night\n[Chorus]\nWe will stay\nFind our way'

@@ -44,7 +44,9 @@ async def check(args):
             assert not result.is_error, result.content
             job = result.structured_content['job_id']
             deadline = time.monotonic() + 1200
+            poll_after = result.structured_content.get('poll_after_seconds', 30)
             while time.monotonic() < deadline:
+                await asyncio.sleep(poll_after)
                 result = await client.call_tool('get_song', {'job_id': job})
                 assert not result.is_error, result.content
                 song = result.structured_content
@@ -61,7 +63,7 @@ async def check(args):
                     return
                 if song['status'] in ('failed', 'cancelled'):
                     raise RuntimeError(song)
-                await asyncio.sleep(song.get('poll_after_seconds', 2))
+                poll_after = song.get('poll_after_seconds', 30)
             await client.call_tool('cancel_song', {'job_id': job})
             raise TimeoutError('Song did not complete in the qualification deadline; cancelled its job')
 

@@ -727,7 +727,7 @@ static std::string agent_submit(const Yue2Request & request) {
         g_agent_jobs.emplace(handle, agent);
         fprintf(stderr, "[Server] Job %s: queued MCP song\n", agent->native->id.c_str());
     }
-    yue_agent::Json j; j.text("job_id", handle); j.text("status", "queued"); j.integer("poll_after_seconds", 2);
+    yue_agent::Json j; j.text("job_id", handle); j.text("status", "queued"); j.integer("poll_after_seconds", yue_agent::POLL_AFTER_SECONDS);
     return j.dump();
 }
 
@@ -749,7 +749,7 @@ static std::string agent_status(const std::string & handle, bool cancel) {
     if (cancel && (state == AgentState::QUEUED || state == AgentState::GENERATING)) {
         g_queue->cancel(agent->native->id); agent_refresh(agent); state = agent->state.load();
     }
-    yue_agent::Json j; j.text("job_id", handle); j.integer("poll_after_seconds", 2);
+    yue_agent::Json j; j.text("job_id", handle); j.integer("poll_after_seconds", yue_agent::POLL_AFTER_SECONDS);
     j.text("status", state == AgentState::QUEUED ? "queued" : state == AgentState::GENERATING ? "generating" :
                      state == AgentState::CANCELLED ? "cancelled" : "failed");
     j.boolean("cancel_requested", agent->native->cancel.load());

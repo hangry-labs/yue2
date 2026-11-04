@@ -2,7 +2,7 @@
 name: yue2-music
 description: Use YuE2's MCP music tools, write complete songs from a brief, arrange supplied lyrics, and describe musical styles and instrumentation.
 metadata:
-  version: "5"
+  version: "6"
 ---
 
 # YuE2 music skill
@@ -110,18 +110,36 @@ support guarantees.
    `duration_seconds`, `tempo_bpm`, `format`. Use those exact argument names;
    `style`, `prompt`, `text` and `duration` are not aliases. Lyrics is one string
    with line breaks, not an array of sections.
-3. Keep the returned `job_id`. Poll `get_song` at its suggested interval, normally
-   two seconds. `queued` and `generating` are ordinary progress states; keep
+3. Keep the returned `job_id`. Wait for `poll_after_seconds` before the first
+   `get_song` call and between later checks. The service recommends **30 seconds**.
+   Avoid rapid polling to save API calls.
+   `queued` and `generating` are ordinary progress states; keep
    checking rather than submitting the same song again. Handle failure or
    cancellation honestly. The service has one serial generation queue.
+   Three polls are not a failure threshold: long songs or queue delays can need
+   more checks. Continue while the job is pending; if you cannot keep waiting,
+   retain its handle and report it as pending rather than failed or resubmitting.
 4. On `complete`, return the **exact HTTP URL** provided by the tool. Mention
    its expiry and include the prepared lyrics if requested. Do not invent a
    download URL or claim to have listened to metadata. Use `cancel_song` with
    that job's handle when the user wants it stopped.
 
-`duration_seconds` is a generation ceiling, not an exact length guarantee.
-It accepts 10-360 seconds; MCP defaults to **150 seconds**. For ordinary songs,
-120-240 seconds is a useful range. Each request starts a fresh composition.
+`duration_seconds` is a **ceiling, not a target**: it limits generation but does
+not make a short set of lyrics fill that time. Song length depends on the amount
+of lyrics, phrasing, repetitions, tempo and the generated arrangement. Increasing
+the ceiling alone does not pad or extend a short song. When writing a longer
+vocal song, develop enough verses, written-out chorus repetitions and a bridge
+to support it. Preserve supplied lyrics unless changes are requested or permitted;
+explain this limitation rather than silently adding words. Exact length is not
+guaranteed, including for instrumentals.
+
+The ceiling accepts 10-360 seconds; MCP defaults to **300 seconds (five minutes)**.
+Normally **omit `duration_seconds`** and keep this default. It gives the song room
+to finish; it is not a request to write or generate five minutes of material.
+Do not add lyrics, repeats or instrumental sections just to fill the ceiling.
+Override it only when the user specifically requests a duration constraint or
+range. A smaller ceiling can cut a song off, and this control cannot enforce a
+minimum or an exact duration. Each request starts a fresh composition.
 
 Choose `opus` for compact listening/sharing (the default) or `flac` for lossless
 editing; both are 48 kHz stereo. Only the selected file is stored. Audio bytes

@@ -54,23 +54,35 @@ Example `generate_song` arguments, after reading the guide:
   "guide_token": "ACTUAL_TOKEN_RETURNED_BY_SKILL",
   "lyrics": "[Verse 1]\nNeon on the handlebars\nWe ride beneath electric stars\nBoots are dusty, wheels are bright\nWe bring the country to the night\n[Pre-Chorus]\nHear the city call our names\nWatch the sparks become a flame\n[Chorus]\nRide on, ride on! (hey!)\nWe will find another way\nSing it loud and carry on\nWe keep rolling till the dawn\n[Verse 2]\nSteel strings ring above the street\nOld-time hearts and future beats\nEvery corner, every bend\nBrings us closer to a friend\n[Pre-Chorus]\nHear the city call our names\nWatch the sparks become a flame\n[Chorus]\nRide on, ride on! (hey!)\nWe will find another way\nSing it loud and carry on\nWe keep rolling till the dawn\n[Bridge]\nWhen the towers fade to gold\nWe have stories to be told\nTake the long road, take my hand\nThere is room for us to land\n[Final Chorus]\nRide on, ride on! (hey!)\nWe will find another way\nSing it loud and carry on\nWe keep rolling till the dawn",
   "direction": "country pop, cyberpunk pop, futuristic, upbeat, male vocals, harmonies, acoustic guitar strumming, electric guitar twang, pedal steel, synth leads, punchy drums, sidechained bass, glossy modern production, neon atmosphere",
-  "duration_seconds": 150,
   "tempo_bpm": 112,
   "format": "opus"
 }
 ```
 
 Only these arguments are accepted. Duration is a **10–360-second ceiling**
-(MCP default **150 seconds**); tempo is an optional **30–300 BPM prompt hint**, not a timing
-guarantee or playback-speed adjustment. Lyrics are passed verbatim; an empty
+(MCP default **300 seconds / five minutes**), not a target. Normally omit
+`duration_seconds`; override it only for an explicit user duration constraint or
+range. Do not write extra material to fill five minutes. A smaller ceiling may
+truncate a song; this control cannot enforce an exact length or minimum.
+Raising it alone does not extend a short song: lyric length, phrasing,
+written-out repetitions, tempo and arrangement
+affect the actual length; short lyrics can still yield repetitions or extended
+instrumental passages. For a longer vocal song, provide enough lyrics and
+sections to support it. Exact length is not guaranteed. Tempo is an optional
+**30–300 BPM prompt hint**, not a timing guarantee or playback-speed adjustment.
+Lyrics are passed verbatim; an empty
 string allows an instrumental with suitable direction. New compositions use
 fresh random seeds, the normal eight-step default and no inherited score.
 Format is `opus` (compact default) or `flac` (lossless), both **48 kHz stereo**.
 There are no model, voice-cloning, adapter, seed, sampling, quality, server
 settings or model-residency tools. Unknown arguments are rejected.
 
-Generation returns immediately. Poll `get_song` every two seconds using the
-returned handle. States are `queued`, `generating`, `complete`, `failed` and
+Generation returns immediately. Wait for the returned `poll_after_seconds` before
+the first `get_song` call and between later checks. Responses recommend
+**30 seconds** to avoid unnecessary API calls. Three polls are not a timeout:
+long songs and queued work can need more checks. Keep the existing handle and
+continue polling pending work instead of failing or resubmitting it.
+Use the returned handle. States are `queued`, `generating`, `complete`, `failed` and
 `cancelled`. A disconnect leaves the song running; cancel explicitly if needed.
 Cancellation is best effort if a song is already finishing. Completed status
 includes `url`, `expires_at`, `ttl_seconds: 3600`, format, MIME type, duration,

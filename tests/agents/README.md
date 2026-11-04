@@ -27,7 +27,8 @@ and MCP HTTP Authorization headers respectively.
 The seven synthetic cases cover a cinematic synth-rock song, prominent flute
 instrumentation, supplied lyrics with a country/cyberpunk style, an anime ending
 theme, a playful Halloween pop-rock song, a lyrics-only request and instrumental
-techno. Requests describe complete songs, typically 150 seconds. Select cases
+techno. Fixtures request explicit song lengths, typically 150 seconds; the normal MCP
+ceiling is 300 seconds when no duration is requested. Select cases
 with repeated `--case ID` or supply another `--cases FILE`.
 
 The checks inspect skill retrieval/order, valid argument names and types,
@@ -43,7 +44,8 @@ Add **`--generate-audio`** only when end-to-end generation is wanted. This mode
 forwards calls to the production MCP service, produces real songs, polls jobs
 and downloads completed links. Ownership/idle/other-GPU-container guards run
 before it starts. It uses the existing serial worker and does not change server
-settings. The host enforces minimum two-second polling waits and cancels only
+settings. The host waits at least 30 seconds after submission and between polls,
+and cancels only
 this test's unfinished jobs on cleanup. Those are host actions, not evidence
 that the model implemented transport, timing or downloads itself.
 

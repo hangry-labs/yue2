@@ -71,12 +71,18 @@ def main(binary):
                 'skill', 'generate_song', 'get_song', 'cancel_song'}
             assert all('skill' in t['description'].lower() and 'first' in t['description'].lower() for t in listing['tools'])
             generate = next(t for t in listing['tools'] if t['name'] == 'generate_song')
-            assert generate['inputSchema']['properties']['duration_seconds']['default'] == 150
+            assert generate['inputSchema']['properties']['duration_seconds']['default'] == 300
             resource = rpc('resources/read', {'uri': 'yue2://skills/songwriting'}, modern)['result']
             skill, _ = send(path='/skills/songwriting/SKILL.md', method='GET', headers={'Authorization': ''})
             assert resource['contents'][0]['text'] == skill.decode()
             guide = call('skill', modern=modern)['structuredContent']
-            assert guide['skill'] == skill.decode() and guide['skill_version'] == '5'
+            assert guide['skill'] == skill.decode() and guide['skill_version'] == '6'
+            assert 'ceiling, not a target' in guide['skill']
+            assert '30 seconds' in guide['skill']
+            assert 'Three polls are not a failure threshold' in guide['skill']
+            assert '300 seconds (five minutes)' in guide['skill']
+            assert 'omit `duration_seconds`' in guide['skill']
+            assert 'Raising it alone' in generate['inputSchema']['properties']['duration_seconds']['description']
             assert guide['skill_loaded'] is True and 'retrieval is complete' in guide['next_step']
             arguments = {'lyrics': '[Verse]\nA little light', 'direction': 'English piano', 'duration_seconds': 30}
             assert call('generate_song', arguments, modern)['isError']
@@ -89,6 +95,7 @@ def main(binary):
                 assert call('generate_song', {**arguments, field: value}, modern)['isError'], field
             assert call('skill', {'settings': {}}, modern)['isError']
             queued = call('generate_song', arguments, modern)['structuredContent']
+            assert queued['poll_after_seconds'] == 30
             complete = call('get_song', {'job_id': queued['job_id']}, modern)['structuredContent']
             assert complete['ttl_seconds'] == 3600 and complete['format'] == 'opus'
             assert complete['sample_rate'] == 48000 and complete['channels'] == 2
