@@ -57,6 +57,7 @@ inline std::string job_json(const Queue & queue, const std::shared_ptr<Job> & jo
     Json j; auto state = job->status.load(); j.text("status", job_status_str(state));
     j.integer("queue_position", (int64_t) queue.position(job->id)); j.boolean("cancel_requested", job->cancel.load());
     if (state == JobStatus::DONE && !job->metrics_json.empty()) j.json("metrics", job->metrics_json);
+    if (state == JobStatus::DONE) j.json("generations", job->generations_json.empty() ? "null" : job->generations_json);
     if (state == JobStatus::FAILED) j.text("error", "Job failed; inspect the local server logs");
     return j.dump();
 }
@@ -86,6 +87,7 @@ inline void attach_status_routes(httplib::Server & server, Queue & queue, Result
             Json j; j.text("status", "done"); j.integer("queue_position", 0);
             j.text("expires_at", yue_agent::utc(result->expires));
             if (!result->metrics.empty()) j.json("metrics", result->metrics);
+            j.json("generations", result->generations.empty() ? "null" : result->generations);
             res.set_content(j.dump(), "application/json"); return;
         }
         res.status = 404; res.set_content("{\"error\":\"job not found or expired\"}", "application/json");

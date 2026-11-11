@@ -109,7 +109,7 @@
           {"name": "id", "in": "query", "required": true, "schema": {"type": "string"}},
           {"name": "result", "in": "query", "description": "Presence requests the result instead of status", "schema": {"type": "integer", "enum": [1]}}
         ],
-        "responses": {"200": {"description": "Status JSON, or result: native synthesis multipart audio/replay/latents; VAE or compatibility jobs return raw audio/latents; transcription/tokenization return JSON", "content": {"application/json": {"schema": {"type": "object"}}, "multipart/mixed": {"schema": {"type": "string", "format": "binary"}}, "application/octet-stream": {"schema": {"type": "string", "format": "binary"}}}}, "206": {"description": "Partial result bytes"}, "429": {"$ref": "#/components/responses/NativeBusy"}, "416": {"description": "Unsatisfiable byte range"}, "404": {"description": "Job/result unavailable or expired"}}
+        "responses": {"200": {"description": "Status JSON includes per-track generations (Generation schema) on completed synthesis, null for unknown legacy facts; or result: native synthesis multipart audio/replay/latents; VAE or compatibility jobs return raw audio/latents; transcription/tokenization return JSON", "content": {"application/json": {"schema": {"type": "object"}}, "multipart/mixed": {"schema": {"type": "string", "format": "binary"}}, "application/octet-stream": {"schema": {"type": "string", "format": "binary"}}}}, "206": {"description": "Partial result bytes"}, "429": {"$ref": "#/components/responses/NativeBusy"}, "416": {"description": "Unsatisfiable byte range"}, "404": {"description": "Job/result unavailable or expired"}}
       },
       "post": {
         "operationId": "cancelJob", "summary": "Request cooperative cancellation",
@@ -153,6 +153,411 @@
   "components": {
     "securitySchemes": {"BearerAuth": {"type": "http", "scheme": "bearer", "description": "Required on /v1 and /mcp when YUE2_API_KEY is configured. This is a local key, not an OpenAI account credential."}},
     "schemas": {
+      "Generation": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "schema_version": {
+            "const": 1
+          },
+          "model": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "filename": {
+                "type": "string"
+              },
+              "quantization": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "quantization_source": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "gguf_file_type": {
+                "type": "integer"
+              },
+              "tensor_types": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "type": {
+                      "type": "string"
+                    },
+                    "count": {
+                      "type": "integer"
+                    }
+                  },
+                  "required": [
+                    "type",
+                    "count"
+                  ]
+                }
+              }
+            },
+            "required": [
+              "filename",
+              "quantization"
+            ]
+          },
+          "decoder": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "filename": {
+                "type": "string"
+              },
+              "quantization": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "quantization_source": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "gguf_file_type": {
+                "type": "integer"
+              },
+              "tensor_types": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "type": {
+                      "type": "string"
+                    },
+                    "count": {
+                      "type": "integer"
+                    }
+                  },
+                  "required": [
+                    "type",
+                    "count"
+                  ]
+                }
+              }
+            },
+            "required": [
+              "filename",
+              "quantization"
+            ]
+          },
+          "serving": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "version": {
+                "type": "string"
+              },
+              "revision": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            },
+            "required": [
+              "version",
+              "revision"
+            ]
+          },
+          "base_seed": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "pattern": "^[0-9]{1,19}$",
+            "description": "Resolved nonnegative int64 as exact decimal text; null if unused/unknown."
+          },
+          "seed": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "pattern": "^[0-9]{1,19}$",
+            "description": "Resolved nonnegative int64 as exact decimal text; null if unused/unknown."
+          },
+          "base_lm_seed": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "pattern": "^[0-9]{1,19}$",
+            "description": "Resolved nonnegative int64 as exact decimal text; null if unused/unknown."
+          },
+          "lm_seed": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "pattern": "^[0-9]{1,19}$",
+            "description": "Resolved nonnegative int64 as exact decimal text; null if unused/unknown."
+          },
+          "planning": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "mode": {
+                "enum": [
+                  "full",
+                  "melody",
+                  "off"
+                ]
+              },
+              "source": {
+                "enum": [
+                  "generated",
+                  "supplied",
+                  "none"
+                ]
+              },
+              "base_seed": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "pattern": "^[0-9]{1,19}$",
+                "description": "Resolved nonnegative int64 as exact decimal text; null if unused/unknown."
+              },
+              "seed": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "pattern": "^[0-9]{1,19}$",
+                "description": "Resolved nonnegative int64 as exact decimal text; null if unused/unknown."
+              },
+              "retries_used": {
+                "type": "integer"
+              },
+              "retry_limit": {
+                "type": "integer"
+              }
+            },
+            "required": [
+              "mode",
+              "source",
+              "base_seed",
+              "seed",
+              "retries_used",
+              "retry_limit"
+            ]
+          },
+          "tempo": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "mode": {
+                "enum": [
+                  "hint",
+                  "automatic"
+                ]
+              },
+              "hint_bpm": {
+                "type": [
+                  "integer",
+                  "null"
+                ]
+              },
+              "measured_bpm": {
+                "type": "null"
+              }
+            },
+            "required": [
+              "mode",
+              "hint_bpm",
+              "measured_bpm"
+            ]
+          },
+          "steps": {
+            "type": "integer"
+          },
+          "guidance": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "semantic_source": {
+            "enum": [
+              "generated",
+              "continuation",
+              "replay"
+            ]
+          },
+          "sampling": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "planning": {
+                "anyOf": [
+                  {
+                    "$ref": "#/components/schemas/Sampling"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "semantic": {
+                "anyOf": [
+                  {
+                    "$ref": "#/components/schemas/Sampling"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            },
+            "required": [
+              "planning",
+              "semantic"
+            ]
+          },
+          "song_index": {
+            "type": "integer"
+          },
+          "variation_index": {
+            "type": "integer"
+          },
+          "duration_ceiling_seconds": {
+            "type": "number"
+          },
+          "truncated": {
+            "type": "boolean"
+          },
+          "adapter_count": {
+            "type": "integer"
+          },
+          "adapters_complete": {
+            "type": "boolean"
+          },
+          "adapters": {
+            "type": [
+              "array",
+              "null"
+            ],
+            "maxItems": 16,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "maxLength": 255
+                },
+                "scale": {
+                  "type": "number"
+                }
+              },
+              "required": [
+                "id",
+                "scale"
+              ]
+            }
+          },
+          "audio": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "format": {
+                "type": "string"
+              },
+              "sample_rate": {
+                "type": "integer"
+              },
+              "channels": {
+                "type": "integer"
+              },
+              "source_duration_seconds": {
+                "type": "number"
+              },
+              "speed": {
+                "type": "number"
+              },
+              "duration_seconds": {
+                "type": [
+                  "number",
+                  "null"
+                ]
+              },
+              "duration_estimate_seconds": {
+                "type": "number"
+              },
+              "duration_basis": {
+                "enum": [
+                  "generated_pcm_samples",
+                  "unmeasured_after_speed_adjustment"
+                ]
+              },
+              "normalization": {
+                "enum": [
+                  "none",
+                  "percentile_peak"
+                ]
+              },
+              "peak_clip": {
+                "type": [
+                  "integer",
+                  "null"
+                ]
+              },
+              "mp3_bitrate_kbps": {
+                "type": "integer"
+              }
+            },
+            "required": [
+              "format",
+              "sample_rate",
+              "channels",
+              "source_duration_seconds",
+              "speed",
+              "duration_seconds",
+              "duration_basis",
+              "normalization",
+              "peak_clip"
+            ]
+          }
+        },
+        "required": [
+          "schema_version",
+          "model",
+          "decoder",
+          "serving",
+          "base_seed",
+          "seed",
+          "base_lm_seed",
+          "lm_seed",
+          "planning",
+          "tempo",
+          "steps",
+          "guidance",
+          "semantic_source",
+          "sampling",
+          "song_index",
+          "variation_index",
+          "duration_ceiling_seconds",
+          "truncated",
+          "adapter_count",
+          "adapters_complete",
+          "adapters",
+          "audio"
+        ],
+        "description": "Immutable allowlisted per-track execution snapshot, at most 16 KiB. Legacy results use null, not inferred defaults. See docs/GENERATION.md."
+      },
       "NativeRequest": {
         "type": "object", "additionalProperties": true,
         "properties": {
@@ -211,8 +616,9 @@
       "NativeBusy": {"description": "Queue or bounded transfer/upload slots are full. No new job was accepted.", "headers": {"Retry-After": {"schema": {"type": "integer", "const": 5}}}},
       "Audio": {"description": "Complete audio file. Normal exports remain 48 kHz stereo; explicit pcm is raw 24 kHz mono PCM16LE. No multipart envelope.",
         "headers": {
-          "X-Request-ID": {"schema": {"type": "string"}}, "X-YuE2-Job-ID": {"schema": {"type": "string"}, "description": "Native job ID for inspection/cancellation"},
-          "X-Audio-Sample-Rate": {"schema": {"type": "integer"}}, "X-Audio-Channels": {"schema": {"type": "integer"}}
+          "X-Request-ID": {"schema": {"type": "string"}}, "X-YuE2-Job-ID": {"schema": {"type": "string"}, "description": "Native job ID for recorded metadata, retained audio and cancellation."},
+          "X-Audio-Sample-Rate": {"schema": {"type": "integer"}}, "X-Audio-Channels": {"schema": {"type": "integer"}},
+          "Link": {"schema": {"type": "string"}, "description": "describedby link to /job?id=ID, using existing native access and retention."}
         },
         "content": {
           "audio/mpeg": {"schema": {"type": "string", "format": "binary"}}, "audio/ogg": {"schema": {"type": "string", "format": "binary"}},

@@ -18,6 +18,7 @@
 #include "agent/mcp.h"
 #include "songwriting-skill.hpp"
 #include "pipeline.h"
+#include "generation-model.h"
 #include "system-gpu.h"
 #include "server/http.h"
 #include "version.h"
@@ -574,7 +575,7 @@ static void run_vae_decode(std::shared_ptr<Job> job, Yue2Request request, std::v
     publish_result(job, audio_output_format(request.output_format)->mime, audio_part);
 }
 
-using SongExport = std::function<void(const std::string &, double)>;
+using SongExport = std::function<void(const std::string &, double, const std::string &)>;
 static void run_job(std::shared_ptr<Job> job, Yue2Request request, bool direct = false, double speed = 1, bool pcm = false,
                     const SongExport & song_export = {}) {
     if (g_shutdown_requested || job->cancel.load()) { job->status.store(JobStatus::CANCELLED); return; }
@@ -584,6 +585,9 @@ static void run_job(std::shared_ptr<Job> job, Yue2Request request, bool direct =
     fprintf(stderr, "[Server] Job %s: %s\n", job->id.c_str(), request_to_json(&request).c_str());
 
     std::vector<Yue2Song> songs;
+    // Capture immutable identity on the worker, not from global configuration at GET time.
+    const auto model_identity = generation_model(g_pipeline.model_path);
+    const auto vae_identity = generation_model(g_pipeline.vae_path);
     bool ok = pipeline_generate(&g_pipeline, request, &songs, server_cancel_job, (void *) &job->cancel);
     double pipeline_seconds = worker_timer.ms() / 1000.0;
 
@@ -599,6 +603,7 @@ static void run_job(std::shared_ptr<Job> job, Yue2Request request, bool direct =
     std::vector<std::string>        audio_parts;
     std::vector<std::string>        request_parts;
     std::vector<std::vector<float>> latents;
+    std::vector<std::string> generations;
     for (size_t t = 0; t < songs.size(); t++) {
         Yue2Song & song = songs[t];
         audio_parts.push_back(encode_audio(request, song.audio, song.T_audio, &job->cancel, speed, pcm));
@@ -606,10 +611,19 @@ static void run_job(std::shared_ptr<Job> job, Yue2Request request, bool direct =
             job->status.store(job->cancel.load() ? JobStatus::CANCELLED : JobStatus::FAILED);
             return;
         }
+        generations.push_back(generation_json(request, song.execution, model_identity, vae_identity,
+                                               YUE2_VERSION, (double) song.T_audio / YUE2_SAMPLE_RATE,
+                                               song.truncated, speed, pcm));
         if (direct) continue;
         Yue2Request replay = request_replay(request, song.score.empty() ? request.abc : song.score,
                                             pipeline_format_tokens(song.tokens), (int) t / M, (int) t % M);
-        request_parts.push_back(request_to_json(&replay));
+        auto replay_json = yue_agent::parse(request_to_json(&replay));
+        yue_agent::Json recorded;
+        size_t field_index, field_max; yyjson_val * key, * value;
+        yyjson_obj_foreach(yyjson_doc_get_root(replay_json.get()), field_index, field_max, key, value)
+            recorded.copy(yyjson_get_str(key), value);
+        recorded.json("generation", generations.back());
+        request_parts.push_back(recorded.dump());
         latents.push_back(std::move(song.latents));
     }
 
@@ -646,14 +660,17 @@ static void run_job(std::shared_ptr<Job> job, Yue2Request request, bool direct =
         yyjson_mut_doc_free(metrics_doc);
     };
     if (job->cancel.load()) { job->status.store(JobStatus::CANCELLED); return; }
-    if (song_export) { song_export(audio_parts.front(), audio_seconds); finalize_metrics(); }
+    std::string generation_list = "[";
+    for (const auto & generation : generations) { if (generation_list.size() > 1) generation_list += ','; generation_list += generation; }
+    generation_list += ']'; job->generations_json = generation_list;
+    if (song_export) { song_export(audio_parts.front(), audio_seconds, generations.front()); finalize_metrics(); }
     else {
         const std::string mime = direct ? (pcm ? "audio/pcm" : audio_output_format(request.output_format)->mime) : MULTIPART_MIME;
         g_results->save(job->id, mime, job->metrics_json, [&](std::ostream & out) {
             if (direct) out.write(audio_parts.front().data(), (std::streamsize) audio_parts.front().size());
             else multipart_write_tracks(out, request_parts, audio_parts, audio_output_format(request.output_format)->mime, latents);
             finalize_metrics();
-        });
+        }, job->generations_json);
     }
     job->status.store(JobStatus::DONE);
 }
@@ -705,9 +722,9 @@ static std::string agent_submit(const Yue2Request & request) {
         agent->native = g_queue->submit("mcp", [agent, request, handle](std::shared_ptr<Job> job) {
             agent->state.store(AgentState::GENERATING);
             try {
-                run_job(job, request, true, 1, false, [&](const std::string & body, double duration) {
+                run_job(job, request, true, 1, false, [&](const std::string & body, double duration, const std::string & generation) {
                     // Publish directly to MCP storage: no second native audio copy.
-                    auto artifact = g_agent_artifacts->save(handle, request.output_format, body, duration);
+                    auto artifact = g_agent_artifacts->save(handle, request.output_format, body, duration, generation);
                     agent->expires.store(artifact.expires);
             });
             auto status = job->status.load();
@@ -841,6 +858,7 @@ static void handle_music_api(const httplib::Request & req, httplib::Response & r
     res.set_header("Cache-Control", "no-store");
     res.set_header("X-Audio-Sample-Rate", parsed.pcm ? "24000" : "48000");
     res.set_header("X-Audio-Channels", parsed.pcm ? "1" : "2");
+    res.set_header("Link", "</job?id=" + job->id + ">; rel=\"describedby\"");
     const char * extension = parsed.pcm ? "pcm" : audio_output_format(request.output_format)->extension;
     res.set_header("Content-Disposition", std::string("attachment; filename=\"song.") + extension + "\"");
     auto result = g_results->find(job->id);

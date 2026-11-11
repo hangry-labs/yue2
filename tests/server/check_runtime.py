@@ -121,6 +121,7 @@ def run(binary):
             request(base, '/fixture/release', {})
             saved = json.loads(request(base, '/synth', {})[2])['id']
             until(lambda: get(base, '/job?id=' + saved)['status'] == 'done')
+            assert get(base, '/job?id=' + saved)['generations'] == [{'schema_version': 1, 'seed': '9007199254740993'}]
             result = request(base, '/job?id=' + saved + '&result=1')
             expected = hashlib.sha256(b'R' * (4 * 1024 * 1024)).hexdigest()
             assert result[0] == 200 and hashlib.sha256(result[2]).hexdigest() == expected
@@ -135,6 +136,7 @@ def run(binary):
         try:
             restored = get(base, '/job?id=' + saved)
             assert restored['status'] == 'done' and restored['metrics']['fixture']
+            assert restored['generations'] == [{'schema_version': 1, 'seed': '9007199254740993'}]
             result = request(base, '/job?id=' + saved + '&result=1')
             assert hashlib.sha256(result[2]).hexdigest() == expected
         finally:

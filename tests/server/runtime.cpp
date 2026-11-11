@@ -25,7 +25,8 @@ static void storage_checks(const std::filesystem::path & root) {
     int64_t now = 100000;
     StorageLimits limits; limits.ttl = 10; limits.bytes = 20; limits.files = 2; limits.file_bytes = 12;
     auto put = [](Results & store, const char * id, const std::string & body) {
-        store.save(id, "application/octet-stream", "{\"schema\":1}", [&](std::ostream & out) { out << body; });
+        store.save(id, "application/octet-stream", "{\"schema\":1}", [&](std::ostream & out) { out << body; },
+                   R"([{"schema_version":1,"seed":"9007199254740993"}])");
     };
     {
         Results store(root, limits, [&] { return now; });
@@ -44,6 +45,7 @@ static void storage_checks(const std::filesystem::path & root) {
         Results store(root, limits, [&] { return now; });
         auto saved = store.find("0123456789abcdef");
         check(saved && saved->metrics == "{\"schema\":1}" && saved->expires == 100010, "restart retains metadata and expiry");
+        check(saved->generations == R"([{"schema_version":1,"seed":"9007199254740993"}])", "native generation metadata survives restart exactly");
         std::ofstream(root / "user-notes.txt") << "keep";
         now = 100010;
         check(!store.find("0123456789abcdef"), "exact expiry refuses new reader");
@@ -134,10 +136,11 @@ int main(int argc, char ** argv) {
                 while (!released && !job->cancel) std::this_thread::sleep_for(std::chrono::milliseconds(5));
                 if (job->cancel) { job->status = JobStatus::CANCELLED; return; }
                 job->metrics_json = "{\"schema\":1,\"fixture\":true}";
+                job->generations_json = R"([{"schema_version":1,"seed":"9007199254740993"}])";
                 results.save(job->id, "audio/wav", job->metrics_json, [](std::ostream & out) {
                     std::string block(64 * 1024, 'R');
                     for (int i = 0; i < 64; ++i) out.write(block.data(), (std::streamsize) block.size());
-                });
+                }, job->generations_json);
                 job->status = JobStatus::DONE;
             });
         };

@@ -1,5 +1,6 @@
 // Model-free transport/expiry fixture. This executable is not shipped.
 #include "agent/mcp.h"
+#include "generation.h"
 #include "songwriting-skill.hpp"
 #include <iostream>
 
@@ -14,16 +15,24 @@ int main() {
         check(key != token() && valid_token(key), "OS capability token");
         {
             Artifacts files(expire_root, [&] { return clock; });
-            auto a = files.save(key, "opus", "sample-opus-bytes", 30);
+            auto a = files.save(key, "opus", "sample-opus-bytes", 30, R"({"schema_version":1,"seed":"9007199254740993","tempo":{"mode":"automatic","hint_bpm":null}})");
             check(a.expires == clock + 3600, "TTL starts on completion");
             Artifact found;
             check(files.find(key, found), "find fresh artifact");
+            check(found.generation == a.generation, "generation snapshot is immutable on retrieval");
+            auto legacy = files.save(token(), "opus", "old-bytes", 10);
+            check(legacy.generation.empty() && legacy.metadata("http://localhost").find("\"generation\":null") != std::string::npos, "legacy artifact stays unknown");
+            bool refused = false;
+            try { files.save(token(), "opus", "bytes", 1, std::string(16385, 'x')); }
+            catch (const std::runtime_error &) { refused = true; }
+            check(refused, "oversized generation metadata rejected before writing audio");
             check(!files.find("../" + key, found), "path traversal");
             clock += 3599; check(files.find(key, found), "link valid before boundary");
         }
         {
             Artifacts files(expire_root, [&] { return clock; }); Artifact found;
             check(files.find(key, found), "completed link survives restart");
+            check(found.generation.find("9007199254740993") != std::string::npos, "persisted execution seed survives restart exactly");
             ++clock; check(!files.find(key, found), "link invalid at exact expiry");
             std::ofstream(expire_root / "user-file.txt") << "keep";
             files.cleanup();
@@ -33,12 +42,12 @@ int main() {
         }
         auto args = parse(R"({"guide_token":"ack","lyrics":"[Verse]\nExact words","direction":"English piano","tempo_bpm":90,"duration_seconds":30,"format":"flac"})");
         auto r = song_request(yyjson_doc_get_root(args.get()));
-        check(r.lyrics == "[Verse]\nExact words" && r.style == "English piano, 90 BPM", "verbatim translation");
+        check(r.lyrics == "[Verse]\nExact words" && r.style == "English piano, 90 BPM" && r.tempo_bpm_hint == 90, "verbatim translation and explicit tempo provenance");
         check(r.steps == 8 && r.seed == -1 && r.lm_seed == -1 && r.lm_batch_size == 1 &&
               r.synth_batch_size == 1 && r.abc.empty() && r.adapters.empty() && r.semantic_tokens.empty(), "fresh normal quality");
         auto default_args = parse(R"({"lyrics":"words","direction":"style"})");
         auto default_request = song_request(yyjson_doc_get_root(default_args.get()));
-        check(default_request.duration == 300 && default_request.lyrics == "words", "five-minute ceiling preserves short lyrics");
+        check(default_request.duration == 300 && default_request.lyrics == "words" && default_request.tempo_bpm_hint == 0, "five-minute ceiling preserves short lyrics, no invented tempo");
         check(r.duration == 30, "explicit duration ceiling preserved");
         {
             Artifacts bounded(root / "bounded");
@@ -62,7 +71,13 @@ int main() {
                 check(request.lm_seed >= 0 && request.seed >= 0, "random seeds resolved before queueing");
                 check(resolved_seeds.emplace(request.lm_seed, request.seed).second, "every take resolves fresh seeds");
                 auto id = token();
-                artifacts.save(id, request.output_format, "sample-audio-bytes-0123456789", request.duration);
+                Yue2Execution execution; execution.mode = request.cot; execution.planning_source = "generated";
+                execution.semantic_source = "generated"; execution.planning_seed = request.lm_seed;
+                execution.semantic_sampling = request.semantic_sampling;
+                auto generation = generation_json(request, execution,
+                    R"({"filename":"test.gguf","quantization":"F32"})",
+                    R"({"filename":"decoder.gguf","quantization":"F32"})", "test (fixture)", request.duration, false);
+                artifacts.save(id, request.output_format, "sample-audio-bytes-0123456789", request.duration, generation);
                 Json j; j.text("job_id", id); j.text("status", "queued"); j.integer("poll_after_seconds", POLL_AFTER_SECONDS); return j.dump();
             }, [](const std::string &, bool) -> std::string { throw std::invalid_argument("Song handle not found or expired"); });
         mcp.attach(server, [](const httplib::Request & req, httplib::Response & res) {

@@ -19,7 +19,7 @@ inline const char * job_status_str(JobStatus s) {
     }
 }
 struct Job {
-    std::string id, kind, metrics_json, error;
+    std::string id, kind, metrics_json, generations_json, error;
     std::chrono::steady_clock::time_point submitted = std::chrono::steady_clock::now();
     std::atomic<JobStatus> status{JobStatus::QUEUED};
     std::atomic<bool> cancel{false};

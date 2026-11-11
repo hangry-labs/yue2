@@ -99,6 +99,12 @@ def main(binary):
             complete = call('get_song', {'job_id': queued['job_id']}, modern)['structuredContent']
             assert complete['ttl_seconds'] == 3600 and complete['format'] == 'opus'
             assert complete['sample_rate'] == 48000 and complete['channels'] == 2
+            generation = complete['generation']
+            assert generation['schema_version'] == 1 and generation['model']['filename'] == 'test.gguf'
+            assert int(generation['seed']) >= 0 and int(generation['lm_seed']) >= 0
+            assert generation['planning']['seed'] == generation['lm_seed']
+            assert generation['tempo'] == {'mode': 'automatic', 'hint_bpm': None, 'measured_bpm': None}
+            assert call('get_song', {'job_id': queued['job_id']}, modern)['structuredContent']['generation'] == generation
             from urllib.parse import urlsplit
             path = urlsplit(complete['url']).path
             body, headers = send(path=path, method='GET', headers={'Authorization': ''})

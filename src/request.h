@@ -21,6 +21,9 @@ struct Yue2Adapter {
 };
 
 struct Yue2Request {
+    // Provenance of an explicit MCP tempo hint. Not an inferred/measured BPM,
+    // and not an additional native request control or serialized replay field.
+    int tempo_bpm_hint = 0;
     // text content
     std::string style;   // ""
     std::string lyrics;  // ""

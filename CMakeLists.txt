@@ -202,6 +202,11 @@ link_ggml_backends(quantize)
 
 add_subdirectory(tests)
 
+add_executable(generation-check tests/generation/metadata.cpp src/request.cpp)
+target_include_directories(generation-check PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
+target_link_libraries(generation-check PRIVATE yyjson)
+link_ggml_backends(generation-check)
+
 add_executable(music-api-check tests/api/translate.cpp src/request.cpp)
 target_include_directories(music-api-check PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
 target_link_libraries(music-api-check PRIVATE yyjson)
@@ -213,6 +218,7 @@ add_executable(server-check tests/server/runtime.cpp src/request.cpp ${SKILL_OUT
 target_include_directories(server-check PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src ${CMAKE_CURRENT_BINARY_DIR})
 target_link_libraries(server-check PRIVATE yyjson httplib Threads::Threads)
 if(WIN32)
+    target_link_libraries(generation-check PRIVATE bcrypt)
     target_link_libraries(mcp-check PRIVATE bcrypt)
     target_link_libraries(server-check PRIVATE bcrypt)
 endif()

@@ -1,4 +1,5 @@
 #pragma once
+#include "generation.h"
 // pipeline.h: YuE2 generation pipeline
 //
 // Turns one request into tracks: a symbolic plan, a semantic token stream,
@@ -72,6 +73,7 @@ struct Yue2Pipeline {
 };
 
 struct Yue2Song {
+    Yue2Execution execution;  // Effective per-track settings captured by the worker.
     std::string        score;      // ABC of the plan, empty in off mode
     std::vector<int>   tokens;     // semantic stream, codec values
     std::vector<float> latents;    // acoustic latents, [T_lat, 64] time major
@@ -362,7 +364,7 @@ static bool pipeline_continue_codes(Yue2Pipeline *           p,
                                     float                    guidance,
                                     Yue2Generation *         codes,
                                     bool (*cancelled)(void *),
-                                    void * cancel_data) {
+                                    void * cancel_data, Yue2Sampling * effective = nullptr) {
     std::vector<int> values;
     if (!pipeline_parse_tokens(r.source_tokens, &values)) {
         return false;
@@ -388,6 +390,7 @@ static bool pipeline_continue_codes(Yue2Pipeline *           p,
     }
     sampling.max_tokens = budget;
     sampling.min_tokens = std::min(sampling.min_tokens, budget);
+    if (effective) *effective = sampling;
     fprintf(stderr, "[Continue] Source %d frames, section [%d, %d), budget %d\n", T_src, a, b, budget);
 
     std::vector<int> section((size_t) (b - a));
@@ -485,6 +488,7 @@ static bool pipeline_generate(Yue2Pipeline *          p,
     std::vector<bool>             truncated(B, false);
     bool                          has_score = cot != YUE2_COT_OFF;
     bool                          planned   = has_score && r.abc.empty();
+    std::vector<Yue2PlanTrace> plan_traces(B);
 
     // The AR half holds the GPU for the plan and the semantic stage, then
     // steps aside for the synthesis
@@ -522,7 +526,7 @@ static bool pipeline_generate(Yue2Pipeline *          p,
             };
             if (!yue2_check_planned_score(scores[i], r.lm_seed, i, B, r.plan_retries,
                     r.abc_sampling.temperature != 0.0f, replan,
-                    [&] { return cancelled && cancelled(cancel_data); })) return false;
+                    [&] { return cancelled && cancelled(cancel_data); }, &plan_traces[i])) return false;
         }
     }
 
@@ -543,6 +547,7 @@ static bool pipeline_generate(Yue2Pipeline *          p,
     }
 
     std::vector<Yue2Generation> codes(B);
+    Yue2Sampling effective_semantic = r.semantic_sampling;
     if (replay) {
         std::vector<int> values;
         if (!pipeline_parse_tokens(r.semantic_tokens, &values)) {
@@ -556,7 +561,7 @@ static bool pipeline_generate(Yue2Pipeline *          p,
         fprintf(stderr, "[Pipeline] Replay: %zu frames supplied\n", codes[0].tokens.size());
     } else if (continued) {
         if (!pipeline_continue_codes(p, lm, r, prefixes[0], negatives.empty() ? nullptr : &negatives[0], guidance,
-                                     &codes[0], cancelled, cancel_data)) {
+                                     &codes[0], cancelled, cancel_data, &effective_semantic)) {
             return false;
         }
     } else {
@@ -571,6 +576,7 @@ static bool pipeline_generate(Yue2Pipeline *          p,
                 semantic.min_tokens = semantic.max_tokens;
             }
         }
+        effective_semantic = semantic;
         if (!yue2_generate(lm, &p->kv, prefixes, negatives, guidance, semantic, r.lm_seed, YUE2_PHASE_SEMANTIC, &codes,
                            cancelled, cancel_data)) {
             return false;
@@ -600,6 +606,14 @@ static bool pipeline_generate(Yue2Pipeline *          p,
         }
         for (int j = 0; j < M; j++) {
             Yue2Song & song = (*songs)[(size_t) i * M + j];
+            auto & execution = song.execution;
+            execution.mode = cot == YUE2_COT_FULL ? "full" : cot == YUE2_COT_MELODY ? "melody" : "off";
+            execution.planning_source = planned ? "generated" : has_score ? "supplied" : "none";
+            execution.semantic_source = replay ? "replay" : continued ? "continuation" : "generated";
+            execution.planning_seed = plan_traces[i].seed;
+            execution.planning_retries = plan_traces[i].retries_used;
+            execution.song_index = i; execution.variation_index = j;
+            execution.guidance = guidance; execution.semantic_sampling = effective_semantic;
             song.score      = scores[i];
             song.T_lat      = T_lat;
             song.truncated  = truncated[i] || codes[i].truncated;

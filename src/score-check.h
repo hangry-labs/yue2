@@ -134,9 +134,16 @@ static bool yue2_plan_retry_seed(int64_t base, int song, int songs, int attempt,
 
 // Replan updates score and its captured token/truncation data together. Keeping
 // this small loop model-free lets tests exercise the same retry policy as CUDA.
+struct Yue2PlanTrace { int64_t seed = -1; int retries_used = 0; };
 template<class Replan, class Cancelled>
 static bool yue2_check_planned_score(const std::string & score, int64_t base_seed, int song, int songs,
-                                    int retries, bool stochastic, Replan replan, Cancelled cancelled) {
+                                    int retries, bool stochastic, Replan replan, Cancelled cancelled,
+                                    Yue2PlanTrace * trace = nullptr) {
+    if (trace) {
+        *trace = {};
+        if (base_seed >= 0 && song >= 0 && base_seed <= std::numeric_limits<int64_t>::max() - song)
+            trace->seed = base_seed + song;
+    }
     if (!yue2_plan_retries_valid(retries)) return false;
     std::string problem = yue2_score_problem(score);
     for (int attempt = 1; !problem.empty() && stochastic && attempt <= retries; ++attempt) {
@@ -149,6 +156,7 @@ static bool yue2_check_planned_score(const std::string & score, int64_t base_see
         fprintf(stderr, "[Plan] song %d: %s; retry %d/%d with lm_seed %lld\n", song + 1,
                 problem.c_str(), attempt, retries, (long long) seed);
         if (!replan(seed)) return false;
+        if (trace) { trace->seed = seed; trace->retries_used = attempt; }
         problem = yue2_score_problem(score);
     }
     if (cancelled()) return false;

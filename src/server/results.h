@@ -12,7 +12,7 @@ inline bool job_id_valid(const std::string & id) {
 }
 struct StorageFull : std::runtime_error { using std::runtime_error::runtime_error; };
 struct Result {
-    std::string id, mime, metrics;
+    std::string id, mime, metrics, generations;
     std::filesystem::path path;
     uint64_t size = 0;
     int64_t expires = 0;
@@ -62,6 +62,7 @@ class Results {
             auto file = std::make_shared<Result>();
             file->id = id; file->path = root_ / (id + ".bin");
             file->mime = yue_agent::field(r, "mime"); file->metrics = yue_agent::field(r, "metrics");
+            file->generations = yue_agent::field(r, "generations");
             file->expires = yyjson_get_sint(yyjson_obj_get(r, "expires"));
             file->size = yyjson_get_uint(yyjson_obj_get(r, "size"));
             if (file->expires <= clock_()) { remove_owned(id); continue; }
@@ -105,7 +106,7 @@ public:
     // Writes are synchronous on the single compute worker; no full result copy
     // is retained by Jobs, HTTP responses, or the storage index.
     void save(const std::string & id, const std::string & mime, const std::string & metrics,
-              const std::function<void(std::ostream &)> & write) {
+              const std::function<void(std::ostream &)> & write, const std::string & generations = "") {
         std::unique_lock<std::mutex> lock(mutex_);
         cleanup_locked();
         if (!job_id_valid(id) || files_.count(id)) throw std::runtime_error("Invalid or duplicate result id");
@@ -148,6 +149,7 @@ public:
             file->expires = clock_() + limits_.ttl;
             file->size = std::filesystem::file_size(staging);
             Json meta; meta.text("mime", mime); meta.text("metrics", metrics);
+            file->generations = generations; meta.text("generations", generations);
             meta.integer("size", (int64_t) file->size); meta.integer("expires", file->expires);
             auto text = meta.dump();
             std::ofstream out(root_ / (id + ".meta-part"), std::ios::binary | std::ios::trunc);

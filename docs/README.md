@@ -23,6 +23,7 @@ container with external models.
 | [Models](MODELS.md) | Pinned downloads, optional components, provenance and conversion |
 | [Audio formats](AUDIO.md) | FFmpeg uploads, Opus/MP3/FLAC/AAC exports and native WAV |
 | [Music and SDK APIs](API.md) | Music endpoint, OpenAI-compatible clients, schema, quality and access |
+| [Recorded generation metadata](GENERATION.md) | Per-song execution settings, exact seeds, model provenance and persistence |
 | [Queue and result storage](QUEUE.md) | Shared backlog limits, retries, status, volume retention and load tests |
 | [Agent music tools](MCP.md) | MCP connection, songwriting skill, restricted controls and one-hour audio links |
 | [LoRA adapters](ADAPTERS.md) | Supported adapter files, placement and loading |

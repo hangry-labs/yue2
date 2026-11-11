@@ -51,11 +51,14 @@ int main(int argc, char ** argv) {
     const auto never_cancel = [] { return false; };
     std::string score = GOOD;
     std::vector<int64_t> seeds;
+    Yue2PlanTrace trace;
     auto replan = [&](int64_t seed) { seeds.push_back(seed); score = GOOD; return true; };
-    check(yue2_check_planned_score(score, 100, 0, 1, 2, true, replan, never_cancel) && seeds.empty(),
+    check(yue2_check_planned_score(score, 100, 0, 1, 2, true, replan, never_cancel, &trace) && seeds.empty() &&
+          trace.seed == 100 && trace.retries_used == 0,
           "valid first plan invokes no generator/retry");
     score = "broken";
-    check(yue2_check_planned_score(score, 100, 1, 3, 2, true, replan, never_cancel) && seeds == std::vector<int64_t>{104},
+    check(yue2_check_planned_score(score, 100, 1, 3, 2, true, replan, never_cancel, &trace) && seeds == std::vector<int64_t>{104} &&
+          trace.seed == 104 && trace.retries_used == 1,
           "one retry replaces failed plan with a valid plan using its batch seed");
     score = "broken"; seeds.clear();
     auto broken = [&](int64_t seed) { seeds.push_back(seed); score = "still broken"; return true; };

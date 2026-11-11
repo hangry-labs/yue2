@@ -91,6 +91,12 @@ through MCP.** Save the handle if the agent connection closes.
 
 ## One-hour downloads and persistence
 
+Completed results also include `generation`, the immutable per-song model,
+resolved seeds, planning retries, tempo hint, effective settings and export
+snapshot. Seeds are decimal strings for int64 precision. Legacy songs without
+recorded facts return `null`; measured BPM is currently unavailable. See
+[recorded generation metadata](GENERATION.md) for the complete schema and limits.
+
 Each download URL expires **one hour after its export completes**, independently
 of queue time or the guide token. Download or share that URL directly. It works
 without an Authorization header: the unpredictable 256-bit URL is the download

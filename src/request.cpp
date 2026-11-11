@@ -17,6 +17,7 @@ static const yyjson_write_flag WRITE_FLAGS =
     YYJSON_WRITE_PRETTY | YYJSON_WRITE_PRETTY_TWO_SPACES | YYJSON_WRITE_FP_TO_FLOAT;
 
 void request_init(Yue2Request * r) {
+    r->tempo_bpm_hint = 0;
     r->style  = "";
     r->lyrics = "";
     r->abc    = "";

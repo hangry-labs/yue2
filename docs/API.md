@@ -8,6 +8,11 @@ Open [the local API guide](http://localhost:8087/docs) or download
 `http://localhost:8087/openapi.json` for the OpenAPI 3.1 contract. The guide is
 packaged in the image and works without a CDN.
 
+Completed songs expose [recorded generation metadata](GENERATION.md): model and
+build identity, resolved seeds, effective settings and audio properties. Native
+jobs return `generations`; compatible binary responses provide `X-YuE2-Job-ID`
+and a `describedby` link to that metadata, without changing the audio body.
+
 For agents, connect to [`/mcp`](MCP.md). Its four tools require reading the
 songwriting guide first, expose basic musical controls and return HTTP
 download links valid for one hour after completion.

@@ -58,12 +58,14 @@ struct Artifact {
     int64_t expires = 0;
     size_t size = 0;
     double duration = 0;
+    std::string generation;  // Empty for artifacts predating recorded provenance.
     const char * mime() const { return format == "opus" ? "audio/ogg" : "audio/flac"; }
     std::string metadata(const std::string & base) const {
         Json j; j.text("job_id", id); j.text("status", "complete"); j.text("format", format);
         j.text("url", base + "/artifacts/" + id + "/song." + format);
         j.text("mime_type", mime()); j.integer("size_bytes", (int64_t) size);
         j.number("duration_seconds", duration); j.integer("sample_rate", 48000); j.integer("channels", 2);
+        j.json("generation", generation.empty() ? "null" : generation);
         j.integer("ttl_seconds", LINK_TTL); j.text("expires_at", utc(expires)); return j.dump();
     }
 };
@@ -80,7 +82,7 @@ class Artifacts {
     bool read_locked(const std::string & id, Artifact & a, bool expired = false) const {
         if (!valid_token(id)) return false;
         auto meta = root_ / (id + ".json");
-        if (!regular(meta) || std::filesystem::file_size(meta) > 4096) return false;
+        if (!regular(meta) || std::filesystem::file_size(meta) > 20480) return false;
         std::ifstream in(meta, std::ios::binary);
         auto doc = parse(std::string(std::istreambuf_iterator<char>(in), {}));
         if (!doc) return false;
@@ -89,6 +91,12 @@ class Artifacts {
         a.expires = yyjson_get_sint(yyjson_obj_get(r, "expires"));
         a.size = (size_t) yyjson_get_uint(yyjson_obj_get(r, "size"));
         a.duration = yyjson_get_num(yyjson_obj_get(r, "duration"));
+        a.generation.clear();
+        if (auto * generation = yyjson_obj_get(r, "generation"); yyjson_is_obj(generation)) {
+            char * value = yyjson_val_write(generation, 0, nullptr);
+            if (value) { a.generation = value; free(value); }
+            if (a.generation.size() > 16384) a.generation.clear();
+        }
         if ((a.format != "opus" && a.format != "flac") || !a.size || a.size > MAX_FILE ||
             (!expired && clock_() >= a.expires)) return false;
         auto path = root_ / (id + "." + a.format);
@@ -121,7 +129,13 @@ public:
     bool find(const std::string & id, Artifact & a) {
         std::lock_guard<std::mutex> lock(mutex_); return read_locked(id, a);
     }
-    Artifact save(const std::string & id, const std::string & format, const std::string & body, double duration) {
+    Artifact save(const std::string & id, const std::string & format, const std::string & body, double duration,
+                  const std::string & generation = "") {
+        if (!generation.empty()) {
+            auto value = parse(generation);
+            if (generation.size() > 16384 || !value || !yyjson_is_obj(yyjson_doc_get_root(value.get())))
+                throw std::runtime_error("Invalid or oversized generation metadata");
+        }
         std::lock_guard<std::mutex> lock(mutex_);
         cleanup_locked();
         if (!valid_token(id) || (format != "opus" && format != "flac") || body.empty() || body.size() > MAX_FILE)
@@ -135,7 +149,7 @@ public:
         }
         if (count >= MAX_FILES || bytes > MAX_BYTES || body.size() > MAX_BYTES - bytes)
             throw std::runtime_error("Temporary export storage is full; existing links are retained until expiry");
-        Artifact a{id, format, clock_() + LINK_TTL, body.size(), duration};
+        Artifact a{id, format, clock_() + LINK_TTL, body.size(), duration, generation};
         auto staging = root_ / (id + ".part");
         auto write = [&](const std::filesystem::path & dest, const std::string & data) {
             if (std::filesystem::exists(dest)) throw std::runtime_error("Export already exists");
@@ -147,6 +161,7 @@ public:
         write(path(a), body);
         Json meta; meta.text("format", format); meta.integer("expires", a.expires);
         meta.integer("size", (int64_t) a.size); meta.number("duration", duration);
+        if (!generation.empty()) meta.json("generation", generation);
         try { write(root_ / (id + ".json"), meta.dump()); }
         catch (...) { std::filesystem::remove(path(a)); throw; }
         return a;
